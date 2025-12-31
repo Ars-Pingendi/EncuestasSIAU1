@@ -1,0 +1,100 @@
+[
+  {
+    "id": 101,
+    "tipoEncuesta": "internacion",
+    "texto": "¿El trato recibido durante el ingreso fue digno, respetando sus creencias, costumbres y sin discriminación?",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 102,
+    "tipoEncuesta": "internacion",
+    "texto": "¿Al momento de su ingreso al hospital le dieron información clara sobre copagos y cuotas moderadoras?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 103,
+    "tipoEncuesta": "internacion",
+    "texto": "La información sobre clasificación y tiempo de atención según el triage en urgencias fue…",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 104,
+    "tipoEncuesta": "internacion",
+    "texto": "La información sobre su estado de salud y la atención recibida por el médico en claridad y suficiencia fue…",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 105,
+    "tipoEncuesta": "internacion",
+    "texto": "El trato por el médico en relación a dignidad, respetando sus creencias y costumbres fue…",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 106,
+    "tipoEncuesta": "internacion",
+    "texto": "La atención del personal de enfermería fue…",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 107,
+    "tipoEncuesta": "internacion",
+    "texto": "La limpieza, el orden y el funcionamiento de las instalaciones fue…",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 108,
+    "tipoEncuesta": "internacion",
+    "texto": "¿Recibió información sobre cómo presentar felicitaciones, reclamos o sugerencias y recibir respuesta?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 109,
+    "tipoEncuesta": "internacion",
+    "texto": "¿Durante la hospitalización le dieron a conocer sus derechos y deberes como usuario?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 110,
+    "tipoEncuesta": "internacion",
+    "texto": "¿Durante su hospitalización se le informó que los estudiantes en formación podían atenderlo?",
+    "opciones": ["Sí", "No", "No aplica"],
+    "requiereComentario": false
+  },
+  {
+    "id": 111,
+    "tipoEncuesta": "internacion",
+    "texto": "¿La alimentación formulada fue suministrada de forma adecuada?",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 112,
+    "tipoEncuesta": "internacion",
+    "texto": "Al egreso o alta del servicio, ¿le dieron indicaciones claras sobre los cuidados y signos de alarma?",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 113,
+    "tipoEncuesta": "internacion",
+    "texto": "¿Cómo calificaría su experiencia general durante la hospitalización?",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": true
+  },
+  {
+    "id": 114,
+    "tipoEncuesta": "internacion",
+    "texto": "¿Recomendaría a sus familiares y amigos el Hospital Universitario?",
+    "opciones": ["Definitivamente no", "Probablemente no", "Probablemente sí", "Definitivamente sí"],
+    "requiereComentario": true
+  }
+]

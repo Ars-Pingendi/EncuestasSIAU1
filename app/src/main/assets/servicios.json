@@ -1,0 +1,186 @@
+[
+  {
+    "id": 1,
+    "nombre": "ANGIOGRAFÍA"
+  },
+  {
+    "id": 2,
+    "nombre": "BANCO DE LECHE"
+  },
+  {
+    "id": 3,
+    "nombre": "BANCO DE SANGRE"
+  },
+  {
+    "id": 4,
+    "nombre": "CARDIOLOGÍA"
+  },
+  {
+    "id": 5,
+    "nombre": "CENTRO DE INFUSIÓN PEDIÁTRICA"
+  },
+  {
+    "id": 6,
+    "nombre": "CITAS MÉDICAS"
+  },
+  {
+    "id": 7,
+    "nombre": "CONSULTA EXTERNA"
+  },
+  {
+    "id": 8,
+    "nombre": "ESTADÍSTICA"
+  },
+  {
+    "id": 9,
+    "nombre": "FACTURACIÓN"
+  },
+  {
+    "id": 10,
+    "nombre": "FARMACIA"
+  },
+  {
+    "id": 11,
+    "nombre": "GINECOLOGÍA"
+  },
+  {
+    "id": 12,
+    "nombre": "IMÁGENES DIAGNÓSTICAS"
+  },
+  {
+    "id": 13,
+    "nombre": "LABORATORIO"
+  },
+  {
+    "id": 14,
+    "nombre": "MADRE CANGURO"
+  },
+  {
+    "id": 15,
+    "nombre": "MÉDICAS 1"
+  },
+  {
+    "id": 16,
+    "nombre": "MÉDICAS 2"
+  },
+  {
+    "id": 17,
+    "nombre": "MÉDICAS 3"
+  },
+  {
+    "id": 18,
+    "nombre": "MÉDICO QUIRÚRGICAS 1"
+  },
+  {
+    "id": 19,
+    "nombre": "MÉDICO QUIRÚRGICAS 2"
+  },
+  {
+    "id": 20,
+    "nombre": "MÉDICO QUIRÚRGICAS 3"
+  },
+  {
+    "id": 21,
+    "nombre": "MÉDICO QUIRÚRGICAS 4"
+  },
+  {
+    "id": 22,
+    "nombre": "NEONATOS"
+  },
+  {
+    "id": 23,
+    "nombre": "ONCOLOGÍA"
+  },
+  {
+    "id": 24,
+    "nombre": "PATOLOGÍA"
+  },
+  {
+    "id": 25,
+    "nombre": "PEDIATRÍA"
+  },
+  {
+    "id": 26,
+    "nombre": "PROGRAMACIÓN DE CIRUGÍA"
+  },
+  {
+    "id": 27,
+    "nombre": "QUEMADOS"
+  },
+  {
+    "id": 28,
+    "nombre": "QUIRÓFANO"
+  },
+  {
+    "id": 29,
+    "nombre": "QUIRÚRGICAS 1"
+  },
+  {
+    "id": 30,
+    "nombre": "QUIRÚRGICAS 2"
+  },
+  {
+    "id": 31,
+    "nombre": "REFERENCIA Y CONTRARREFERENCIA"
+  },
+  {
+    "id": 32,
+    "nombre": "REHABILITACIÓN"
+  },
+  {
+    "id": 33,
+    "nombre": "SALA GINECOLÓGICA"
+  },
+  {
+    "id": 34,
+    "nombre": "TRAUMATOLOGÍA"
+  },
+  {
+    "id": 35,
+    "nombre": "UCI 4TO PISO"
+  },
+  {
+    "id": 36,
+    "nombre": "UCI I"
+  },
+  {
+    "id": 37,
+    "nombre": "UCI II"
+  },
+  {
+    "id": 38,
+    "nombre": "UCI III"
+  },
+  {
+    "id": 39,
+    "nombre": "UCI PEDIÁTRICO 1ER PISO"
+  },
+  {
+    "id": 40,
+    "nombre": "UCI PEDIÁTRICO 4TO PISO"
+  },
+  {
+    "id": 41,
+    "nombre": "UCINT 3ER PISO"
+  },
+  {
+    "id": 42,
+    "nombre": "UCINT 4TO PISO"
+  },
+  {
+    "id": 43,
+    "nombre": "UNIDAD SALUD MENTAL"
+  },
+  {
+    "id": 44,
+    "nombre": "URGENCIAS ADULTOS"
+  },
+  {
+    "id": 45,
+    "nombre": "URGENCIAS GINECOLÓGICAS"
+  },
+  {
+    "id": 46,
+    "nombre": "URGENCIAS PEDIÁTRICA"
+  }
+]

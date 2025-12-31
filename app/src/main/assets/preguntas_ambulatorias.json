@@ -1,0 +1,86 @@
+[
+  {
+    "id": 1,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿Cómo calificaría la facilidad para conseguir una cita?",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 2,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿El tiempo de espera para ser atendido fue adecuado?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 3,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿Cómo calificaría la atención del personal administrativo?",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 4,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿El tiempo de espera para la consulta fue adecuado?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 5,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿Cómo calificaría la atención del médico?",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 6,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿El médico le explicó claramente su diagnóstico y tratamiento?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 7,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿Cómo calificaría la atención del personal de enfermería?",
+    "opciones": ["Muy mala", "Mala", "Regular", "Buena", "Muy buena"],
+    "requiereComentario": false
+  },
+  {
+    "id": 8,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿El personal de enfermería resolvió sus dudas?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 9,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿Las instalaciones del servicio ambulatorio le parecieron adecuadas?",
+    "opciones": ["Muy inadecuadas", "Inadecuadas", "Regulares", "Adecuadas", "Muy adecuadas"],
+    "requiereComentario": false
+  },
+  {
+    "id": 10,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿Recomendaría este servicio ambulatorio a familiares o amigos?",
+    "opciones": ["Definitivamente no", "Probablemente no", "Probablemente sí", "Definitivamente sí"],
+    "requiereComentario": false
+  },
+  {
+    "id": 11,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿Cómo calificaría en general el servicio ambulatorio recibido?",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 12,
+    "tipoEncuesta": "ambulatoria",
+    "texto": "¿Tiene algún comentario adicional sobre el servicio ambulatorio?",
+    "opciones": ["Ninguno", "Sí, tengo un comentario"],
+    "requiereComentario": true
+  }
+]
