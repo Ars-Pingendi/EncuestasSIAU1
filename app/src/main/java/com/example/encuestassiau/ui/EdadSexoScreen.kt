@@ -13,11 +13,12 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun EdadSexoScreen(
-    onNext: (edad: Int, sexo: String, identificacion: String?) -> Unit
+    onNext: (edad: Int, sexo: String, identificacion: String?, informante: String) -> Unit
 ) {
     var edad by remember { mutableStateOf("") }
     var sexoSeleccionado by remember { mutableStateOf<String?>(null) }
     var identificacion by remember { mutableStateOf("") }
+    var informanteSeleccionado by remember { mutableStateOf("Paciente") }
 
     Column(
         modifier = Modifier
@@ -64,6 +65,27 @@ fun EdadSexoScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // 🗣️ Tipo de informante
+            Text("¿Quién responde la encuesta?", style = MaterialTheme.typography.titleMedium)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                listOf("Paciente", "Cuidador principal").forEach { opcion ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = (informanteSeleccionado == opcion),
+                            onClick = { informanteSeleccionado = opcion }
+                        )
+                        Text(text = opcion)
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // 🪪 Identificación (opcional)
             OutlinedTextField(
                 value = identificacion,
@@ -77,7 +99,7 @@ fun EdadSexoScreen(
         Button(
             onClick = {
                 if (edad.isNotEmpty() && sexoSeleccionado != null) {
-                    onNext(edad.toInt(), sexoSeleccionado!!, identificacion.ifBlank { null })
+                    onNext(edad.toInt(), sexoSeleccionado!!, identificacion.ifBlank { null }, informanteSeleccionado)
                 }
             },
             modifier = Modifier

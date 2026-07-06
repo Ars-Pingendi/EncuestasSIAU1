@@ -24,6 +24,8 @@ fun QuestionScreen(
     edad: Int,
     sexo: String,
     identificacion: String?,
+    informante: String,
+    encuestaId: String,
     repository: Repository,
     onFinish: () -> Unit,
     onCancel: () -> Unit
@@ -31,6 +33,8 @@ fun QuestionScreen(
     var currentIndex by remember { mutableIntStateOf(0) }
     var respuestaSeleccionada by remember { mutableStateOf<String?>(null) }
     var comentario by remember { mutableStateOf("") }
+    var motivosSeleccionados by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var otroTexto by remember { mutableStateOf("") }
 
     // ✅ Contexto correcto
     val context = LocalContext.current
@@ -47,10 +51,13 @@ fun QuestionScreen(
         if (guardada != null) {
             respuestaSeleccionada = guardada.respuesta
             comentario = guardada.comentario ?: ""
+            motivosSeleccionados = guardada.motivos.toSet()
         } else {
             respuestaSeleccionada = null
             comentario = ""
+            motivosSeleccionados = emptySet()
         }
+        otroTexto = ""
     }
 
     val fechaActual = SimpleDateFormat(
@@ -59,6 +66,13 @@ fun QuestionScreen(
     ).format(Date())
 
     val preguntaActual = preguntas[currentIndex]
+
+    // ⚠️ ¿La respuesta seleccionada es de nivel detractor?
+    //    Verdadero cuando la pregunta tiene catálogo de motivos y la opción elegida
+    //    está en la mitad inferior de la escala (p.ej. Muy malo/Malo/Regular).
+    val esDetractor = respuestaSeleccionada != null &&
+            preguntaActual.motivos.isNotEmpty() &&
+            preguntaActual.opciones.indexOf(respuestaSeleccionada) <= (preguntaActual.opciones.size - 1) / 2
 
     Column(
         modifier = Modifier
@@ -93,6 +107,50 @@ fun QuestionScreen(
                         onClick = { respuestaSeleccionada = opcion }
                     )
                     Text(opcion)
+                }
+            }
+
+            // ⚠️ Tipificación de motivos (solo si la calificación es detractora)
+            if (esDetractor) {
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    "¿Qué ocurrió? (puede marcar varios)",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+                preguntaActual.motivos.forEach { motivo ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 2.dp)
+                            .clickable {
+                                motivosSeleccionados =
+                                    if (motivo in motivosSeleccionados)
+                                        motivosSeleccionados - motivo
+                                    else
+                                        motivosSeleccionados + motivo
+                            },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = motivo in motivosSeleccionados,
+                            onCheckedChange = { marcado ->
+                                motivosSeleccionados =
+                                    if (marcado) motivosSeleccionados + motivo
+                                    else motivosSeleccionados - motivo
+                            }
+                        )
+                        Text(motivo)
+                    }
+                }
+
+                if ("Otro (especifique)" in motivosSeleccionados) {
+                    OutlinedTextField(
+                        value = otroTexto,
+                        onValueChange = { otroTexto = it },
+                        label = { Text("Especifique el motivo") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
                 }
             }
 
@@ -137,15 +195,29 @@ fun QuestionScreen(
                 onClick = {
                     respuestaSeleccionada?.let { respuestaTexto ->
 
+                        // Motivos solo si la calificación es detractora
+                        val motivosFinal = if (esDetractor) motivosSeleccionados.toList() else emptyList()
+                        val incluyeOtro = esDetractor &&
+                                "Otro (especifique)" in motivosSeleccionados && otroTexto.isNotBlank()
+
+                        val comentarioFinal = when {
+                            preguntaActual.requiereComentario && comentario.isNotBlank() -> comentario
+                            incluyeOtro -> otroTexto
+                            else -> null
+                        }
+
                         val nueva = Respuesta(
+                            encuestaId = encuestaId,
                             encuestaTipo = preguntaActual.tipoEncuesta,
                             preguntaId = preguntaActual.id,
                             respuesta = respuestaTexto,
                             servicio = servicio,
                             edad = edad,
                             sexo = sexo,
+                            informante = informante,
                             identificacion = identificacion,
-                            comentario = if (preguntaActual.requiereComentario) comentario else null,
+                            comentario = comentarioFinal,
+                            motivos = motivosFinal,
                             fecha = fechaActual,
 
                             // Controlados por Repository / SessionManager

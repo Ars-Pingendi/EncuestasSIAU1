@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
         Respuesta::class,
         Question::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(StringListConverter::class)
