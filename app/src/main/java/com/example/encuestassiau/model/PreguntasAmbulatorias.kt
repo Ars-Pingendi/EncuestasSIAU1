@@ -5,8 +5,7 @@ val preguntasAmbulatorias = listOf(
         id = 1,
         tipoEncuesta = "ambulatoria",
         texto = "¿Cómo calificaría la facilidad para conseguir una cita?",
-        opciones = listOf("Muy mala", "Mala", "Regular", "Buena", "Muy buena"),
-        motivos = MOTIVOS_ADMINISTRATIVO
+        opciones = listOf("Muy mala", "Mala", "Regular", "Buena", "Muy buena")
     ),
     Question(
         id = 2,
@@ -18,8 +17,7 @@ val preguntasAmbulatorias = listOf(
         id = 3,
         tipoEncuesta = "ambulatoria",
         texto = "¿Cómo calificaría la atención del personal administrativo?",
-        opciones = listOf("Muy mala", "Mala", "Regular", "Buena", "Muy buena"),
-        motivos = MOTIVOS_ADMINISTRATIVO
+        opciones = listOf("Muy mala", "Mala", "Regular", "Buena", "Muy buena")
     ),
     Question(
         id = 4,
@@ -31,8 +29,7 @@ val preguntasAmbulatorias = listOf(
         id = 5,
         tipoEncuesta = "ambulatoria",
         texto = "¿Cómo calificaría la atención del médico?",
-        opciones = listOf("Muy mala", "Mala", "Regular", "Buena", "Muy buena"),
-        motivos = MOTIVOS_MEDICO
+        opciones = listOf("Muy mala", "Mala", "Regular", "Buena", "Muy buena")
     ),
     Question(
         id = 6,
@@ -44,8 +41,7 @@ val preguntasAmbulatorias = listOf(
         id = 7,
         tipoEncuesta = "ambulatoria",
         texto = "¿Cómo calificaría la atención del personal de enfermería?",
-        opciones = listOf("Muy mala", "Mala", "Regular", "Buena", "Muy buena"),
-        motivos = MOTIVOS_ENFERMERIA
+        opciones = listOf("Muy mala", "Mala", "Regular", "Buena", "Muy buena")
     ),
     Question(
         id = 8,
@@ -57,22 +53,19 @@ val preguntasAmbulatorias = listOf(
         id = 9,
         tipoEncuesta = "ambulatoria",
         texto = "¿Las instalaciones del servicio ambulatorio le parecieron adecuadas?",
-        opciones = listOf("Muy inadecuadas", "Inadecuadas", "Regulares", "Adecuadas", "Muy adecuadas"),
-        motivos = MOTIVOS_INFRAESTRUCTURA
+        opciones = listOf("Muy inadecuadas", "Inadecuadas", "Regulares", "Adecuadas", "Muy adecuadas")
     ),
     Question(
         id = 10,
         tipoEncuesta = "ambulatoria",
         texto = "¿Recomendaría este servicio ambulatorio a familiares o amigos?",
-        opciones = listOf("Definitivamente no", "Probablemente no", "Probablemente sí", "Definitivamente sí"),
-        motivos = MOTIVOS_GENERAL
+        opciones = listOf("Definitivamente no", "Probablemente no", "Probablemente sí", "Definitivamente sí")
     ),
     Question(
         id = 11,
         tipoEncuesta = "ambulatoria",
         texto = "¿Cómo calificaría en general el servicio ambulatorio recibido?",
-        opciones = listOf("Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"),
-        motivos = MOTIVOS_GENERAL
+        opciones = listOf("Muy malo", "Malo", "Regular", "Bueno", "Muy bueno")
     ),
     Question(
         id = 12,

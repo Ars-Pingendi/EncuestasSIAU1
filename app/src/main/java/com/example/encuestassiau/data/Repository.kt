@@ -8,7 +8,6 @@ import android.provider.MediaStore
 import android.util.Log
 import com.example.encuestassiau.model.Question
 import com.example.encuestassiau.network.LoginRequest
-import com.example.encuestassiau.network.NetworkClient
 import com.example.encuestassiau.network.RetrofitClient
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -22,8 +21,7 @@ class Repository(
        🔐 TOKEN / USUARIO
        ========================= */
 
-    /** Decodifica el payload (claims) del JWT almacenado en sesión. */
-    private fun decodificarToken(context: Context): org.json.JSONObject? {
+    fun obtenerNombreDesdeToken(context: Context): String? {
         val token = SessionManager.getToken(context) ?: return null
         return try {
             val payload = token.split(".")[1]
@@ -31,15 +29,13 @@ class Repository(
                 payload,
                 android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
             )
-            org.json.JSONObject(String(decodedBytes, Charsets.UTF_8))
+            val json = org.json.JSONObject(String(decodedBytes, Charsets.UTF_8))
+            json.optString("name_user", null)
         } catch (e: Exception) {
             Log.e("JWT", "Error decodificando token", e)
             null
         }
     }
-
-    fun obtenerNombreDesdeToken(context: Context): String? =
-        decodificarToken(context)?.optString("name_user")?.ifBlank { null }
 
     /* =========================
        🔐 AUTENTICACIÓN
@@ -63,25 +59,20 @@ class Repository(
 
                     SessionManager.saveToken(context, jwt)
 
-                    // 🔐 La identidad se toma de los claims del propio JWT
-                    val claims = decodificarToken(context)
                     val nombreUsuario =
-                        claims?.optString("name_user")?.ifBlank { null } ?: "Usuario"
-                    val usuarioId =
-                        claims?.optString("sub")?.ifBlank { null } ?: username
-                    val usuarioRol =
-                        claims?.optString("authorities")?.ifBlank { null } ?: ""
+                        obtenerNombreDesdeToken(context) ?: "Usuario"
+
+                    val usuarioId = username
 
                     SessionManager.saveUsuario(
                         context = context,
                         usuarioId = usuarioId,
-                        usuarioNombre = nombreUsuario,
-                        usuarioRol = usuarioRol
+                        usuarioNombre = nombreUsuario
                     )
 
                     Log.i(
                         "LOGIN",
-                        "✅ Sesión iniciada: $nombreUsuario ($usuarioId) [$usuarioRol]"
+                        "✅ Sesión iniciada: $nombreUsuario ($usuarioId)"
                     )
 
                     Result.success(Unit)
@@ -166,22 +157,11 @@ class Repository(
                 return@withContext
             }
 
-            var enviadas = 0
             pendientes.forEach { respuesta ->
                 try {
-                    // 📤 Envía al servidor; solo se marca sincronizado si tuvo éxito
-                    val ok = NetworkClient.enviarRespuesta(respuesta)
-                    if (ok) {
-                        respuestaDao.actualizarRespuesta(
-                            respuesta.copy(sincronizado = true)
-                        )
-                        enviadas++
-                    } else {
-                        Log.w(
-                            "SYNC",
-                            "⚠️ El servidor rechazó la respuesta ${respuesta.preguntaId}; queda pendiente"
-                        )
-                    }
+                    respuestaDao.actualizarRespuesta(
+                        respuesta.copy(sincronizado = true)
+                    )
                 } catch (e: Exception) {
                     Log.e(
                         "SYNC",
@@ -190,7 +170,6 @@ class Repository(
                     )
                 }
             }
-            Log.i("SYNC", "📤 Sincronización: $enviadas/${pendientes.size} enviadas")
         }
     }
 
@@ -236,22 +215,19 @@ class Repository(
                 ?.use { out ->
 
                     out.write(
-                        "EncuestaId,Usuario,Servicio,Edad,Sexo,Informante,TipoEncuesta,PreguntaId,Respuesta,Comentario,Motivos,Fecha,Sincronizado\n"
+                        "Usuario,Servicio,Edad,Sexo,TipoEncuesta,PreguntaId,Respuesta,Comentario,Fecha,Sincronizado\n"
                     )
 
                     respuestas.forEach { r ->
                         val fila = listOf(
-                            limpiarTexto(r.encuestaId),
                             limpiarTexto(r.usuarioNombre),
                             limpiarTexto(r.servicio),
                             r.edad.toString(),
                             limpiarTexto(r.sexo),
-                            limpiarTexto(r.informante),
                             limpiarTexto(r.encuestaTipo),
                             r.preguntaId.toString(),
                             "\"${limpiarTexto(r.respuesta)}\"",
                             "\"${limpiarTexto(r.comentario ?: "")}\"",
-                            "\"${limpiarTexto(r.motivos.joinToString("; "))}\"",
                             limpiarTexto(r.fecha),
                             if (r.sincronizado) "Sí" else "No"
                         ).joinToString(",")

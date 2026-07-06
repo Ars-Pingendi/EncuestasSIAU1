@@ -28,16 +28,12 @@ fun AppNavigation(repository: Repository) {
     var edad by remember { mutableIntStateOf(0) }
     var sexo by remember { mutableStateOf("") }
     var identificacion by remember { mutableStateOf<String?>(null) }
-    var informante by remember { mutableStateOf("Paciente") }
-    var encuestaId by remember { mutableStateOf("") }
 
     when (currentScreen) {
 
         "start" -> StartScreen(
             onSelectTipo = { tipo ->
                 tipoEncuesta = tipo
-                // 🧾 Nueva encuesta: identificador único para agrupar sus respuestas
-                encuestaId = java.util.UUID.randomUUID().toString()
                 currentScreen = "servicio"
             },
             onSync = {
@@ -67,11 +63,10 @@ fun AppNavigation(repository: Repository) {
             currentScreen = "edadSexo"
         }
 
-        "edadSexo" -> EdadSexoScreen { e, s, id, inf ->
+        "edadSexo" -> EdadSexoScreen { e, s, id ->
             edad = e
             sexo = s
             identificacion = id
-            informante = inf
             currentScreen = "preguntas"
         }
 
@@ -115,8 +110,6 @@ fun AppNavigation(repository: Repository) {
                     edad = edad,
                     sexo = sexo,
                     identificacion = identificacion,
-                    informante = informante,
-                    encuestaId = encuestaId,
                     repository = repository,
                     onFinish = { currentScreen = "gracias" },
                     onCancel = { currentScreen = "start" }

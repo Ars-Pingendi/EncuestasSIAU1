@@ -23,10 +23,10 @@ object NetworkClient {
         Log.i("NetworkClient", "Token actualizado")
     }
     /**
-     * URL del servidor para envío de respuestas.
-     * Configurable en local.properties (api.base.url); ver app/build.gradle.kts
+     * URL de referencia.
+     * El endpoint real para recepción de respuestas aún NO está implementado.
      */
-    private val BASE_URL = com.example.encuestassiau.BuildConfig.API_BASE_URL
+    private const val BASE_URL = "http://192.168.10.150:8001"
 
     private val client = HttpClient(CIO) {
 
