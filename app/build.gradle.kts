@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -5,6 +7,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
 }
+
+// 🔧 URLs de los servidores. Se pueden sobreescribir en local.properties con:
+//    auth.base.url=http://IP:PUERTO/
+//    api.base.url=http://IP:PUERTO
+// Si no están definidas, se usan estos valores por defecto.
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun urlProp(key: String, def: String): String =
+    (localProps.getProperty(key) ?: def)
 
 android {
     namespace = "com.example.encuestassiau"
@@ -18,6 +31,15 @@ android {
         versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String", "AUTH_BASE_URL",
+            "\"${urlProp("auth.base.url", "http://192.168.10.35:8001/")}\""
+        )
+        buildConfigField(
+            "String", "API_BASE_URL",
+            "\"${urlProp("api.base.url", "http://192.168.10.150:8001")}\""
+        )
     }
 
     buildTypes {
@@ -41,6 +63,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {

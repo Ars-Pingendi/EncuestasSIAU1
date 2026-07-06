@@ -11,5 +11,9 @@ data class Question(
     val tipoEncuesta: String,
     val texto: String,
     val opciones: List<String> = emptyList(),
-    val requiereComentario: Boolean = false
+    val requiereComentario: Boolean = false,
+
+    // ⚠️ Opciones de tipificación que se muestran si la pregunta se califica
+    //    en nivel detractor (vacío = no aplica, p.ej. preguntas Sí/No)
+    val motivos: List<String> = emptyList()
 )

@@ -13,6 +13,7 @@ object SessionManager {
     // 👤 Usuario
     private const val KEY_USUARIO_ID = "usuario_id"
     private const val KEY_USUARIO_NOMBRE = "usuario_nombre"
+    private const val KEY_USUARIO_ROL = "usuario_rol"
 
     /**
      * Guarda SOLO el token JWT y lo inyecta en el cliente de red
@@ -32,12 +33,14 @@ object SessionManager {
     fun saveUsuario(
         context: Context,
         usuarioId: String,
-        usuarioNombre: String
+        usuarioNombre: String,
+        usuarioRol: String = ""
     ) {
         val prefs = context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
         prefs.edit()
             .putString(KEY_USUARIO_ID, usuarioId)
             .putString(KEY_USUARIO_NOMBRE, usuarioNombre)
+            .putString(KEY_USUARIO_ROL, usuarioRol)
             .apply()
     }
 
@@ -52,6 +55,10 @@ object SessionManager {
     fun getUsuarioNombre(context: Context): String? =
         context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
             .getString(KEY_USUARIO_NOMBRE, null)
+
+    fun getUsuarioRol(context: Context): String? =
+        context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
+            .getString(KEY_USUARIO_ROL, null)
 
     fun isLoggedIn(context: Context): Boolean =
         getToken(context) != null && getUsuarioId(context) != null
