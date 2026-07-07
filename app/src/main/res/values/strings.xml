@@ -1,3 +1,58 @@
 <resources>
     <string name="app_name">EncuestasSIAU</string>
+
+    <!-- Login -->
+    <string name="login_titulo">Ingreso al sistema</string>
+    <string name="login_campo_usuario">Usuario</string>
+    <string name="login_campo_contrasena">Contraseña</string>
+    <string name="login_boton">Ingresar</string>
+    <string name="login_exito">Ingreso exitoso</string>
+    <string name="login_error_credenciales">Usuario o contraseña incorrectos</string>
+    <string name="login_error_conexion">No fue posible conectarse al servidor</string>
+
+    <!-- Inicio -->
+    <string name="start_titulo">Encuestas SIAU</string>
+    <string name="start_usuario">Usuario: %1$s</string>
+    <string name="start_pendientes">%1$d respuestas pendientes de sincronizar</string>
+    <string name="start_btn_ambulatoria">Encuesta Ambulatoria</string>
+    <string name="start_btn_internacion">Encuesta Hospitalización</string>
+    <string name="start_btn_sincronizar">Sincronizar manualmente</string>
+    <string name="start_btn_exportar">Exportar CSV</string>
+    <string name="start_btn_cerrar_sesion">Cerrar sesión</string>
+
+    <!-- Servicio -->
+    <string name="servicio_titulo">Selecciona el servicio</string>
+    <string name="servicio_vacio">No se encontraron servicios disponibles.</string>
+
+    <!-- Edad y sexo -->
+    <string name="edad_sexo_titulo">Datos del usuario</string>
+    <string name="edad_sexo_campo_edad">Edad</string>
+    <string name="edad_sexo_error_edad">Ingresa una edad entre 1 y 120</string>
+    <string name="edad_sexo_campo_sexo">Sexo</string>
+    <string name="edad_sexo_masculino">Masculino</string>
+    <string name="edad_sexo_femenino">Femenino</string>
+    <string name="edad_sexo_otro">Otro</string>
+    <string name="edad_sexo_campo_id">Identificación (opcional)</string>
+    <string name="edad_sexo_btn_continuar">Continuar</string>
+
+    <!-- Persona que responde -->
+    <string name="persona_responde_titulo">¿Quién responde la encuesta?</string>
+    <string name="persona_responde_paciente">El paciente</string>
+    <string name="persona_responde_cuidador">El cuidador principal / familiar acompañante</string>
+
+    <!-- Tipificación -->
+    <string name="tipificacion_titulo">¿Cuál fue el motivo? (seleccione uno o más)</string>
+
+    <!-- Preguntas -->
+    <string name="pregunta_contador">Pregunta %1$d de %2$d</string>
+    <string name="pregunta_campo_comentario">Comentario</string>
+    <string name="pregunta_btn_atras">Atrás</string>
+    <string name="pregunta_btn_cancelar">Cancelar</string>
+    <string name="pregunta_btn_siguiente">Siguiente</string>
+    <string name="pregunta_btn_finalizar">Finalizar</string>
+
+    <!-- Gracias -->
+    <string name="gracias_titulo">¡Gracias por tu participación!</string>
+    <string name="gracias_subtitulo">Tu opinión nos ayuda a mejorar la calidad del servicio.</string>
+    <string name="gracias_btn_volver">Volver al inicio</string>
 </resources>

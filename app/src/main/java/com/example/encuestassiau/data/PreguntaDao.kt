@@ -9,11 +9,14 @@ import com.example.encuestassiau.model.Question
 @Dao
 interface PreguntaDao {
 
-    @Query("SELECT * FROM preguntas WHERE tipoEncuesta = :tipo")
+    @Query("SELECT * FROM preguntas WHERE tipoEncuesta = :tipo ORDER BY id ASC")
     suspend fun obtenerPreguntasPorTipo(tipo: String): List<Question>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertarTodas(preguntas: List<Question>)
+
+    @Query("SELECT COUNT(*) FROM preguntas")
+    suspend fun count(): Int
 
     @Query("DELETE FROM preguntas")
     suspend fun borrarPreguntas()

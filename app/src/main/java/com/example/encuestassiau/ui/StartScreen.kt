@@ -7,7 +7,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.encuestassiau.R
 import com.example.encuestassiau.data.Repository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -27,13 +29,10 @@ fun StartScreen(
     var pendientes by remember { mutableIntStateOf(0) }
     var cargando by remember { mutableStateOf(true) }
 
-    // 🔹 Cargar nombre de usuario desde JWT
-
     LaunchedEffect(Unit) {
         nombreUsuario = repository.obtenerNombreDesdeToken(context) ?: ""
     }
 
-    // 🔹 Contador de pendientes
     LaunchedEffect(Unit) {
         cargando = true
         pendientes = withContext(kotlinx.coroutines.Dispatchers.IO) { repository.contarPendientes() }
@@ -47,25 +46,21 @@ fun StartScreen(
         verticalArrangement = Arrangement.SpaceBetween
     ) {
 
-        /* =========================
-           ENCABEZADO Y CONTENIDO PRINCIPAL
-           ========================= */
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.fillMaxWidth()
         ) {
 
-            // Nombre del usuario
             if (nombreUsuario.isNotEmpty()) {
                 Text(
-                    text = "Usuario: $nombreUsuario",
+                    text = stringResource(R.string.start_usuario, nombreUsuario),
                     style = MaterialTheme.typography.bodyMedium
                 )
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
             Text(
-                text = "Encuestas SIAU",
+                text = stringResource(R.string.start_titulo),
                 style = MaterialTheme.typography.headlineMedium
             )
 
@@ -74,45 +69,41 @@ fun StartScreen(
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onSelectTipo("ambulatoria") }
-            ) { Text("Encuesta Ambulatoria") }
+            ) { Text(stringResource(R.string.start_btn_ambulatoria)) }
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onSelectTipo("internacion") }
-            ) { Text("Encuesta Hospitalización") }
+            ) { Text(stringResource(R.string.start_btn_internacion)) }
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 🕓 Indicador visual de pendientes
             if (!cargando && pendientes > 0) {
                 Text(
-                    text = "🕓 $pendientes respuestas pendientes de sincronizar",
+                    text = "🕓 ${stringResource(R.string.start_pendientes, pendientes)}",
                     color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
 
-        /* =========================
-           PIE DE PANTALLA
-           ========================= */
         Column {
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { scope.launch { onSync() } }
-            ) { Text("Sincronizar manualmente") }
+            ) { Text(stringResource(R.string.start_btn_sincronizar)) }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Button(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { scope.launch { onExportCsv() } }
-            ) { Text("Exportar CSV") }
+            ) { Text(stringResource(R.string.start_btn_exportar)) }
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -120,7 +111,7 @@ fun StartScreen(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = onLogout,
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-            ) { Text("Cerrar sesión") }
+            ) { Text(stringResource(R.string.start_btn_cerrar_sesion)) }
         }
     }
 }

@@ -6,9 +6,11 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import com.example.encuestassiau.BuildConfig
 import com.example.encuestassiau.model.Question
 import com.example.encuestassiau.network.LoginRequest
 import com.example.encuestassiau.network.RetrofitClient
+import com.example.encuestassiau.util.JwtUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -23,18 +25,14 @@ class Repository(
 
     fun obtenerNombreDesdeToken(context: Context): String? {
         val token = SessionManager.getToken(context) ?: return null
-        return try {
-            val payload = token.split(".")[1]
-            val decodedBytes = android.util.Base64.decode(
-                payload,
-                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
-            )
-            val json = org.json.JSONObject(String(decodedBytes, Charsets.UTF_8))
-            json.optString("name_user", null)
-        } catch (e: Exception) {
-            Log.e("JWT", "Error decodificando token", e)
-            null
-        }
+        return JwtUtils.decodePayload(token)
+            ?.optString("name_user", "")
+            ?.takeIf { it.isNotEmpty() }
+    }
+
+    fun isTokenExpired(context: Context): Boolean {
+        val token = SessionManager.getToken(context) ?: return true
+        return JwtUtils.isExpired(token)
     }
 
     /* =========================
@@ -46,6 +44,20 @@ class Repository(
         username: String,
         password: String
     ): Result<Unit> {
+
+        // Bypass de pruebas — solo en builds DEBUG, no llega a producción
+        if (BuildConfig.DEBUG && username == "admin_test" && password == "siau2024") {
+            // JWT ficticio: payload {"sub":"test","name_user":"Usuario Test","exp":9999999999}
+            // exp = año 2286, no expira durante las pruebas
+            val fakeJwt = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0" +
+                ".eyJzdWIiOiJ0ZXN0IiwibmFtZV91c2VyIjoiVXN1YXJpbyBUZXN0IiwiZXhwIjo5OTk5OTk5OTk5fQ" +
+                ".test_sig"
+            SessionManager.saveToken(context, fakeJwt)
+            SessionManager.saveUsuario(context, username, "Usuario Test")
+            Log.i("LOGIN", "🧪 Sesión de prueba iniciada (admin_test)")
+            return Result.success(Unit)
+        }
+
         return try {
 
             val response = RetrofitClient.authApi.login(
@@ -62,18 +74,13 @@ class Repository(
                     val nombreUsuario =
                         obtenerNombreDesdeToken(context) ?: "Usuario"
 
-                    val usuarioId = username
-
                     SessionManager.saveUsuario(
                         context = context,
-                        usuarioId = usuarioId,
+                        usuarioId = username,
                         usuarioNombre = nombreUsuario
                     )
 
-                    Log.i(
-                        "LOGIN",
-                        "✅ Sesión iniciada: $nombreUsuario ($usuarioId)"
-                    )
+                    Log.i("LOGIN", "✅ Sesión iniciada: $nombreUsuario ($username)")
 
                     Result.success(Unit)
                 } else {
@@ -100,10 +107,7 @@ class Repository(
     ): List<Question> =
         withContext(Dispatchers.IO) {
             val lista = preguntaDao.obtenerPreguntasPorTipo(tipoEncuesta)
-            Log.d(
-                "PREGUNTAS",
-                "Tipo=$tipoEncuesta | total=${lista.size}"
-            )
+            Log.d("PREGUNTAS", "Tipo=$tipoEncuesta | total=${lista.size}")
             lista
         }
 
@@ -120,19 +124,13 @@ class Repository(
         val usuarioNombre = SessionManager.getUsuarioNombre(context)
 
         if (usuarioId == null || usuarioNombre == null) {
-            Log.e(
-                "Repository",
-                "❌ No hay usuario logueado. Respuesta NO guardada."
-            )
+            Log.e("Repository", "❌ No hay usuario logueado. Respuesta NO guardada.")
             return@withContext
         }
 
-        val respuestaConUsuario = respuesta.copy(
-            usuarioId = usuarioId,
-            usuarioNombre = usuarioNombre
+        respuestaDao.insertarRespuesta(
+            respuesta.copy(usuarioId = usuarioId, usuarioNombre = usuarioNombre)
         )
-
-        respuestaDao.insertarRespuesta(respuestaConUsuario)
 
         Log.i(
             "Repository",
@@ -159,15 +157,18 @@ class Repository(
 
             pendientes.forEach { respuesta ->
                 try {
-                    respuestaDao.actualizarRespuesta(
-                        respuesta.copy(sincronizado = true)
-                    )
+                    val response = RetrofitClient.syncApi.enviarRespuesta(respuesta)
+                    if (response.isSuccessful) {
+                        respuestaDao.actualizarRespuesta(respuesta.copy(sincronizado = true))
+                        Log.i("SYNC", "✅ Sincronizada pregunta ${respuesta.preguntaId}")
+                    } else {
+                        Log.w(
+                            "SYNC",
+                            "⚠️ Servidor rechazó pregunta ${respuesta.preguntaId}: ${response.code()}"
+                        )
+                    }
                 } catch (e: Exception) {
-                    Log.e(
-                        "SYNC",
-                        "❌ Error sincronizando pregunta ${respuesta.preguntaId}",
-                        e
-                    )
+                    Log.e("SYNC", "❌ Error sincronizando pregunta ${respuesta.preguntaId}", e)
                 }
             }
         }
@@ -213,33 +214,28 @@ class Repository(
                 .openOutputStream(uri)
                 ?.bufferedWriter()
                 ?.use { out ->
-
                     out.write(
-                        "Usuario,Servicio,Edad,Sexo,TipoEncuesta,PreguntaId,Respuesta,Comentario,Fecha,Sincronizado\n"
+                        "Usuario,PersonaQueResponde,Servicio,TipoEncuesta,Edad,Sexo,PreguntaId,Respuesta,Tipificacion,Fecha,Sincronizado\n"
                     )
-
                     respuestas.forEach { r ->
                         val fila = listOf(
-                            limpiarTexto(r.usuarioNombre),
-                            limpiarTexto(r.servicio),
+                            csvEscape(r.usuarioNombre),
+                            csvEscape(r.personaQueResponde),
+                            csvEscape(r.servicio),
+                            csvEscape(r.encuestaTipo),
                             r.edad.toString(),
-                            limpiarTexto(r.sexo),
-                            limpiarTexto(r.encuestaTipo),
+                            csvEscape(r.sexo),
                             r.preguntaId.toString(),
-                            "\"${limpiarTexto(r.respuesta)}\"",
-                            "\"${limpiarTexto(r.comentario ?: "")}\"",
-                            limpiarTexto(r.fecha),
+                            csvEscape(r.respuesta),
+                            csvEscape(r.tipificacion?.replace("|", "; ") ?: ""),
+                            csvEscape(r.fecha),
                             if (r.sincronizado) "Sí" else "No"
                         ).joinToString(",")
-
                         out.write("$fila\n")
                     }
                 }
 
-            Log.i(
-                "Repository",
-                "📁 CSV generado en Documentos/EncuestasSIAU"
-            )
+            Log.i("Repository", "📁 CSV generado en Documentos/EncuestasSIAU")
 
             uri
         }
@@ -248,10 +244,6 @@ class Repository(
        🔤 UTILIDADES
        ========================= */
 
-    private fun limpiarTexto(texto: String): String =
-        texto
-            .replace("\"", "\"\"")
-            .replace(",", ";")
-            .replace("\n", " ")
-            .trim()
+    private fun csvEscape(texto: String): String =
+        "\"${texto.replace("\"", "\"\"").replace("\n", " ").trim()}\""
 }

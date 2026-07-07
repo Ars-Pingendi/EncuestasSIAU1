@@ -2,12 +2,16 @@ package com.example.encuestassiau
 
 import android.os.Bundle
 import android.util.Log
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.encuestassiau.data.AppDatabase
 import com.example.encuestassiau.data.Repository
@@ -25,25 +29,38 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        // Pantalla siempre encendida (tablet de kiosco)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        aplicarModoInmersivo()
+
+        // Intenta bloquear la tablet en modo kiosco si el dispositivo
+        // está configurado como Device Owner por el área de IT del hospital.
+        // En dispositivos sin esa configuración falla silenciosamente.
+        try {
+            startLockTask()
+        } catch (e: SecurityException) {
+            Log.w("KIOSK", "Lock task no disponible en este dispositivo: ${e.message}")
+        }
+
         val database = AppDatabase.getDatabase(this)
         val repository = Repository(
             database.respuestaDao(),
             database.preguntaDao()
         )
 
-        // 🌐 Sincronización automática al volver la red
         networkObserver = NetworkObserver(this) {
-            Log.i("SYNC", "🌐 Red disponible → sincronizando pendientes")
+            Log.i("SYNC", "Red disponible — sincronizando pendientes")
             lifecycleScope.launch {
-                repository.sincronizarPendientes(
-                    this@MainActivity.applicationContext
-                )
+                repository.sincronizarPendientes(this@MainActivity.applicationContext)
             }
         }
         networkObserver.register()
 
-        // 🔐 Restaurar sesión si existe
-        SessionManager.getToken(this)
+        SessionManager.restoreSession(this)
+        if (repository.isTokenExpired(this)) {
+            SessionManager.clearSession(this)
+        }
 
         setContent {
             MaterialTheme {
@@ -54,12 +71,9 @@ class MainActivity : ComponentActivity() {
                         mutableStateOf(SessionManager.isLoggedIn(context))
                     }
 
-                    // ⏳ Timeout por inactividad
                     LaunchedEffect(autenticado) {
                         if (autenticado) {
-                            IdleTimeoutManager.start {
-                                cerrarSesion()
-                            }
+                            IdleTimeoutManager.start { cerrarSesion() }
                         } else {
                             IdleTimeoutManager.stop()
                         }
@@ -74,6 +88,21 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Re-aplica modo inmersivo si el sistema lo interrumpió (p.ej. una notificación)
+        if (hasFocus) aplicarModoInmersivo()
+    }
+
+    private fun aplicarModoInmersivo() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowInsetsControllerCompat(window, window.decorView).apply {
+            hide(WindowInsetsCompat.Type.systemBars())
+            systemBarsBehavior =
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
     }
 

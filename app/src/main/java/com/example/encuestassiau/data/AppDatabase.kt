@@ -6,21 +6,22 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.example.encuestassiau.data.converters.StringListConverter
 import com.example.encuestassiau.model.Question
-import com.example.encuestassiau.model.preguntasAmbulatorias
-import com.example.encuestassiau.model.preguntasInternacion
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.decodeFromString
+import kotlinx.serialization.json.Json
 
 @Database(
     entities = [
         Respuesta::class,
         Question::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 @TypeConverters(StringListConverter::class)
@@ -34,10 +35,50 @@ abstract class AppDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: AppDatabase? = null
 
+        private val jsonParser = Json { ignoreUnknownKeys = true }
+
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `respuestas` ADD COLUMN `usuarioId` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `respuestas` ADD COLUMN `usuarioNombre` TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    """CREATE TABLE IF NOT EXISTS `preguntas` (
+                        `id` INTEGER NOT NULL,
+                        `tipoEncuesta` TEXT NOT NULL,
+                        `texto` TEXT NOT NULL,
+                        `opciones` TEXT NOT NULL,
+                        `requiereComentario` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+            }
+        }
+
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `respuestas` ADD COLUMN `tipificacion` TEXT")
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `preguntas` ADD COLUMN `seccion` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("ALTER TABLE `preguntas` ADD COLUMN `tipo` TEXT NOT NULL DEFAULT 'escala'")
+                db.execSQL("ALTER TABLE `respuestas` ADD COLUMN `personaQueResponde` TEXT NOT NULL DEFAULT ''")
+                // Clear outdated questions; onOpen reloads the unified set
+                db.execSQL("DELETE FROM `preguntas`")
+            }
+        }
+
+        private fun loadQuestionsFromAssets(context: Context): List<Question> {
+            val text = context.assets.open("preguntas_unificadas.json")
+                .bufferedReader().use { it.readText() }
+            return jsonParser.decodeFromString(text)
+        }
+
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
 
-                // 👇 Variable visible para el callback
                 lateinit var dbInstance: AppDatabase
 
                 dbInstance = Room.databaseBuilder(
@@ -45,32 +86,26 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "encuestas_db"
                 )
-                    // ⚠️ SOLO PARA DESARROLLO
-                    .fallbackToDestructiveMigration()
-
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .addCallback(object : RoomDatabase.Callback() {
 
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
+                            Log.i("DB", "Base de datos creada")
+                            CoroutineScope(Dispatchers.IO).launch {
+                                insertarPreguntas(context, dbInstance)
+                            }
+                        }
 
-                            Log.i("DB", "🆕 Base de datos creada")
-
+                        override fun onOpen(db: SupportSQLiteDatabase) {
+                            super.onOpen(db)
                             CoroutineScope(Dispatchers.IO).launch {
                                 try {
-                                    Log.i("DB", "📥 Precargando preguntas...")
-
-                                    dbInstance.preguntaDao().insertarTodas(
-                                        preguntasAmbulatorias + preguntasInternacion
-                                    )
-
-                                    Log.i(
-                                        "DB",
-                                        "✅ Precarga completada: " +
-                                                "Ambulatorias=${preguntasAmbulatorias.size}, " +
-                                                "Internación=${preguntasInternacion.size}"
-                                    )
+                                    if (dbInstance.preguntaDao().count() == 0) {
+                                        insertarPreguntas(context, dbInstance)
+                                    }
                                 } catch (e: Exception) {
-                                    Log.e("DB", "❌ Error precargando preguntas", e)
+                                    Log.e("DB", "Error verificando preguntas en onOpen", e)
                                 }
                             }
                         }
@@ -79,6 +114,16 @@ abstract class AppDatabase : RoomDatabase() {
 
                 INSTANCE = dbInstance
                 dbInstance
+            }
+        }
+
+        private suspend fun insertarPreguntas(context: Context, db: AppDatabase) {
+            try {
+                val preguntas = loadQuestionsFromAssets(context.applicationContext)
+                db.preguntaDao().insertarTodas(preguntas)
+                Log.i("DB", "Preguntas unificadas cargadas: ${preguntas.size}")
+            } catch (e: Exception) {
+                Log.e("DB", "Error cargando preguntas", e)
             }
         }
     }

@@ -10,34 +10,30 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.example.encuestassiau.network.NetworkClient
-import kotlinx.coroutines.launch
+import com.example.encuestassiau.R
+
 @Composable
 fun ServiceScreen(
+    tipoEncuesta: String,
     onServiceSelected: (String) -> Unit
 ) {
-    // 🔹 Lista local por defecto (fallback)
-    val serviciosLocales = listOf(
-        "ANGIOGRAFÍA", "BANCO DE LECHE", "BANCO DE SANGRE",
-        "CARDIOLOGÍA", "CENTRO DE INFUSIÓN PEDIÁTRICA", "CITAS MÉDICAS",
-        "CONSULTA EXTERNA", "ESTADISTICA", "FACTURACIÓN", "FARMACIA",
-        "GINECOLOGÍA", "IMÁGENES DIAGNÓSTICAS", "LABORATORIO", "MADRE CANGURO",
-        "MÉDICAS 1", "MÉDICAS 2", "MÉDICAS 3",
-        "MÉDICO QUIRÚRGICAS 1", "MÉDICO QUIRÚRGICAS 2", "MÉDICO QUIRÚRGICAS 3",
-        "MÉDICO QUIRÚRGICAS 4", "NEONATOS", "ONCOLOGÍA", "PATOLOGÍA",
-        "PEDIATRÍA", "PROGRAMACIÓN DE CIRUGÍA", "QUEMADOS", "QUIRÓFANO",
-        "QUIRÚRGICAS 1", "QUIRÚRGICAS 2", "REFERENCIA Y CONTRA REFERENCIA",
-        "REHABILITACIÓN", "SALA GINECOLÓGICA", "TRAUMATOLOGÍA",
-        "UCI 4TO PISO", "UCI I", "UCI II", "UCI III",
-        "UCI PEDIÁTRICO 1ER PISO", "UCI PEDIÁTRICO 4TO PISO",
-        "UCINT 3ER PISO", "UCINT 4TO PISO", "UNIDAD SALUD MENTAL",
-        "URGENCIAS ADULTOS", "URGENCIAS GINECOLÓGICAS", "URGENCIAS PEDIÁTRICA"
-    )
+    val context = LocalContext.current
 
-    // 🔹 Estado de servicios (SIEMPRE List<String>)
-    var servicios by remember { mutableStateOf(serviciosLocales) }
-    var cargando by remember { mutableStateOf(false) }
+    var servicios by remember { mutableStateOf<List<String>>(emptyList()) }
+    var cargando by remember { mutableStateOf(true) }
+
+    LaunchedEffect(tipoEncuesta) {
+        val json = context.assets.open("servicios.json").bufferedReader().use { it.readText() }
+        val array = org.json.JSONArray(json)
+        servicios = (0 until array.length())
+            .map { array.getJSONObject(it) }
+            .filter { it.getString("tipo") == tipoEncuesta }
+            .map { it.getString("nombre") }
+        cargando = false
+    }
 
     Box(
         modifier = Modifier
@@ -52,7 +48,7 @@ fun ServiceScreen(
 
             servicios.isEmpty() -> {
                 Text(
-                    "No se encontraron servicios disponibles.",
+                    stringResource(R.string.servicio_vacio),
                     modifier = Modifier.align(Alignment.Center)
                 )
             }
@@ -61,7 +57,7 @@ fun ServiceScreen(
                 Column(modifier = Modifier.fillMaxSize()) {
 
                     Text(
-                        "Selecciona el servicio",
+                        stringResource(R.string.servicio_titulo),
                         style = MaterialTheme.typography.titleLarge,
                         modifier = Modifier
                             .align(Alignment.CenterHorizontally)

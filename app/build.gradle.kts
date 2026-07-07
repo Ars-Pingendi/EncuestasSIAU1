@@ -1,9 +1,16 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
+}
+
+val localProps = Properties().also { props ->
+    val file = rootProject.file("local.properties")
+    if (file.exists()) props.load(file.inputStream())
 }
 
 android {
@@ -18,6 +25,15 @@ android {
         versionName = "2.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String", "AUTH_URL",
+            "\"${localProps.getProperty("auth.base.url", "http://192.168.10.35:8001/api/")}\""
+        )
+        buildConfigField(
+            "String", "API_URL",
+            "\"${localProps.getProperty("api.base.url", "http://192.168.10.150:8001")}\""
+        )
     }
 
     buildTypes {
@@ -41,6 +57,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -57,11 +74,9 @@ android {
 dependencies {
     // --- AndroidX & Core ---
     implementation("androidx.core:core-ktx:1.13.1")
+    implementation("androidx.security:security-crypto:1.0.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.4")
     implementation("androidx.activity:activity-compose:1.9.2")
-    implementation("com.google.code.gson:gson:2.10.1")
-
-
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
@@ -84,12 +99,6 @@ dependencies {
 
     // --- Serialization / Network ---
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
-    implementation("io.ktor:ktor-client-core:2.3.12")
-    implementation("io.ktor:ktor-client-cio:2.3.12")
-    implementation("io.ktor:ktor-client-serialization:2.3.12")
-    implementation("io.ktor:ktor-client-content-negotiation:2.3.12")
-    implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.12")
-
     // --- ViewModel Compose ---
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
 

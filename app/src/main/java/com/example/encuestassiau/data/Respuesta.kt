@@ -19,9 +19,12 @@ data class Respuesta(
     val comentario: String?,
     val fecha: String,
 
-    // 👤 Usuario que realizó la encuesta
     val usuarioId: String,
     val usuarioNombre: String,
+    val personaQueResponde: String = "",
+
+    /** Motivos de insatisfacción seleccionados; ítems separados por "|". Null si no aplica. */
+    val tipificacion: String? = null,
 
     val sincronizado: Boolean = false
 )

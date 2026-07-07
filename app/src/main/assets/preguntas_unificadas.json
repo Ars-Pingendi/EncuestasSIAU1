@@ -1,0 +1,119 @@
+[
+  {
+    "id": 1,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 1. Trato digno y humanización",
+    "tipo": "escala",
+    "texto": "¿Cómo califica el trato, respeto y amabilidad que recibió del personal administrativo?\n(Vigilantes, admisiones, facturadores y orientadores.)",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 2,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 1. Trato digno y humanización",
+    "tipo": "escala",
+    "texto": "¿Cómo califica el trato, respeto y amabilidad que recibió del personal de medicina?\n(Médicos generales y especialistas.)",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 3,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 1. Trato digno y humanización",
+    "tipo": "escala",
+    "texto": "¿Cómo califica el trato, respeto y amabilidad que recibió del personal de enfermería?\n(Enfermeras jefes y auxiliares de enfermería.)",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 4,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 2. Información y comunicación",
+    "tipo": "escala",
+    "texto": "Entendimiento y claridad\n\n¿Las explicaciones que le dieron sobre su enfermedad, exámenes o tratamientos fueron fáciles de entender para usted?",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 5,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 2. Información y comunicación",
+    "tipo": "escala",
+    "texto": "Oportunidad\n\n¿Al egreso o alta del servicio le entregaron información suficiente y clara sobre órdenes médicas, resultados de exámenes, indicaciones de cuidado, recomendaciones y signos de alarma para volver a consultar en caso necesario?",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 6,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 3. Privacidad y confidencialidad",
+    "tipo": "escala",
+    "texto": "Privacidad física\n\nDurante sus revisiones médicas, exámenes o procedimientos, ¿el personal médico y de enfermería protegió su cuerpo de la vista de otras personas?\n(Por ejemplo: utilizando cortinas, batas o biombos.)",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 7,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 3. Privacidad y confidencialidad",
+    "tipo": "escala",
+    "texto": "Confidencialidad verbal\n\nCuando el personal le habló sobre su enfermedad o tratamiento, ¿se hizo de manera reservada y en privado, sin que otros pacientes o personas ajenas se enteraran?",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 8,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 4. Oportunidad general e infraestructura",
+    "tipo": "escala",
+    "texto": "Tiempo de espera\n\n¿El tiempo total que esperó en la sala para recibir su atención o asignación de cita fue el adecuado?",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 9,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 4. Oportunidad general e infraestructura",
+    "tipo": "escala",
+    "texto": "Instalaciones\n\n¿Encontró las instalaciones del hospital (salas de espera, habitaciones y baños) limpias, cómodas y ordenadas?",
+    "opciones": ["Muy malo", "Malo", "Regular", "Bueno", "Muy bueno"],
+    "requiereComentario": false
+  },
+  {
+    "id": 10,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 4. Oportunidad general e infraestructura",
+    "tipo": "sino",
+    "texto": "¿Durante su hospitalización, le dieron a conocer sus derechos y deberes como usuario de nuestra institución?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 11,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 4. Oportunidad general e infraestructura",
+    "tipo": "sino",
+    "texto": "¿Recibió información sobre cómo presentar una felicitación, reclamo, queja o sugerencia (PQRSF), así como sobre la forma de recibir una respuesta?",
+    "opciones": ["Sí", "No"],
+    "requiereComentario": false
+  },
+  {
+    "id": 12,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 5. Indicador de recomendación (Net Promoter Score - NPS)",
+    "tipo": "nps",
+    "texto": "Recomendación institucional\n\nTeniendo en cuenta toda su experiencia en el hospital, ¿qué tan probable es que nos recomiende a un familiar o amigo si llegara a necesitar atención médica?",
+    "opciones": ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
+    "requiereComentario": false
+  },
+  {
+    "id": 13,
+    "tipoEncuesta": "unificado",
+    "seccion": "Sección 6. Retroalimentación cualitativa",
+    "tipo": "texto_libre",
+    "texto": "¿Tiene alguna sugerencia, felicitación o comentario adicional que nos ayude a mejorar el servicio?",
+    "opciones": [],
+    "requiereComentario": false
+  }
+]

@@ -9,6 +9,8 @@ import kotlinx.serialization.Serializable
 data class Question(
     @PrimaryKey val id: Int,
     val tipoEncuesta: String,
+    val seccion: String = "",
+    val tipo: String = "escala",
     val texto: String,
     val opciones: List<String> = emptyList(),
     val requiereComentario: Boolean = false

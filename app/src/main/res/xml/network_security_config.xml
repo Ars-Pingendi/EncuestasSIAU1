@@ -1,7 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
 
-    <base-config cleartextTrafficPermitted="true">
+    <!-- Servidor de autenticación (login) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.10.35</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Servidor de respuestas (sync) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.10.150</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Cualquier otro destino: solo HTTPS -->
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
