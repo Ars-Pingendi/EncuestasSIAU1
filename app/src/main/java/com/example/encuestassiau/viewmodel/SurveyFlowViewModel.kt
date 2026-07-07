@@ -57,6 +57,19 @@ class SurveyFlowViewModel(
         _state.value = SurveyFlowState()
     }
 
+    // Navegación hacia atrás (corregir pasos previos sin perder lo capturado)
+    fun retrocederAInicio() {
+        _state.update { it.copy(screen = "start") }
+    }
+
+    fun retrocederAServicio() {
+        _state.update { it.copy(screen = "servicio") }
+    }
+
+    fun retrocederAEdadSexo() {
+        _state.update { it.copy(screen = "edadSexo") }
+    }
+
     private fun cargarPreguntas() {
         viewModelScope.launch {
             _state.update { it.copy(preguntasCargando = true, preguntasError = null) }

@@ -18,7 +18,8 @@ import com.example.encuestassiau.R
 @Composable
 fun ServiceScreen(
     tipoEncuesta: String,
-    onServiceSelected: (String) -> Unit
+    onServiceSelected: (String) -> Unit,
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
 
@@ -64,7 +65,7 @@ fun ServiceScreen(
                             .padding(bottom = 16.dp)
                     )
 
-                    LazyColumn {
+                    LazyColumn(modifier = Modifier.weight(1f)) {
                         items(servicios) { serv ->
                             Text(
                                 text = serv,
@@ -75,6 +76,15 @@ fun ServiceScreen(
                             )
                             HorizontalDivider()
                         }
+                    }
+
+                    OutlinedButton(
+                        onClick = onBack,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp)
+                    ) {
+                        Text("Atrás")
                     }
                 }
             }

@@ -50,12 +50,17 @@ fun AppNavigation(repository: Repository) {
 
         "servicio" -> ServiceScreen(
             tipoEncuesta = state.tipoEncuesta,
-            onServiceSelected = { viewModel.seleccionarServicio(it) }
+            onServiceSelected = { viewModel.seleccionarServicio(it) },
+            onBack = { viewModel.retrocederAInicio() }
         )
 
-        "edadSexo" -> EdadSexoScreen { e, s, persona ->
-            viewModel.guardarEdadSexo(e, s, persona)
-        }
+        "edadSexo" -> EdadSexoScreen(
+            edadInicial = state.edad,
+            sexoInicial = state.sexo,
+            personaInicial = state.personaQueResponde,
+            onBack = { viewModel.retrocederAServicio() },
+            onNext = { e, s, persona -> viewModel.guardarEdadSexo(e, s, persona) }
+        )
 
         "preguntas" -> when {
             state.preguntasCargando -> Box(
@@ -77,7 +82,8 @@ fun AppNavigation(repository: Repository) {
                 personaQueResponde = state.personaQueResponde,
                 repository = repository,
                 onFinish = { viewModel.finalizarEncuesta() },
-                onCancel = { viewModel.volverAInicio() }
+                onCancel = { viewModel.volverAInicio() },
+                onBack = { viewModel.retrocederAEdadSexo() }
             )
         }
 

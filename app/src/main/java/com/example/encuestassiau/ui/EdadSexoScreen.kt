@@ -15,11 +15,15 @@ import com.example.encuestassiau.R
 
 @Composable
 fun EdadSexoScreen(
+    edadInicial: Int = 0,
+    sexoInicial: String = "",
+    personaInicial: String = "",
+    onBack: () -> Unit,
     onNext: (edad: Int, sexo: String, personaQueResponde: String) -> Unit
 ) {
-    var edad by remember { mutableStateOf("") }
-    var sexoSeleccionado by remember { mutableStateOf<String?>(null) }
-    var personaQueResponde by remember { mutableStateOf<String?>(null) }
+    var edad by remember { mutableStateOf(if (edadInicial > 0) edadInicial.toString() else "") }
+    var sexoSeleccionado by remember { mutableStateOf(sexoInicial.ifBlank { null }) }
+    var personaQueResponde by remember { mutableStateOf(personaInicial.ifBlank { null }) }
 
     val edadInt = edad.toIntOrNull()
     val edadValida = edadInt != null && edadInt in 1..120
@@ -103,12 +107,23 @@ fun EdadSexoScreen(
             }
         }
 
-        Button(
-            onClick = { onNext(edadInt!!, sexoSeleccionado!!, personaQueResponde!!) },
-            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            enabled = edadValida && sexoSeleccionado != null && personaQueResponde != null
-        ) {
-            Text(stringResource(R.string.edad_sexo_btn_continuar))
+        Column(modifier = Modifier.padding(vertical = 16.dp)) {
+            OutlinedButton(
+                onClick = onBack,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Atrás")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = { onNext(edadInt!!, sexoSeleccionado!!, personaQueResponde!!) },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = edadValida && sexoSeleccionado != null && personaQueResponde != null
+            ) {
+                Text(stringResource(R.string.edad_sexo_btn_continuar))
+            }
         }
     }
 }

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero de Control de Calidad — Encuestas SIAU</title>
+
+<!--
+  Chart.js. En una intranet SIN salida a internet, descargue este archivo
+  y guárdelo junto a index.html como "chart.umd.min.js", luego cambie el
+  src de abajo por: <script src="chart.umd.min.js"></script>
+-->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --azul:#1565c0; --azul-osc:#0d47a1; --gris:#607d8b;
+    --verde:#2e7d32; --amarillo:#f9a825; --rojo:#c62828;
+    --fondo:#f4f6f9; --tarjeta:#ffffff; --texto:#263238; --borde:#e3e8ef;
+    --sombra:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+       background:var(--fondo);color:var(--texto);font-size:14px}
+  header{background:linear-gradient(135deg,var(--azul-osc),var(--azul));
+         color:#fff;padding:18px 24px;box-shadow:var(--sombra)}
+  header h1{margin:0;font-size:20px;font-weight:600}
+  header p{margin:4px 0 0;opacity:.85;font-size:13px}
+
+  .filtros{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;
+           background:var(--tarjeta);padding:14px 24px;border-bottom:1px solid var(--borde)}
+  .filtros .campo{display:flex;flex-direction:column;gap:4px}
+  .filtros label{font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--gris);font-weight:600}
+  .filtros select{padding:7px 10px;border:1px solid var(--borde);border-radius:6px;
+                  background:#fff;font-size:14px;min-width:170px;cursor:pointer}
+  .filtros .btn{padding:8px 14px;border:none;border-radius:6px;background:var(--azul);
+                color:#fff;cursor:pointer;font-size:13px;font-weight:600}
+  .filtros .btn:hover{background:var(--azul-osc)}
+  .filtros .resumen{margin-left:auto;font-size:13px;color:var(--gris);text-align:right}
+  .filtros .resumen b{color:var(--texto);font-size:16px}
+
+  main{padding:20px 24px;display:grid;gap:18px;
+       grid-template-columns:repeat(12,1fr)}
+  .card{background:var(--tarjeta);border:1px solid var(--borde);border-radius:10px;
+        padding:16px 18px;box-shadow:var(--sombra)}
+  .card h2{margin:0 0 2px;font-size:15px;font-weight:600}
+  .card .sub{margin:0 0 14px;font-size:12px;color:var(--gris)}
+  .col-4{grid-column:span 4}
+  .col-5{grid-column:span 5}
+  .col-6{grid-column:span 6}
+  .col-7{grid-column:span 7}
+  .col-8{grid-column:span 8}
+  .col-12{grid-column:span 12}
+  @media(max-width:1100px){.col-4,.col-5,.col-6,.col-7,.col-8{grid-column:span 12}}
+
+  .chart-box{position:relative;height:300px}
+  .chart-box.alta{height:360px}
+
+  /* Semáforo NPS */
+  .nps-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .nps-valor{font-size:54px;font-weight:700;line-height:1}
+  .nps-etiqueta{font-size:14px;font-weight:600;padding:3px 12px;border-radius:20px;color:#fff;margin-top:8px}
+  .nps-detalle{display:flex;gap:18px;margin-top:14px;font-size:12px;color:var(--gris)}
+  .nps-detalle span b{display:block;font-size:16px;color:var(--texto)}
+
+  .badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.5px;
+         padding:3px 8px;border-radius:4px;background:#fff3e0;color:#e65100;
+         border:1px solid #ffcc80;vertical-align:middle;margin-left:8px}
+  .nota{font-size:11px;color:var(--gris);margin-top:10px;line-height:1.5}
+
+  .panel-notas{font-size:12.5px;line-height:1.6}
+  .panel-notas summary{cursor:pointer;font-weight:600;font-size:14px;color:var(--azul-osc)}
+  .panel-notas ul{margin:10px 0 0;padding-left:18px}
+  .panel-notas code{background:#eef1f5;padding:1px 5px;border-radius:4px;font-size:12px}
+  .ok{color:var(--verde);font-weight:700}
+  .pend{color:var(--rojo);font-weight:700}
+  footer{padding:16px 24px;color:var(--gris);font-size:11px;text-align:center}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tablero de Control de Calidad — Encuestas SIAU</h1>
+  <p>Hospital Universitario · Análisis de satisfacción y lealtad (NPS) · Acreditación ICONTEC</p>
+</header>
+
+<div class="filtros">
+  <div class="campo">
+    <label for="f-mes">Mes</label>
+    <select id="f-mes"></select>
+  </div>
+  <div class="campo">
+    <label for="f-servicio">Servicio</label>
+    <select id="f-servicio"></select>
+  </div>
+  <div class="campo">
+    <label for="f-tipo">Tipo de encuesta</label>
+    <select id="f-tipo"></select>
+  </div>
+  <button class="btn" id="f-reset">Limpiar filtros</button>
+  <div class="resumen">
+    Encuestas en vista<br><b id="resumen-n">0</b> respuestas
+  </div>
+</div>
+
+<main>
+  <!-- 1. Semáforo NPS -->
+  <section class="card col-4">
+    <h2>1. Net Promoter Score (NPS)</h2>
+    <p class="sub">% Promotores − % Detractores · escala −100 a 100</p>
+    <div class="nps-wrap">
+      <svg id="gauge" viewBox="0 0 220 130" width="100%" style="max-width:260px"></svg>
+      <div class="nps-valor" id="nps-valor">—</div>
+      <div class="nps-etiqueta" id="nps-etiqueta">Sin datos</div>
+      <div class="nps-detalle">
+        <span>Promotores<b id="nps-prom">0%</b></span>
+        <span>Pasivos<b id="nps-pas">0%</b></span>
+        <span>Detractores<b id="nps-det">0%</b></span>
+      </div>
+    </div>
+    <p class="nota">Derivado de la pregunta "¿Recomendaría…?": <b>Definitivamente sí</b>=Promotor,
+      <b>Probablemente sí</b>=Pasivo, <b>Probablemente/Definitivamente no</b>=Detractor.</p>
+  </section>
+
+  <!-- NPS por proceso -->
+  <section class="card col-8">
+    <h2>NPS por proceso asistencial</h2>
+    <p class="sub">Comparativo Ambulatorio vs. Internación</p>
+    <div class="chart-box"><canvas id="chart-nps-tipo"></canvas></div>
+  </section>
+
+  <!-- 2. Matriz de atributos -->
+  <section class="card col-7">
+    <h2>2. Matriz de atributos de calidad</h2>
+    <p class="sub">Barras 100% · <span style="color:var(--verde)">Bueno/Excelente</span> ·
+      <span style="color:var(--amarillo)">Regular</span> ·
+      <span style="color:var(--rojo)">Malo/Muy malo</span></p>
+    <div class="chart-box alta"><canvas id="chart-matriz"></canvas></div>
+  </section>
+
+  <!-- 3. Trato por perfil -->
+  <section class="card col-5">
+    <h2>3. Trato por perfil</h2>
+    <p class="sub">Calificación promedio (1–5) por mes · Médico / Enfermería / Administrativo</p>
+    <div class="chart-box alta"><canvas id="chart-perfil"></canvas></div>
+    <p class="nota">La tendencia ignora el filtro de mes para mostrar la serie histórica completa.</p>
+  </section>
+
+  <!-- 4. Pareto -->
+  <section class="card col-7">
+    <h2>4. Pareto de causas de detracción</h2>
+    <p class="sub">Motivos tipificados de los detractores · línea = % acumulado</p>
+    <div class="chart-box alta"><canvas id="chart-pareto"></canvas></div>
+    <p class="nota">Se alimenta de la <b>tipificación de motivos</b> (campo <code>motivos</code>)
+      que el orientador marca en la tablet cuando una calificación es detractora.</p>
+  </section>
+
+  <!-- 5. Dona informante -->
+  <section class="card col-5">
+    <h2>5. Tipo de informante</h2>
+    <p class="sub">Paciente vs. Cuidador principal</p>
+    <div class="chart-box"><canvas id="chart-informante"></canvas></div>
+    <p class="nota">Cada encuesta (<code>encuesta_id</code>) registra si responde el
+      <b>paciente</b> o el <b>cuidador principal</b> (campo <code>informante</code>).</p>
+  </section>
+
+  <!-- Notas técnicas -->
+  <section class="card col-12 panel-notas">
+    <details>
+      <summary>Notas técnicas y de datos (importante para TI y Calidad)</summary>
+      <ul>
+        <li><b>Fuente de datos:</b> hoy usa datos <i>simulados</i> generados en el navegador.
+          Para conectar al servidor real, edite la función <code>cargarDatos()</code> y use
+          <code>fetch('/api/respuestas')</code>. El formato esperado es el de la tabla
+          <code>respuestas</code> (un registro por respuesta).</li>
+        <li><span class="ok">Los 5 gráficos mapean a campos reales</span> de la tabla
+          <code>respuestas</code>, incluidos <code>informante</code>, <code>motivos</code>
+          y <code>encuesta_id</code> (la app ya los captura).</li>
+        <li><b>Mapeo Likert → semáforo:</b> Muy malo/Malo = Rojo · Regular = Amarillo ·
+          Bueno/Muy bueno = Verde.</li>
+        <li><b>Despliegue intranet:</b> es un único archivo estático; basta copiarlo al
+          servidor web interno. Si no hay internet, descargue Chart.js localmente (ver
+          comentario al inicio del archivo).</li>
+      </ul>
+    </details>
+  </section>
+</main>
+
+<footer>Tablero generado para uso interno · Encuestas SIAU · Los valores mostrados son de demostración hasta conectar el origen de datos real.</footer>
+
+<script>
+/* =====================================================================
+   CONFIGURACIÓN — Metadatos de las preguntas (según el catálogo real)
+   ===================================================================== */
+const ESCALAS = {
+  calidadF: ["Muy mala","Mala","Regular","Buena","Muy buena"],
+  calidadM: ["Muy malo","Malo","Regular","Bueno","Muy bueno"],
+  adecuacion: ["Muy inadecuadas","Inadecuadas","Regulares","Adecuadas","Muy adecuadas"],
+  sino: ["Sí","No"],
+  sinoNA: ["Sí","No","No aplica"],
+  nps: ["Definitivamente no","Probablemente no","Probablemente sí","Definitivamente sí"],
+  comentario: ["Ninguno","Sí, tengo un comentario"]
+};
+
+// id -> metadatos. perfil sólo en las preguntas de trato.
+const PREGUNTAS = {
+  // ---- Ambulatoria ----
+  1:{tipo:"ambulatoria",label:"Facilidad de cita",      clase:"likert",escala:"calidadF"},
+  2:{tipo:"ambulatoria",label:"Tiempo de espera atención",clase:"sino",escala:"sino"},
+  3:{tipo:"ambulatoria",label:"Personal administrativo",clase:"likert",escala:"calidadF",perfil:"Administrativo"},
+  4:{tipo:"ambulatoria",label:"Tiempo espera consulta", clase:"sino",escala:"sino"},
+  5:{tipo:"ambulatoria",label:"Atención médica",        clase:"likert",escala:"calidadF",perfil:"Médico"},
+  6:{tipo:"ambulatoria",label:"Explicación diagnóstico",clase:"sino",escala:"sino"},
+  7:{tipo:"ambulatoria",label:"Enfermería",             clase:"likert",escala:"calidadF",perfil:"Enfermería"},
+  8:{tipo:"ambulatoria",label:"Enfermería resolvió dudas",clase:"sino",escala:"sino"},
+  9:{tipo:"ambulatoria",label:"Instalaciones",          clase:"likert",escala:"adecuacion"},
+  10:{tipo:"ambulatoria",label:"Recomendación",         clase:"nps",escala:"nps"},
+  11:{tipo:"ambulatoria",label:"Servicio general",      clase:"likert",escala:"calidadM"},
+  12:{tipo:"ambulatoria",label:"Comentario adicional",  clase:"comentario",escala:"comentario"},
+  // ---- Internación ----
+  101:{tipo:"internacion",label:"Trato en ingreso",     clase:"likert",escala:"calidadM"},
+  102:{tipo:"internacion",label:"Info copagos",         clase:"sino",escala:"sino"},
+  103:{tipo:"internacion",label:"Info triage urgencias",clase:"likert",escala:"calidadF"},
+  104:{tipo:"internacion",label:"Info estado de salud", clase:"likert",escala:"calidadF"},
+  105:{tipo:"internacion",label:"Trato médico",         clase:"likert",escala:"calidadM",perfil:"Médico"},
+  106:{tipo:"internacion",label:"Enfermería",           clase:"likert",escala:"calidadF",perfil:"Enfermería"},
+  107:{tipo:"internacion",label:"Limpieza/instalaciones",clase:"likert",escala:"calidadF"},
+  108:{tipo:"internacion",label:"Info PQRS",            clase:"sino",escala:"sino"},
+  109:{tipo:"internacion",label:"Derechos y deberes",   clase:"sino",escala:"sino"},
+  110:{tipo:"internacion",label:"Aviso estudiantes",    clase:"sino",escala:"sinoNA"},
+  111:{tipo:"internacion",label:"Alimentación",         clase:"likert",escala:"calidadF"},
+  112:{tipo:"internacion",label:"Indicaciones de egreso",clase:"likert",escala:"calidadF"},
+  113:{tipo:"internacion",label:"Experiencia general",  clase:"likert",escala:"calidadF"},
+  114:{tipo:"internacion",label:"Recomendación",        clase:"nps",escala:"nps"}
+};
+
+// Likert -> valor 1..5 (por posición en su escala)
+function likertValor(preguntaId, respuesta){
+  const meta = PREGUNTAS[preguntaId];
+  if(!meta) return null;
+  const idx = ESCALAS[meta.escala].indexOf(respuesta);
+  return idx < 0 ? null : idx + 1;
+}
+// valor 1..5 -> bucket de color
+function bucket(v){ return v<=2 ? "rojo" : v===3 ? "amarillo" : "verde"; }
+
+const MOTIVOS = [
+  "Falla de confidencialidad: información en voz alta frente a otros",
+  "Demora o falta de respuesta al llamado del timbre",
+  "El médico no miró a la cara (estuvo frente al computador)",
+  "Demora excesiva en la ventanilla para realizar el trámite",
+  "Tono de voz rudo, regaño o falta de empatía ante el dolor",
+  "Falta de privacidad física durante el examen",
+  "Falta de claridad: usaron palabras médicas muy difíciles",
+  "Falta de oportunidad: entrega tardía de resultados o fórmulas"
+];
+const SERVICIOS = {
+  ambulatoria:["Consulta Externa","Urgencias"],
+  internacion:["Hospitalización Piso 3","Hospitalización Piso 4","UCI","Pediatría"]
+};
+const MESES = [["2026-04","Abril 2026"],["2026-05","Mayo 2026"],["2026-06","Junio 2026"]];
+
+/* =====================================================================
+   ORIGEN DE DATOS
+   ---------------------------------------------------------------------
+   Hoy genera datos simulados. Para producción, reemplazar por:
+     async function cargarDatos(){
+       const r = await fetch('/api/respuestas');
+       return await r.json();   // arreglo con el formato de la tabla 'respuestas'
+     }
+   ===================================================================== */
+function cargarDatos(){ return generarSimulado(); }
+
+// RNG reproducible (mulberry32)
+function rng(seed){ return function(){ seed|=0; seed=seed+0x6D2B79F5|0;
+  let t=Math.imul(seed^seed>>>15,1|seed); t=t+Math.imul(t^t>>>7,61|t)^t;
+  return ((t^t>>>14)>>>0)/4294967296; }; }
+const rand = rng(20260630);
+function randn(){ return (rand()+rand()+rand()+rand()-2)/2; } // ~normal
+
+function generarSimulado(){
+  const calidadServicio = {
+    "Consulta Externa":0.74,"Urgencias":0.52,"Hospitalización Piso 3":0.58,
+    "Hospitalización Piso 4":0.70,"UCI":0.80,"Pediatría":0.66
+  };
+  const rows = []; let sid = 0;
+  MESES.forEach(([mesKey])=>{
+    Object.keys(SERVICIOS).forEach(tipo=>{
+      SERVICIOS[tipo].forEach(servicio=>{
+        const nEncuestas = 18 + Math.floor(rand()*14); // ~18-32 por servicio/mes
+        for(let i=0;i<nEncuestas;i++){
+          sid++;
+          const baseQ = calidadServicio[servicio];
+          const sesionQ = Math.max(0.05, Math.min(0.97, baseQ + randn()*0.18));
+          const dia = String(1+Math.floor(rand()*27)).padStart(2,"0");
+          const fecha = `${mesKey}-${dia}T${String(8+Math.floor(rand()*9)).padStart(2,"0")}:30:00-05:00`;
+          const edad = 18 + Math.floor(rand()*67);
+          const sexo = rand()<0.52 ? "Femenino":"Masculino";
+          // Cuidador predomina en pediatría/UCI/internación
+          const probCuidador = tipo==="internacion" ? (servicio==="Pediatría"||servicio==="UCI"?0.7:0.45) : 0.2;
+          const informante = rand()<probCuidador ? "Cuidador principal":"Paciente";
+          const esDetractor = sesionQ < 0.40;
+
+          Object.keys(PREGUNTAS).forEach(pidStr=>{
+            const pid = +pidStr; const meta = PREGUNTAS[pid];
+            if(meta.tipo!==tipo) return;
+            let respuesta;
+            if(meta.clase==="likert"){
+              const v = Math.max(1,Math.min(5,Math.round(1+4*sesionQ+randn()*1.05)));
+              respuesta = ESCALAS[meta.escala][v-1];
+            } else if(meta.clase==="sino"){
+              const arr = ESCALAS[meta.escala];
+              if(arr.length===3 && rand()<0.08) respuesta="No aplica";
+              else respuesta = rand()<sesionQ ? "Sí":"No";
+            } else if(meta.clase==="nps"){
+              const pProm=Math.min(0.9,Math.max(0,sesionQ*0.9)), pPas=0.15, r=rand();
+              respuesta = r<pProm ? "Definitivamente sí"
+                        : r<pProm+pPas ? "Probablemente sí"
+                        : r<pProm+pPas+(1-pProm-pPas)*0.5 ? "Probablemente no"
+                        : "Definitivamente no";
+            } else { // comentario
+              respuesta = rand()<0.3 ? "Sí, tengo un comentario":"Ninguno";
+            }
+            rows.push({
+              encuestaId:"E"+sid, informante,
+              motivos: (esDetractor && meta.clase==="likert" && rand()<0.5)
+                        ? [MOTIVOS[Math.floor(rand()*rand()*MOTIVOS.length)]] : [], // sesgo Pareto
+              encuestaTipo:tipo, preguntaId:pid, respuesta, servicio,
+              edad, sexo, fecha
+            });
+          });
+        }
+      });
+    });
+  });
+  return rows;
+}
+
+/* =====================================================================
+   ESTADO + FILTROS
+   ===================================================================== */
+const TODOS = cargarDatos();
+const estado = { mes:"todos", servicio:"todos", tipo:"todos" };
+const charts = {};
+
+function mesDe(r){ return r.fecha.slice(0,7); }
+function filtrar(aplicarMes=true){
+  return TODOS.filter(r=>
+    (estado.tipo==="todos"     || r.encuestaTipo===estado.tipo) &&
+    (estado.servicio==="todos" || r.servicio===estado.servicio) &&
+    (!aplicarMes || estado.mes==="todos" || mesDe(r)===estado.mes)
+  );
+}
+
+function poblarFiltros(){
+  const fMes=document.getElementById("f-mes"), fSrv=document.getElementById("f-servicio"),
+        fTipo=document.getElementById("f-tipo");
+  fMes.innerHTML='<option value="todos">Todos los meses</option>'+
+    MESES.map(([k,n])=>`<option value="${k}">${n}</option>`).join("");
+  const servicios=[...SERVICIOS.ambulatoria,...SERVICIOS.internacion];
+  fSrv.innerHTML='<option value="todos">Todos los servicios</option>'+
+    servicios.map(s=>`<option value="${s}">${s}</option>`).join("");
+  fTipo.innerHTML='<option value="todos">Ambos</option>'+
+    '<option value="ambulatoria">Ambulatoria</option>'+
+    '<option value="internacion">Internación</option>';
+  fMes.onchange =e=>{estado.mes=e.target.value;render();};
+  fSrv.onchange =e=>{estado.servicio=e.target.value;render();};
+  fTipo.onchange=e=>{estado.tipo=e.target.value;render();};
+  document.getElementById("f-reset").onclick=()=>{
+    estado.mes="todos";estado.servicio="todos";estado.tipo="todos";
+    fMes.value=fSrv.value=fTipo.value="todos";render();
+  };
+}
+
+/* =====================================================================
+   CÁLCULOS NPS
+   ===================================================================== */
+function calcNPS(rows){
+  let prom=0,pas=0,det=0;
+  rows.forEach(r=>{
+    if(PREGUNTAS[r.preguntaId]?.clase!=="nps") return;
+    if(r.respuesta==="Definitivamente sí") prom++;
+    else if(r.respuesta==="Probablemente sí") pas++;
+    else det++;
+  });
+  const total=prom+pas+det;
+  if(!total) return {nps:null,prom:0,pas:0,det:0,total:0};
+  const pP=prom/total, pD=det/total;
+  return {nps:Math.round((pP-pD)*100),
+          prom:Math.round(pP*100),pas:Math.round(pas/total*100),det:Math.round(pD*100),total};
+}
+function colorNPS(v){ return v>=50?"var(--verde)":v>=0?"var(--amarillo)":"var(--rojo)"; }
+function etiquetaNPS(v){ return v>=50?"Excelente":v>=0?"Aceptable":"Crítico"; }
+
+/* Gauge SVG semicircular */
+function pol(cx,cy,r,ang){const a=ang*Math.PI/180;return[cx+r*Math.cos(a),cy-r*Math.sin(a)];}
+function arco(cx,cy,r,a1,a2){const[x1,y1]=pol(cx,cy,r,a1),[x2,y2]=pol(cx,cy,r,a2);
+  return `M ${x1} ${y1} A ${r} ${r} 0 0 1 ${x2} ${y2}`;}
+function v2ang(v){return 180-((v+100)/200)*180;} // -100->180°, 100->0°
+function dibujarGauge(nps){
+  const g=document.getElementById("gauge"); const cx=110,cy=110,r=88;
+  const seg=[[-100,0,"#c62828"],[0,49,"#f9a825"],[50,100,"#2e7d32"]];
+  let html=seg.map(([a,b,c])=>
+    `<path d="${arco(cx,cy,r,v2ang(a),v2ang(b))}" stroke="${c}" stroke-width="16" fill="none" stroke-linecap="butt"/>`
+  ).join("");
+  if(nps!==null){
+    const[nx,ny]=pol(cx,cy,r-6,v2ang(nps));
+    html+=`<line x1="${cx}" y1="${cy}" x2="${nx}" y2="${ny}" stroke="#263238" stroke-width="3"/>`+
+          `<circle cx="${cx}" cy="${cy}" r="6" fill="#263238"/>`;
+  }
+  html+=`<text x="22" y="126" font-size="10" fill="#90a4ae">-100</text>`+
+        `<text x="186" y="126" font-size="10" fill="#90a4ae">100</text>`;
+  g.innerHTML=html;
+}
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function nuevoChart(id,cfg){ if(charts[id])charts[id].destroy(); charts[id]=new Chart(document.getElementById(id),cfg); }
+
+function render(){
+  const rows=filtrar();
+  document.getElementById("resumen-n").textContent=rows.length.toLocaleString("es-CO");
+
+  // --- 1. NPS global ---
+  const n=calcNPS(rows);
+  dibujarGauge(n.nps);
+  document.getElementById("nps-valor").textContent=n.nps===null?"—":n.nps;
+  document.getElementById("nps-valor").style.color=n.nps===null?"#90a4ae":colorNPS(n.nps);
+  const et=document.getElementById("nps-etiqueta");
+  et.textContent=n.nps===null?"Sin datos":etiquetaNPS(n.nps);
+  et.style.background=n.nps===null?"#90a4ae":colorNPS(n.nps);
+  document.getElementById("nps-prom").textContent=n.prom+"%";
+  document.getElementById("nps-pas").textContent=n.pas+"%";
+  document.getElementById("nps-det").textContent=n.det+"%";
+
+  // --- NPS por proceso ---
+  const npsAmb=calcNPS(rows.filter(r=>r.encuestaTipo==="ambulatoria")).nps;
+  const npsInt=calcNPS(rows.filter(r=>r.encuestaTipo==="internacion")).nps;
+  nuevoChart("chart-nps-tipo",{type:"bar",
+    data:{labels:["Ambulatorio","Internación"],datasets:[{
+      data:[npsAmb??0,npsInt??0],
+      backgroundColor:[npsAmb,npsInt].map(v=>v===null?"#cfd8dc":colorNPS(v).replace("var(--verde)","#2e7d32").replace("var(--amarillo)","#f9a825").replace("var(--rojo)","#c62828")),
+      borderRadius:6,barThickness:70}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>"NPS: "+c.raw}}},
+      scales:{x:{min:-100,max:100,grid:{color:"#eceff1"}},y:{grid:{display:false}}}}});
+
+  // --- 2. Matriz de atributos ---
+  const likertIds=Object.keys(PREGUNTAS).map(Number)
+    .filter(id=>PREGUNTAS[id].clase==="likert" &&
+      (estado.tipo==="todos"||PREGUNTAS[id].tipo===estado.tipo));
+  const labels=[],verde=[],amar=[],rojo=[];
+  likertIds.forEach(id=>{
+    const rr=rows.filter(r=>r.preguntaId===id);
+    if(!rr.length) return;
+    let v=0,a=0,ro=0;
+    rr.forEach(r=>{const b=bucket(likertValor(id,r.respuesta));
+      if(b==="verde")v++;else if(b==="amarillo")a++;else ro++;});
+    const t=v+a+ro;
+    labels.push(PREGUNTAS[id].label);
+    verde.push(+(v/t*100).toFixed(1));amar.push(+(a/t*100).toFixed(1));rojo.push(+(ro/t*100).toFixed(1));
+  });
+  nuevoChart("chart-matriz",{type:"bar",
+    data:{labels,datasets:[
+      {label:"Bueno/Excelente",data:verde,backgroundColor:"#2e7d32"},
+      {label:"Regular",data:amar,backgroundColor:"#f9a825"},
+      {label:"Malo/Muy malo",data:rojo,backgroundColor:"#c62828"}]},
+    options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom"},tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.raw}%`}}},
+      scales:{x:{stacked:true,max:100,grid:{color:"#eceff1"}},y:{stacked:true,grid:{display:false}}}}});
+
+  // --- 3. Trato por perfil (tendencia; ignora filtro de mes) ---
+  const baseTrend=filtrar(false);
+  const meses=MESES.map(m=>m[0]).filter(mk=>baseTrend.some(r=>mesDe(r)===mk));
+  const perfiles={"Médico":"#1565c0","Enfermería":"#ec407a","Administrativo":"#78909c"};
+  const dsPerfil=Object.keys(perfiles).map(perfil=>({
+    label:perfil,borderColor:perfiles[perfil],backgroundColor:perfiles[perfil],
+    tension:.3,spanGaps:true,
+    data:meses.map(mk=>{
+      const rr=baseTrend.filter(r=>mesDe(r)===mk && PREGUNTAS[r.preguntaId]?.perfil===perfil);
+      if(!rr.length) return null;
+      const prom=rr.reduce((s,r)=>s+likertValor(r.preguntaId,r.respuesta),0)/rr.length;
+      return +prom.toFixed(2);
+    })
+  }));
+  nuevoChart("chart-perfil",{type:"line",
+    data:{labels:meses.map(mk=>MESES.find(m=>m[0]===mk)[1]),datasets:dsPerfil},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom"}},
+      scales:{y:{min:1,max:5,grid:{color:"#eceff1"}},x:{grid:{display:false}}}}});
+
+  // --- 4. Pareto (datos de ejemplo) ---
+  const conteo={};
+  rows.forEach(r=>r.motivos.forEach(m=>conteo[m]=(conteo[m]||0)+1));
+  const ord=Object.entries(conteo).sort((a,b)=>b[1]-a[1]);
+  const totalM=ord.reduce((s,x)=>s+x[1],0); let acc=0;
+  const pLabels=ord.map(x=>x[0]),pVals=ord.map(x=>x[1]),
+        pAcum=ord.map(x=>{acc+=x[1];return totalM?+(acc/totalM*100).toFixed(1):0;});
+  nuevoChart("chart-pareto",{type:"bar",
+    data:{labels:pLabels,datasets:[
+      {type:"bar",label:"Casos",data:pVals,backgroundColor:"#c62828",borderRadius:5,order:2,yAxisID:"y"},
+      {type:"line",label:"% acumulado",data:pAcum,borderColor:"#0d47a1",backgroundColor:"#0d47a1",
+       tension:.2,order:1,yAxisID:"y1"}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:"bottom"}},
+      scales:{y:{beginAtZero:true,grid:{color:"#eceff1"},title:{display:true,text:"Casos"}},
+        y1:{position:"right",min:0,max:100,grid:{display:false},title:{display:true,text:"% acum."}},
+        x:{ticks:{maxRotation:40,minRotation:25,font:{size:10}},grid:{display:false}}}}});
+
+  // --- 5. Dona informante (datos de ejemplo) ---
+  const sesiones={};
+  rows.forEach(r=>sesiones[r.encuestaId]=r.informante);
+  let pac=0,cui=0;
+  Object.values(sesiones).forEach(v=>v==="Paciente"?pac++:cui++);
+  nuevoChart("chart-informante",{type:"doughnut",
+    data:{labels:["Paciente","Cuidador principal"],
+      datasets:[{data:[pac,cui],backgroundColor:["#1565c0","#26a69a"],borderWidth:2,borderColor:"#fff"}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"60%",
+      plugins:{legend:{position:"bottom"},
+        tooltip:{callbacks:{label:c=>{const t=pac+cui;return `${c.label}: ${c.raw} (${t?Math.round(c.raw/t*100):0}%)`;}}}}}});
+}
+
+poblarFiltros();
+render();
+</script>
+</body>
+</html>

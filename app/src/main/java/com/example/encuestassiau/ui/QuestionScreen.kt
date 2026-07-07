@@ -51,7 +51,8 @@ fun QuestionScreen(
     personaQueResponde: String,
     repository: Repository,
     onFinish: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onBack: () -> Unit
 ) {
     // Bloquea el botón Atrás del sistema durante la encuesta
     BackHandler(enabled = true) { }
@@ -345,8 +346,7 @@ fun QuestionScreen(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Button(
-                    onClick = { if (currentIndex > 0) currentIndex-- },
-                    enabled = currentIndex > 0
+                    onClick = { if (currentIndex > 0) currentIndex-- else onBack() }
                 ) { Text(stringResource(R.string.pregunta_btn_atras)) }
 
                 Button(
