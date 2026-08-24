@@ -46,6 +46,7 @@ La app envía cada respuesta con `POST /respuestas` (relativo a la URL base del 
 
 ```json
 {
+  "sesionId": "550e8400-e29b-41d4-a716-446655440000",
   "id": 0,
   "encuestaTipo": "ambulatoria",
   "preguntaId": 1,
@@ -117,22 +118,31 @@ Abrir el archivo:
 app/src/main/java/com/example/encuestassiau/data/Repository.kt
 ```
 
-Buscar y **eliminar por completo** el siguiente bloque (líneas ~48–59):
+Buscar y **eliminar por completo** el siguiente bloque (líneas ~48–67):
 
 ```kotlin
-// Bypass de pruebas — solo en builds DEBUG, no llega a producción
-if (BuildConfig.DEBUG && username == "admin_test" && password == "siau2024") {
-    val fakeJwt = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0" +
-        ".eyJzdWIiOiJ0ZXN0IiwibmFtZV91c2VyIjoiVXN1YXJpbyBUZXN0IiwiZXhwIjo5OTk5OTk5OTk5fQ" +
-        ".test_sig"
-    SessionManager.saveToken(context, fakeJwt)
-    SessionManager.saveUsuario(context, username, "Usuario Test")
-    Log.i("LOGIN", "🧪 Sesión de prueba iniciada (admin_test)")
-    return Result.success(Unit)
+// Bypasses de prueba — solo en builds DEBUG, no llegan a producción
+if (BuildConfig.DEBUG) {
+    val fakeCreds = mapOf(
+        "admin_test"  to Triple("siau2024", "Orientador Test", "ROLE_USER"),
+        "admin_admin" to Triple("siau2024", "Administrador SIAU", "ROLE_ADMIN")
+    )
+    fakeCreds[username]?.let { (pwd, nombre, rol) ->
+        if (password == pwd) {
+            val fakeJwt = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0" +
+                ".eyJzdWIiOiJ0ZXN0IiwibmFtZV91c2VyIjoiVGVzdCIsImV4cCI6OTk5OTk5OTk5OX0" +
+                ".test_sig"
+            SessionManager.saveToken(context, fakeJwt)
+            SessionManager.saveUsuario(context, username, nombre)
+            SessionManager.saveRol(context, rol)
+            Log.i("LOGIN", "🧪 Sesión de prueba: $nombre ($rol)")
+            return Result.success(Unit)
+        }
+    }
 }
 ```
 
-> Este bloque permite ingresar sin servidor durante las pruebas. En producción debe eliminarse para que toda autenticación pase por el servidor real.
+> Este bloque cubre dos usuarios de prueba (`admin_test` y `admin_admin`) y permite ingresar sin servidor durante el desarrollo. Debe eliminarse por completo antes de compilar el APK de producción.
 
 ---
 
@@ -209,19 +219,21 @@ El modo kiosco completo (que impide que el usuario salga de la app) requiere con
 Configuración → Administración general → Restablecer → Restablecer datos de fábrica
 ```
 
-### 7.2 Configurar Device Owner via ADB
+### 7.2 Activar la fijación de pantalla (método disponible actualmente)
 
-Con la tablet recién configurada (solo con WiFi conectado, sin cuenta de Google), conectar por USB y ejecutar:
+La versión actual de la app no incluye un `DeviceAdminReceiver`, por lo que el modo Device Owner completo no está disponible todavía. Usar en su lugar la fijación de pantalla nativa de Android:
 
-```bash
-adb shell dpm set-device-owner com.example.encuestassiau/.AdminReceiver
+```
+Configuración → Seguridad → Fijación de pantalla → Activar
 ```
 
-> **Nota**: Si el proyecto no tiene un `AdminReceiver` registrado, Sistemas deberá coordinarlo con el desarrollador antes del despliegue final. Alternativamente, se puede usar el modo de fijación de pantalla manual de Android (menos seguro):
+Luego abrir la app, ir a la pantalla de Recientes y tocar el ícono de candado que aparece sobre la tarjeta de la app.
+
+> **Modo Device Owner (futuro)**: para activarlo se requiere que el desarrollador agregue un `DeviceAdminReceiver` al proyecto y lo declare en el `AndroidManifest.xml`. Una vez hecho, el comando sería:
+> ```bash
+> adb shell dpm set-device-owner com.example.encuestassiau/.AdminReceiver
 > ```
-> Configuración → Seguridad → Fijación de pantalla → Activar
-> ```
-> Luego abrir la app, ir a Recientes y tocar el ícono de candado.
+> Coordinar con el desarrollador antes de intentar este paso.
 
 ### 7.3 Verificar que el modo kiosco funciona
 
