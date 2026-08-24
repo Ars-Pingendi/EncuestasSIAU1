@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,6 +28,11 @@ import com.example.encuestassiau.viewmodel.AdminState
 import com.example.encuestassiau.viewmodel.AdminViewModel
 import com.example.encuestassiau.viewmodel.FiltroFecha
 import kotlinx.coroutines.launch
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -39,6 +45,20 @@ fun AdminDashboardScreen(
     val vm: AdminViewModel = viewModel()
     val state by vm.state.collectAsState()
     val nombreUsuario = remember { SessionManager.getUsuarioNombre(context) ?: "Administrador" }
+
+    var mostrarDatePicker by remember { mutableStateOf(false) }
+    val dateRangeState = rememberDateRangePickerState()
+
+    if (mostrarDatePicker) {
+        RangoFechasDialog(
+            state = dateRangeState,
+            onDismiss = { mostrarDatePicker = false },
+            onConfirmar = { desde, hasta ->
+                vm.cambiarRango(desde, hasta)
+                mostrarDatePicker = false
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -88,61 +108,164 @@ fun AdminDashboardScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // ── Filtro de fecha ──────────────────────────────────────
-            FiltroFechaRow(filtroActual = state.filtro, onCambiar = vm::cambiarFiltro)
+            FiltroFechaRow(
+                filtroActual = state.filtro,
+                desdePersonalizado = state.desdePersonalizado,
+                hastaPersonalizado = state.hastaPersonalizado,
+                onCambiarPreset = vm::cambiarFiltro,
+                onAbrirDatePicker = { mostrarDatePicker = true }
+            )
 
-            // ── Estado: cargando / error / datos ────────────────────
+            // ── Etiqueta del rango activo ────────────────────────────
+            RangoActivo(state)
+
+            // ── Tarjetas de resumen ──────────────────────────────────
             when {
-                state.cargando -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) { CircularProgressIndicator() }
-                }
-                state.error != null -> {
-                    ErrorCard(mensaje = state.error!!, onReintentar = { vm.recargar() })
-                }
-                else -> {
-                    TarjetasResumen(resumen = state.resumen)
-                }
+                state.cargando -> Box(
+                    modifier = Modifier.fillMaxWidth().height(160.dp),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
+
+                state.error != null -> ErrorCard(
+                    mensaje = state.error!!,
+                    onReintentar = { vm.recargar() }
+                )
+
+                else -> TarjetasResumen(resumen = state.resumen)
             }
 
             // ── Orientadores activos ─────────────────────────────────
-            OrientadoresCard(orientadores = state.orientadoresActivos, cargando = state.cargando)
+            OrientadoresCard(
+                orientadores = state.orientadoresActivos,
+                cargando = state.cargando
+            )
 
-            // ── Exportar CSV ─────────────────────────────────────────
+            // ── Exportar ─────────────────────────────────────────────
             OutlinedButton(
-                onClick = {
-                    scope.launch {
-                        repository.exportarRespuestasCsv(context)
-                    }
-                },
+                onClick = { scope.launch { repository.exportarRespuestasCsv(context) } },
                 modifier = Modifier.fillMaxWidth()
             ) { Text("Exportar CSV local") }
         }
     }
 }
 
-// ── Componentes privados ──────────────────────────────────────────────
+// ── Selector de rango ─────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RangoFechasDialog(
+    state: DateRangePickerState,
+    onDismiss: () -> Unit,
+    onConfirmar: (LocalDate, LocalDate) -> Unit
+) {
+    val ambosSeleccionados = state.selectedStartDateMillis != null &&
+        state.selectedEndDateMillis != null
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                enabled = ambosSeleccionados,
+                onClick = {
+                    val desde = state.selectedStartDateMillis!!
+                        .let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
+                    val hasta = state.selectedEndDateMillis!!
+                        .let { Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate() }
+                    onConfirmar(desde, hasta)
+                }
+            ) { Text("Aplicar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancelar") }
+        }
+    ) {
+        DateRangePicker(
+            state = state,
+            title = {
+                Text(
+                    "Selecciona el rango de fechas",
+                    modifier = Modifier.padding(start = 24.dp, top = 16.dp)
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(500.dp)
+        )
+    }
+}
+
+// ── Fila de chips de filtro ───────────────────────────────────────────
 
 @Composable
 private fun FiltroFechaRow(
     filtroActual: FiltroFecha,
-    onCambiar: (FiltroFecha) -> Unit
+    desdePersonalizado: LocalDate?,
+    hastaPersonalizado: LocalDate?,
+    onCambiarPreset: (FiltroFecha) -> Unit,
+    onAbrirDatePicker: () -> Unit
 ) {
+    val fmt = remember { DateTimeFormatter.ofPattern("d MMM", Locale("es", "CO")) }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        FiltroFecha.entries.forEach { filtro ->
+        listOf(FiltroFecha.HOY, FiltroFecha.SEMANA, FiltroFecha.MES).forEach { filtro ->
             FilterChip(
                 selected = filtro == filtroActual,
-                onClick = { onCambiar(filtro) },
-                label = { Text(filtro.etiqueta) },
+                onClick = { onCambiarPreset(filtro) },
+                label = { Text(filtro.etiqueta, maxLines = 1) },
                 modifier = Modifier.weight(1f)
             )
         }
+        // Chip de rango personalizado
+        val etiqueta = if (filtroActual == FiltroFecha.PERSONALIZADO &&
+            desdePersonalizado != null && hastaPersonalizado != null
+        ) {
+            "${desdePersonalizado.format(fmt)} – ${hastaPersonalizado.format(fmt)}"
+        } else {
+            "Rango"
+        }
+        FilterChip(
+            selected = filtroActual == FiltroFecha.PERSONALIZADO,
+            onClick = onAbrirDatePicker,
+            leadingIcon = {
+                Icon(
+                    Icons.Filled.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
+                )
+            },
+            label = { Text(etiqueta, maxLines = 1) },
+            modifier = Modifier.weight(1.4f)
+        )
     }
 }
+
+// ── Etiqueta del período activo ───────────────────────────────────────
+
+@Composable
+private fun RangoActivo(state: AdminState) {
+    val fmt = remember { DateTimeFormatter.ofPattern("d 'de' MMMM 'de' yyyy", Locale("es", "CO")) }
+    val hoy = remember { LocalDate.now() }
+
+    val descripcion = when (state.filtro) {
+        FiltroFecha.HOY    -> "Mostrando: hoy, ${hoy.format(fmt)}"
+        FiltroFecha.SEMANA -> "Mostrando: ${hoy.minusDays(6).format(fmt)} al ${hoy.format(fmt)}"
+        FiltroFecha.MES    -> "Mostrando: ${hoy.withDayOfMonth(1).format(fmt)} al ${hoy.format(fmt)}"
+        FiltroFecha.PERSONALIZADO -> if (state.desdePersonalizado != null && state.hastaPersonalizado != null)
+            "Mostrando: ${state.desdePersonalizado.format(fmt)} al ${state.hastaPersonalizado.format(fmt)}"
+        else "Selecciona un rango personalizado"
+    }
+
+    Text(
+        text = descripcion,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+// ── Tarjetas de estadísticas ──────────────────────────────────────────
 
 @Composable
 private fun TarjetasResumen(resumen: ResumenAdmin?) {
@@ -208,6 +331,8 @@ private fun TarjetaStat(
     }
 }
 
+// ── Orientadores activos ──────────────────────────────────────────────
+
 @Composable
 private fun OrientadoresCard(
     orientadores: List<OrientadorActivo>,
@@ -229,29 +354,25 @@ private fun OrientadoresCard(
                 )
                 Spacer(Modifier.width(8.dp))
                 Text(
-                    text = "Orientadores activos (${orientadores.size})",
+                    "Orientadores activos (${orientadores.size})",
                     style = MaterialTheme.typography.titleSmall
                 )
             }
 
-            if (cargando) {
-                Spacer(Modifier.height(8.dp))
-                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-            } else if (orientadores.isEmpty()) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Ningún orientador activo en los últimos 30 min",
+            Spacer(Modifier.height(8.dp))
+
+            when {
+                cargando -> LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                orientadores.isEmpty() -> Text(
+                    "Ningún orientador activo en los últimos 30 minutos",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            } else {
-                Spacer(Modifier.height(8.dp))
-                orientadores.forEach { o ->
+                else -> orientadores.forEach { o ->
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(o.nombre, style = MaterialTheme.typography.bodyMedium)
                         Text(
@@ -265,6 +386,8 @@ private fun OrientadoresCard(
         }
     }
 }
+
+// ── Tarjeta de error ──────────────────────────────────────────────────
 
 @Composable
 private fun ErrorCard(mensaje: String, onReintentar: () -> Unit) {
@@ -285,9 +408,9 @@ private fun ErrorCard(mensaje: String, onReintentar: () -> Unit) {
                 color = MaterialTheme.colorScheme.onErrorContainer,
                 textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
             Text(
-                "El dashboard estará disponible cuando Sistemas active el servidor.",
+                "El dashboard se poblará cuando Sistemas active los endpoints del servidor.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
@@ -298,16 +421,18 @@ private fun ErrorCard(mensaje: String, onReintentar: () -> Unit) {
     }
 }
 
+// ── Helpers de color ──────────────────────────────────────────────────
+
 private fun npsColor(nps: Double?): Color = when {
-    nps == null   -> Color(0xFF9E9E9E)
-    nps >= 9.0    -> Color(0xFF4CAF50)
-    nps >= 7.0    -> Color(0xFFFF9800)
-    else          -> Color(0xFFF44336)
+    nps == null -> Color(0xFF9E9E9E)
+    nps >= 9.0  -> Color(0xFF4CAF50)
+    nps >= 7.0  -> Color(0xFFFF9800)
+    else        -> Color(0xFFF44336)
 }
 
 private fun satisfColor(sat: Double?): Color = when {
-    sat == null   -> Color(0xFF9E9E9E)
-    sat >= 4.0    -> Color(0xFF4CAF50)
-    sat >= 3.0    -> Color(0xFFFF9800)
-    else          -> Color(0xFFF44336)
+    sat == null -> Color(0xFF9E9E9E)
+    sat >= 4.0  -> Color(0xFF4CAF50)
+    sat >= 3.0  -> Color(0xFFFF9800)
+    else        -> Color(0xFFF44336)
 }

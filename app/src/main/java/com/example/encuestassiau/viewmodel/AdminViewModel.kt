@@ -2,7 +2,6 @@ package com.example.encuestassiau.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.encuestassiau.network.AdminApi
 import com.example.encuestassiau.network.OrientadorActivo
 import com.example.encuestassiau.network.ResumenAdmin
 import com.example.encuestassiau.network.RetrofitClient
@@ -16,11 +15,14 @@ import java.time.LocalDate
 enum class FiltroFecha(val etiqueta: String) {
     HOY("Hoy"),
     SEMANA("Esta semana"),
-    MES("Este mes")
+    MES("Este mes"),
+    PERSONALIZADO("Personalizado")
 }
 
 data class AdminState(
     val filtro: FiltroFecha = FiltroFecha.HOY,
+    val desdePersonalizado: LocalDate? = null,
+    val hastaPersonalizado: LocalDate? = null,
     val resumen: ResumenAdmin? = null,
     val orientadoresActivos: List<OrientadorActivo> = emptyList(),
     val cargando: Boolean = true,
@@ -35,7 +37,19 @@ class AdminViewModel : ViewModel() {
     init { cargar() }
 
     fun cambiarFiltro(filtro: FiltroFecha) {
+        if (filtro == FiltroFecha.PERSONALIZADO) return // lo maneja cambiarRango
         _state.update { it.copy(filtro = filtro) }
+        cargar()
+    }
+
+    fun cambiarRango(desde: LocalDate, hasta: LocalDate) {
+        _state.update {
+            it.copy(
+                filtro = FiltroFecha.PERSONALIZADO,
+                desdePersonalizado = desde,
+                hastaPersonalizado = hasta
+            )
+        }
         cargar()
     }
 
@@ -44,18 +58,21 @@ class AdminViewModel : ViewModel() {
     private fun cargar() {
         viewModelScope.launch {
             _state.update { it.copy(cargando = true, error = null) }
+            val hoy = LocalDate.now()
+            val s = _state.value
+            val desde = when (s.filtro) {
+                FiltroFecha.HOY          -> hoy.toString()
+                FiltroFecha.SEMANA       -> hoy.minusDays(6).toString()
+                FiltroFecha.MES          -> hoy.withDayOfMonth(1).toString()
+                FiltroFecha.PERSONALIZADO -> s.desdePersonalizado?.toString() ?: hoy.toString()
+            }
+            val hasta = when (s.filtro) {
+                FiltroFecha.PERSONALIZADO -> s.hastaPersonalizado?.toString() ?: hoy.toString()
+                else                      -> hoy.toString()
+            }
             try {
-                val hoy = LocalDate.now()
-                val desde = when (_state.value.filtro) {
-                    FiltroFecha.HOY    -> hoy.toString()
-                    FiltroFecha.SEMANA -> hoy.minusDays(6).toString()
-                    FiltroFecha.MES    -> hoy.withDayOfMonth(1).toString()
-                }
-                val hasta = hoy.toString()
-
                 val resumenResp      = RetrofitClient.adminApi.getResumen(desde, hasta)
                 val orientadoresResp = RetrofitClient.adminApi.getOrientadoresActivos()
-
                 _state.update {
                     it.copy(
                         resumen = resumenResp.body().takeIf { resumenResp.isSuccessful },
@@ -66,9 +83,7 @@ class AdminViewModel : ViewModel() {
                     )
                 }
             } catch (e: Exception) {
-                _state.update {
-                    it.copy(cargando = false, error = "Sin conexión con el servidor")
-                }
+                _state.update { it.copy(cargando = false, error = "Sin conexión con el servidor") }
             }
         }
     }
