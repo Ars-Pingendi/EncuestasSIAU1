@@ -1,10 +1,12 @@
 package com.example.encuestassiau
 
+import android.app.admin.DevicePolicyManager
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
-import com.example.encuestassiau.BuildConfig
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import com.example.encuestassiau.ui.theme.EncuestasSIAUTheme
@@ -17,6 +19,7 @@ import com.example.encuestassiau.data.Repository
 import com.example.encuestassiau.data.SessionManager
 import com.example.encuestassiau.ui.AppNavigation
 import com.example.encuestassiau.ui.LoginScreen
+import com.example.encuestassiau.util.AppPreferences
 import com.example.encuestassiau.util.IdleTimeoutManager
 import com.example.encuestassiau.util.NetworkObserver
 import kotlinx.coroutines.launch
@@ -36,14 +39,11 @@ class MainActivity : ComponentActivity() {
 
         aplicarModoInmersivo()
 
-        // Modo kiosco: solo en builds de producción.
-        // En DEBUG, el lock task bloquea la reinstalación desde Android Studio.
-        if (!BuildConfig.DEBUG) {
-            try {
-                startLockTask()
-            } catch (e: SecurityException) {
-                Log.w("KIOSK", "Lock task no disponible en este dispositivo: ${e.message}")
-            }
+        // startLockTask solo si el dispositivo tiene Device Owner configurado.
+        // Sin Device Owner dispara el diálogo de "Fijar pantalla" que oculta la app.
+        val dpm = getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+        if (dpm.isDeviceOwnerApp(packageName)) {
+            startLockTask()
         }
 
         val database = AppDatabase.getDatabase(this)
@@ -66,8 +66,13 @@ class MainActivity : ComponentActivity() {
         }
         autenticado = SessionManager.isLoggedIn(this)
 
+        AppPreferences.cargar(this)
+
         setContent {
-            EncuestasSIAUTheme {
+            EncuestasSIAUTheme(largeText = AppPreferences.textoGrande) {
+
+                // Bloquea el botón Atrás del sistema en todas las pantallas (modo kiosco)
+                BackHandler(enabled = true) {}
 
                 LaunchedEffect(autenticado) {
                     if (autenticado) {

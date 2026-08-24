@@ -91,8 +91,8 @@ abstract class AppDatabase : RoomDatabase() {
                     ) SELECT
                         `id`, `encuestaTipo`, `preguntaId`, `respuesta`, `servicio`,
                         `edad`, `sexo`, `identificacion`, `comentario`, `fecha`,
-                        `usuarioId`, `usuarioNombre`, COALESCE(`informante`, ''),
-                        `motivos`, `sincronizado`
+                        `usuarioId`, `usuarioNombre`, `personaQueResponde`,
+                        `tipificacion`, `sincronizado`
                     FROM `respuestas`"""
                 )
                 db.execSQL("DROP TABLE `respuestas`")

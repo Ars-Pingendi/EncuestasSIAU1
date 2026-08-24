@@ -32,11 +32,12 @@ private val HusjColorScheme = lightColorScheme(
 
 @Composable
 fun EncuestasSIAUTheme(
+    largeText: Boolean = false,
     content: @Composable () -> Unit
 ) {
     MaterialTheme(
         colorScheme = HusjColorScheme,
-        typography = Typography,
+        typography = if (largeText) LargeTypography else Typography,
         content = content
     )
 }

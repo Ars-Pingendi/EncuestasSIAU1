@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">EncuestasSIAU</string>
+    <string name="nombre_hospital">Hospital Universitario San José de Popayán E.S.E.</string>
 
     <!-- Login -->
     <string name="login_titulo">Encuesta de satisfacción</string>
@@ -57,4 +58,14 @@
     <string name="gracias_titulo">¡Gracias por tu participación!</string>
     <string name="gracias_subtitulo">Tu opinión nos ayuda a mejorar la calidad del servicio.</string>
     <string name="gracias_btn_volver">Volver al inicio</string>
+
+    <!-- Panel de administrador -->
+    <string name="admin_titulo">Panel de administrador</string>
+    <string name="admin_red_conectado">En línea</string>
+    <string name="admin_red_sin_conexion">Sin conexión</string>
+    <string name="admin_pendientes">Pendientes: %1$d</string>
+    <string name="admin_texto_grande">Texto grande (accesibilidad)</string>
+    <string name="admin_version">Versión %1$s</string>
+    <string name="admin_cerrar">Cerrar</string>
+    <string name="sync_estado">Estado de sincronización</string>
 </resources>
