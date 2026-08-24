@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
 
-    <!-- Servidor de autenticación (login) -->
+    <!-- Servidor del hospital (piloto) -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.22.148</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- IPs de prueba anteriores (conservadas por compatibilidad) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">192.168.10.35</domain>
         <trust-anchors>
@@ -9,7 +17,6 @@
         </trust-anchors>
     </domain-config>
 
-    <!-- Servidor de respuestas (sync) -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="false">192.168.10.150</domain>
         <trust-anchors>

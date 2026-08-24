@@ -8,16 +8,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.encuestassiau.MainActivity
 import com.example.encuestassiau.data.Repository
-import com.example.encuestassiau.data.SessionManager
-import com.example.encuestassiau.util.IdleTimeoutManager
 import com.example.encuestassiau.viewmodel.SurveyFlowViewModel
 import com.example.encuestassiau.viewmodel.SurveyFlowViewModelFactory
 import kotlinx.coroutines.launch
 
 @Composable
-fun AppNavigation(repository: Repository) {
+fun AppNavigation(repository: Repository, onLogout: () -> Unit) {
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -35,11 +32,7 @@ fun AppNavigation(repository: Repository) {
                 scope.launch { repository.sincronizarPendientes(context) }
             },
             repository = repository,
-            onLogout = {
-                SessionManager.clearSession(context)
-                IdleTimeoutManager.stop()
-                (context as MainActivity).recreate()
-            },
+            onLogout = onLogout,
             onExportCsv = {
                 scope.launch {
                     val archivo = repository.exportarRespuestasCsv(context)

@@ -100,20 +100,34 @@ app/src/main/
 
 ## Autenticación
 
-### Especificación del servidor
+### Especificación del servidor (confirmada en piloto)
 | Campo | Valor |
 |-------|-------|
-| Base URL | `http://<IP>:<PORT>/api/` |
+| Servidor activo | `http://192.168.22.148:8089/api/` |
 | Endpoint login | `POST auth/login` (relativo — sin barra inicial) |
 | Body | `{"username": "...", "password": "..."}` |
 | Respuesta | `{"jwt": "eyJ..."}` HTTP 200 |
+
+### Estructura del JWT (verificada con token real)
+```json
+{
+  "sub": "1061784598",
+  "authorities": "ROLE_ADMINISTRADOR",
+  "name_user": "JULIO CESAR ALVAREZ CUACES",
+  "iat": 1782848175,
+  "exp": 1782848775
+}
+```
+- **`name_user`** → la app lo extrae con `JwtUtils.decodePayload()` para mostrar el nombre del operador
+- **`exp - iat` = 600 s** → el token vive 10 minutos. En kiosco esto no es problema: `isTokenExpired()` solo se evalúa al arrancar la app, no durante la sesión activa
+- **`authorities`** → no se usa en la app actualmente; solo se necesita si se implementa control de roles
 
 ### Flujo
 1. `MainActivity.onCreate` → `SessionManager.restoreSession()` → `RetrofitClient.setAuthToken(token)`
 2. Si `repository.isTokenExpired()` → `SessionManager.clearSession()`
 3. `SessionManager.isLoggedIn()` determina si mostrar `LoginScreen` o `AppNavigation`
 4. `Repository.login()` → `authApi.login()` → guarda JWT con `SessionManager.saveToken()` → extrae `name_user` del payload JWT
-5. Logout: `SessionManager.clearSession()` + `activity.recreate()`
+5. Logout: `SessionManager.clearSession()` + `autenticado = false` (sin `recreate()` — evita violación de Lock Task Mode)
 
 ### Almacenamiento del JWT
 `SessionManager` usa `EncryptedSharedPreferences` con API de `security-crypto:1.0.0`:
