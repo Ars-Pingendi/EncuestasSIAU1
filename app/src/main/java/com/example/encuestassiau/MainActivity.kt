@@ -3,12 +3,12 @@ package com.example.encuestassiau
 import android.os.Bundle
 import android.util.Log
 import android.view.WindowManager
+import com.example.encuestassiau.BuildConfig
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -24,6 +24,9 @@ import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    // Estado elevado al nivel de Activity para evitar recreate() en Lock Task Mode
+    private var autenticado by mutableStateOf(false)
+
     private lateinit var networkObserver: NetworkObserver
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,9 +37,8 @@ class MainActivity : ComponentActivity() {
 
         aplicarModoInmersivo()
 
-        // Bloqueo kiosco solo en release — en debug el teléfono de prueba no tiene
-        // Device Owner y startLockTask() deja la app en un estado de fijación roto
-        // que impide volver al primer plano desde el selector de apps recientes.
+        // Modo kiosco: solo en builds de producción.
+        // En DEBUG, el lock task bloquea la reinstalación desde Android Studio.
         if (!BuildConfig.DEBUG) {
             try {
                 startLockTask()
@@ -63,15 +65,11 @@ class MainActivity : ComponentActivity() {
         if (repository.isTokenExpired(this)) {
             SessionManager.clearSession(this)
         }
+        autenticado = SessionManager.isLoggedIn(this)
 
         setContent {
             MaterialTheme {
                 Surface {
-
-                    val context = LocalContext.current
-                    var autenticado by remember {
-                        mutableStateOf(SessionManager.isLoggedIn(context))
-                    }
 
                     LaunchedEffect(autenticado) {
                         if (autenticado) {
@@ -82,7 +80,10 @@ class MainActivity : ComponentActivity() {
                     }
 
                     if (autenticado) {
-                        AppNavigation(repository)
+                        AppNavigation(
+                            repository = repository,
+                            onLogout = { cerrarSesion() }
+                        )
                     } else {
                         LoginScreen(repository) {
                             autenticado = true
@@ -110,7 +111,7 @@ class MainActivity : ComponentActivity() {
 
     private fun cerrarSesion() {
         SessionManager.clearSession(this)
-        recreate()
+        autenticado = false
     }
 
     override fun onDestroy() {
