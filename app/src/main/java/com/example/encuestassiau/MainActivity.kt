@@ -34,13 +34,15 @@ class MainActivity : ComponentActivity() {
 
         aplicarModoInmersivo()
 
-        // Intenta bloquear la tablet en modo kiosco si el dispositivo
-        // está configurado como Device Owner por el área de IT del hospital.
-        // En dispositivos sin esa configuración falla silenciosamente.
-        try {
-            startLockTask()
-        } catch (e: SecurityException) {
-            Log.w("KIOSK", "Lock task no disponible en este dispositivo: ${e.message}")
+        // Bloqueo kiosco solo en release — en debug el teléfono de prueba no tiene
+        // Device Owner y startLockTask() deja la app en un estado de fijación roto
+        // que impide volver al primer plano desde el selector de apps recientes.
+        if (!BuildConfig.DEBUG) {
+            try {
+                startLockTask()
+            } catch (e: SecurityException) {
+                Log.w("KIOSK", "Lock task no disponible en este dispositivo: ${e.message}")
+            }
         }
 
         val database = AppDatabase.getDatabase(this)

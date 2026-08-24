@@ -102,10 +102,30 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE `preguntas` ADD COLUMN `seccion` TEXT NOT NULL DEFAULT ''")
-                db.execSQL("ALTER TABLE `preguntas` ADD COLUMN `tipo` TEXT NOT NULL DEFAULT 'escala'")
+                // Recrear preguntas para añadir seccion/tipo y eliminar motivos
+                // (SQLite no soporta DROP COLUMN antes de API 35)
+                db.execSQL(
+                    """CREATE TABLE `preguntas_new` (
+                        `id` INTEGER NOT NULL,
+                        `tipoEncuesta` TEXT NOT NULL,
+                        `texto` TEXT NOT NULL,
+                        `opciones` TEXT NOT NULL,
+                        `requiereComentario` INTEGER NOT NULL,
+                        `seccion` TEXT NOT NULL DEFAULT '',
+                        `tipo` TEXT NOT NULL DEFAULT 'escala',
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO `preguntas_new`
+                        (id, tipoEncuesta, texto, opciones, requiereComentario, seccion, tipo)
+                       SELECT id, tipoEncuesta, texto, opciones, requiereComentario, '', 'escala'
+                       FROM `preguntas`"""
+                )
+                db.execSQL("DROP TABLE `preguntas`")
+                db.execSQL("ALTER TABLE `preguntas_new` RENAME TO `preguntas`")
                 db.execSQL("ALTER TABLE `respuestas` ADD COLUMN `personaQueResponde` TEXT NOT NULL DEFAULT ''")
-                // Clear outdated questions; onOpen reloads the unified set
+                // Borra preguntas obsoletas; onOpen recarga desde preguntas_unificadas.json
                 db.execSQL("DELETE FROM `preguntas`")
             }
         }
