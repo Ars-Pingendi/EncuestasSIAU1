@@ -6,9 +6,8 @@ import android.view.WindowManager
 import com.example.encuestassiau.BuildConfig
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
+import com.example.encuestassiau.ui.theme.EncuestasSIAUTheme
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -68,26 +67,24 @@ class MainActivity : ComponentActivity() {
         autenticado = SessionManager.isLoggedIn(this)
 
         setContent {
-            MaterialTheme {
-                Surface {
+            EncuestasSIAUTheme {
 
-                    LaunchedEffect(autenticado) {
-                        if (autenticado) {
-                            IdleTimeoutManager.start { cerrarSesion() }
-                        } else {
-                            IdleTimeoutManager.stop()
-                        }
-                    }
-
+                LaunchedEffect(autenticado) {
                     if (autenticado) {
-                        AppNavigation(
-                            repository = repository,
-                            onLogout = { cerrarSesion() }
-                        )
+                        IdleTimeoutManager.start { cerrarSesion() }
                     } else {
-                        LoginScreen(repository) {
-                            autenticado = true
-                        }
+                        IdleTimeoutManager.stop()
+                    }
+                }
+
+                if (autenticado) {
+                    AppNavigation(
+                        repository = repository,
+                        onLogout = { cerrarSesion() }
+                    )
+                } else {
+                    LoginScreen(repository) {
+                        autenticado = true
                     }
                 }
             }

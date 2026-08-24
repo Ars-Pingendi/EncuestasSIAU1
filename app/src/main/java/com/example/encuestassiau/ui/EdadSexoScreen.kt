@@ -2,8 +2,11 @@ package com.example.encuestassiau.ui
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -13,6 +16,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.encuestassiau.R
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EdadSexoScreen(
     edadInicial: Int = 0,
@@ -38,20 +42,46 @@ fun EdadSexoScreen(
         stringResource(R.string.persona_responde_cuidador)
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.SpaceBetween
-    ) {
-        Column(modifier = Modifier.weight(1f).verticalScroll(rememberScrollState())) {
-
-            Text(
-                text = stringResource(R.string.edad_sexo_titulo),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 16.dp)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(stringResource(R.string.edad_sexo_titulo)) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Atrás")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+                )
             )
-
+        },
+        bottomBar = {
+            Surface(shadowElevation = 8.dp) {
+                Button(
+                    onClick = { onNext(edadInt!!, sexoSeleccionado!!, personaQueResponde!!) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .height(52.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    enabled = edadValida && sexoSeleccionado != null && personaQueResponde != null
+                ) {
+                    Text(stringResource(R.string.edad_sexo_btn_continuar))
+                }
+            }
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 24.dp, vertical = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
             OutlinedTextField(
                 value = edad,
                 onValueChange = { if (it.all(Char::isDigit)) edad = it },
@@ -61,68 +91,75 @@ fun EdadSexoScreen(
                 supportingText = if (edad.isNotEmpty() && !edadValida) {
                     { Text(stringResource(R.string.edad_sexo_error_edad)) }
                 } else null,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                stringResource(R.string.edad_sexo_campo_sexo),
-                style = MaterialTheme.typography.titleMedium
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                opcionesSexo.forEach { sexo ->
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        RadioButton(
-                            selected = (sexoSeleccionado == sexo),
-                            onClick = { sexoSeleccionado = sexo }
+            Column {
+                Text(
+                    stringResource(R.string.edad_sexo_campo_sexo),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    opcionesSexo.forEach { sexo ->
+                        FilterChip(
+                            selected = sexoSeleccionado == sexo,
+                            onClick = { sexoSeleccionado = sexo },
+                            label = { Text(sexo) },
+                            modifier = Modifier.weight(1f)
                         )
-                        Text(text = sexo)
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                stringResource(R.string.persona_responde_titulo),
-                style = MaterialTheme.typography.titleMedium
-            )
-            opcionesPersona.forEach { opcion ->
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp)
-                ) {
-                    RadioButton(
-                        selected = (personaQueResponde == opcion),
-                        onClick = { personaQueResponde = opcion }
-                    )
-                    Text(text = opcion)
+            Column {
+                Text(
+                    stringResource(R.string.persona_responde_titulo),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                opcionesPersona.forEach { opcion ->
+                    val seleccionado = personaQueResponde == opcion
+                    Card(
+                        onClick = { personaQueResponde = opcion },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 8.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = if (seleccionado)
+                                MaterialTheme.colorScheme.primaryContainer
+                            else
+                                MaterialTheme.colorScheme.surface
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = seleccionado,
+                                onClick = { personaQueResponde = opcion }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                opcion,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (seleccionado)
+                                    MaterialTheme.colorScheme.onPrimaryContainer
+                                else
+                                    MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                    }
                 }
-            }
-        }
-
-        Column(modifier = Modifier.padding(vertical = 16.dp)) {
-            OutlinedButton(
-                onClick = onBack,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("Atrás")
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = { onNext(edadInt!!, sexoSeleccionado!!, personaQueResponde!!) },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = edadValida && sexoSeleccionado != null && personaQueResponde != null
-            ) {
-                Text(stringResource(R.string.edad_sexo_btn_continuar))
             }
         }
     }
