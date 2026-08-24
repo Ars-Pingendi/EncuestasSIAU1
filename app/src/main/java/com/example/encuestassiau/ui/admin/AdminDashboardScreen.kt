@@ -107,6 +107,25 @@ fun AdminDashboardScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // ── Banner de datos ficticios (solo DEBUG) ───────────────
+            if (state.esMock) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFFFF8E1)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        "⚠️ Datos de prueba — el servidor aún no está disponible",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Color(0xFF795548),
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+
             // ── Filtro de fecha ──────────────────────────────────────
             FiltroFechaRow(
                 filtroActual = state.filtro,
