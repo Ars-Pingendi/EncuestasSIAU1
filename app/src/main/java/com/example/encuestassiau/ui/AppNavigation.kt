@@ -73,6 +73,7 @@ fun AppNavigation(repository: Repository, onLogout: () -> Unit) {
                 edad = state.edad,
                 sexo = state.sexo,
                 personaQueResponde = state.personaQueResponde,
+                sesionId = state.sesionId,
                 repository = repository,
                 onFinish = { viewModel.finalizarEncuesta() },
                 onCancel = { viewModel.volverAInicio() },

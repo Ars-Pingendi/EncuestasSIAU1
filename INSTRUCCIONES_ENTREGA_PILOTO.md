@@ -1,96 +1,113 @@
 # EncuestasSIAU: instrucciones de entrega y piloto
 
-## Estado recuperado
+## Estado actual — app v3.0
 
-La version recuperada es la `2.0` (`versionCode 2`). La aplicacion compila en modo
-debug y contiene:
+La aplicación compila en modo debug y contiene:
 
-- 13 preguntas unificadas en `app/src/main/assets/preguntas_unificadas.json`.
-- NPS clasico de 0 a 10.
-- Guardado offline con Room y sincronizacion automatica/manual.
-- Login por `POST auth/login`.
-- Envio de respuestas por `POST respuestas`.
-- Tipificacion de motivos para respuestas detractoras.
-- Exportacion CSV y modo kiosco.
+- 13 preguntas unificadas (`app/src/main/assets/preguntas_unificadas.json`).
+- NPS clásico de 0 a 10.
+- Guardado offline con Room (SQLite v6) y sincronización automática/manual.
+- Login por `POST auth/login` con JWT que incluye el campo `authorities`.
+- Envío de respuestas por `POST respuestas`.
+- Tipificación de motivos para respuestas detractoras.
+- Exportación CSV y modo kiosco.
+- **Sistema de roles**: `ROLE_USER` (orientador) y `ROLE_ADMIN` (coordinadora / secretaria).
+- **Dashboard de administrador**: tarjetas de resumen, filtro de fechas (Hoy / Semana / Mes / Rango personalizado), orientadores activos en tiempo real.
 
-La compilacion correcta requiere Android SDK configurado. `local.properties` es local
-y no se versiona.
+## Usuarios de prueba (solo DEBUG)
+
+| Usuario | Contraseña | Rol | Acceso |
+|---------|-----------|-----|--------|
+| `admin_test` | `siau2024` | `ROLE_USER` | Flujo de encuesta (orientador) |
+| `admin_admin` | `siau2024` | `ROLE_ADMIN` | Dashboard de administrador |
+
+**Eliminar ambos bypasses antes de cualquier release a producción.**
 
 ## Bloqueos antes del piloto
 
 1. Sistemas debe confirmar IP, puerto y protocolo del backend.
 2. El backend debe tener `POST /auth/login` y `POST /respuestas` funcionando.
-3. El backend debe mapear el JSON camelCase de la app al esquema PostgreSQL.
-4. Debe probarse una encuesta completa y verificar sus 13 respuestas en la BD.
-5. El dashboard actual usa datos simulados y pertenece al catalogo antiguo.
-6. El bypass `admin_test / siau2024` existe solo en builds DEBUG y debe eliminarse
-   antes de distribuir una release.
+3. El JWT debe incluir el campo `authorities` con valor `"ROLE_USER"` o `"ROLE_ADMIN"`.
+4. Para el dashboard de administrador, el backend debe exponer además:
+   - `GET /respuestas/resumen?desde=&hasta=`
+   - `GET /orientadores/activos`
+   - `PATCH /usuarios/actividad`
+5. El bypass `admin_test` / `admin_admin` debe eliminarse antes de la release.
 
 ## 1. Datos que pedir a Sistemas
 
-> Necesitamos para el piloto de EncuestasSIAU: IP y puerto del backend, confirmacion
-> de `POST /auth/login`, confirmacion de `POST /respuestas`, usuario de prueba,
-> contrasena de prueba y nombre de la base de datos PostgreSQL. Confirmen tambien
-> que el backend transforma los campos JSON de la app al esquema SQL.
+> Necesitamos para el piloto de EncuestasSIAU: IP y puerto del backend, confirmación
+> de `POST /auth/login` (respuesta: `{"jwt":"..."}` con campo `authorities` en el payload),
+> confirmación de `POST /respuestas`, usuario de prueba para cada rol
+> (ROLE_USER y ROLE_ADMIN), contraseña de prueba y nombre de la base de datos PostgreSQL.
 
 ## 2. Crear la base de datos
 
-Sistemas debe crear una base de datos vacia y ejecutar desde la raiz del proyecto:
+Sistemas debe crear una base de datos vacía y ejecutar los scripts en orden:
 
 ```bash
-psql -h HOST_POSTGRES -p PUERTO_POSTGRES -U USUARIO -d BASE_DATOS \
-  -v ON_ERROR_STOP=1 -f db/postgresql/00_setup_piloto_unificado.sql
+psql -h HOST -p PUERTO -U USUARIO -d BASE_DATOS -f db/postgresql/01_schema.sql
+psql -h HOST -p PUERTO -U USUARIO -d BASE_DATOS -f db/postgresql/02_seed_preguntas.sql
+psql -h HOST -p PUERTO -U USUARIO -d BASE_DATOS -f db/postgresql/03_seed_usuarios.sql
+psql -h HOST -p PUERTO -U USUARIO -d BASE_DATOS -f db/postgresql/04_vistas_admin.sql
 ```
 
-El script no usa `DROP`, no borra datos y puede ejecutarse nuevamente sin duplicar
-preguntas ni indices.
+Los scripts son idempotentes (pueden ejecutarse varias veces sin duplicar datos).
 
-Validar despues:
+Validar después:
 
 ```sql
-SELECT COUNT(*) FROM preguntas;
--- Debe devolver 13
-
-SELECT id, tipo_encuesta, tipo FROM preguntas ORDER BY id;
--- Debe mostrar ids 1 a 13 y tipo_encuesta = unificado
-
-SELECT COUNT(*) FROM respuestas;
--- En una BD nueva debe devolver 0
+SELECT COUNT(*) FROM preguntas;   -- Debe devolver 13
+SELECT COUNT(*) FROM usuarios;    -- Debe devolver al menos 2 (coordinadora + secretaria)
+SELECT COUNT(*) FROM respuestas;  -- En BD nueva debe devolver 0
 ```
 
-Los scripts antiguos `01_schema.sql` y `02_seed_preguntas.sql` corresponden al
-formulario anterior de 26 preguntas. Para una BD nueva del piloto usar el script
-`00_setup_piloto_unificado.sql`.
+## 3. Contrato del endpoint `POST /respuestas`
 
-## 3. Contrato obligatorio del backend
+La app envía un objeto JSON por respuesta (camelCase). El backend debe mapear así:
 
-La app envia un objeto por respuesta con nombres camelCase. El backend debe recibir
-estos campos y transformarlos antes de insertar:
-
-| JSON de la app | Columna PostgreSQL | Accion |
+| JSON de la app | Columna PostgreSQL | Notas |
 |---|---|---|
-| `id` | `id_local` | Copiar como trazabilidad |
-| `encuestaTipo` | `encuesta_tipo` | `ambulatoria` o `internacion` |
-| `preguntaId` | `pregunta_id` | Validar FK contra `preguntas.id` |
-| `respuesta`, `servicio`, `edad`, `sexo` | Igual nombre | Validar edad entre 0 y 150 |
-| `personaQueResponde` | `informante` | Copiar |
-| `identificacion`, `comentario` | Igual nombre | Pueden ser `null` |
-| `tipificacion` | `motivos` | Separar por `|` y convertir a JSONB |
-| `fecha` | `fecha` | Parsear ISO-8601 con zona horaria |
-| `usuarioId` | `usuario_id` | Copiar desde la sesion autenticada |
-| `usuarioNombre` | `usuario_nombre` | Copiar |
-| `sincronizado` | `sincronizado` | En servidor debe quedar `true` |
+| `sesionId` | `sesion_id` | UUID que agrupa las 13 respuestas de un formulario |
+| `id` | `id_local` | Solo trazabilidad |
+| `encuestaTipo` | `encuesta_tipo` | `"ambulatoria"` o `"internacion"` |
+| `preguntaId` | `pregunta_id` | FK a `preguntas.id` (1–13) |
+| `respuesta` | `respuesta` | Texto de la respuesta |
+| `servicio` | `servicio` | Nombre del servicio seleccionado |
+| `edad` | `edad` | Entero entre 1 y 120 |
+| `sexo` | `sexo` | `"Masculino"`, `"Femenino"` u `"Otro"` |
+| `personaQueResponde` | `persona_que_responde` | `"El paciente"` o `"El cuidador..."` |
+| `identificacion` | `identificacion` | Siempre `null` (política de anonimato) |
+| `comentario` | `comentario` | Texto libre, puede ser `null` |
+| `fecha` | `fecha` | ISO-8601 con zona horaria |
+| `usuarioId` | `usuario_id` | Extraído del JWT autenticado |
+| `usuarioNombre` | `usuario_nombre` | Extraído del JWT autenticado |
+| `tipificacion` | `tipificacion` | Ítems separados por `"\|"`, puede ser `null` |
+| `sincronizado` | — | Ignorar; la app lo envía siempre en `false` |
 
-La version actual no envia `encuestaId` ni `dispositivoId`. El script permite
-`encuesta_id` nulo y usa `dispositivo_id` vacio. Para agrupar las 13 respuestas de
-una encuesta y distinguir tablets, esos campos deben agregarse en una futura version.
+El endpoint debe responder HTTP `2xx` tras insertar. Para errores debe responder `4xx`
+con mensaje claro; la app dejará la respuesta como pendiente y reintentará.
 
-El endpoint debe responder HTTP `2xx` despues de insertar. Para errores debe
-responder `4xx` con un mensaje claro; la app dejara la respuesta pendiente.
+## 4. Contrato del JWT
 
-## 4. Configurar la app
+El payload del JWT que genera el backend debe incluir:
 
-Crear localmente `local.properties` en la raiz:
+```json
+{
+  "sub": "cedula_o_codigo_empleado",
+  "name_user": "NOMBRE COMPLETO EN MAYÚSCULAS",
+  "authorities": "ROLE_USER",
+  "iat": 1234567890,
+  "exp": 1234568490
+}
+```
+
+- `authorities` debe ser exactamente `"ROLE_USER"` o `"ROLE_ADMIN"` (sin corchetes ni arreglo).
+- La app enruta a la pantalla de orientador o de administrador según este campo.
+
+## 5. Configurar la app
+
+Crear localmente `local.properties` en la raíz:
 
 ```properties
 sdk.dir=C:\\Users\\USUARIO\\AppData\\Local\\Android\\Sdk
@@ -98,59 +115,62 @@ auth.base.url=http://IP_BACKEND:PUERTO/api/
 api.base.url=http://IP_BACKEND:PUERTO
 ```
 
-La URL de autenticacion debe terminar en `/`. Si el piloto usa HTTP, la IP tambien
-debe estar permitida en `app/src/main/res/xml/network_security_config.xml`.
+La URL de autenticación debe terminar en `/`. Si el piloto usa HTTP, la IP debe estar
+permitida en `app/src/main/res/xml/network_security_config.xml`.
 
-## 5. Compilar e instalar
+## 6. Compilar e instalar
 
-Desde PowerShell en la raiz:
+Desde PowerShell en la raíz:
 
 ```powershell
-$env:ANDROID_HOME = "C:\Users\USUARIO\AppData\Local\Android\Sdk"
-.\gradlew.bat assembleDebug
-.\gradlew.bat installDebug
+$env:JAVA_HOME = "C:\Users\ASUS\.gradle\jdks\eclipse_adoptium-17-amd64-windows.2"
+$env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+.\gradlew assembleDebug
+.\gradlew installDebug
 ```
 
-Para una entrega formal, retirar el bypass DEBUG, generar una variante `release` y
-firmar el APK con la clave institucional.
-
-## 6. Prueba de aceptacion
+## 7. Prueba de aceptación — orientador (ROLE_USER)
 
 1. Poner tablet y backend en la misma red.
-2. Iniciar sesion con las credenciales entregadas por Sistemas.
-3. Crear una encuesta ambulatoria y otra de internacion.
-4. Completar edad, sexo y persona que responde.
-5. En una pregunta 1 a 7 elegir `Malo` y seleccionar un motivo.
-6. Mover el NPS a un valor concreto, por ejemplo `8`.
+2. Iniciar sesión con un usuario `ROLE_USER`.
+3. Crear una encuesta ambulatoria y otra de hospitalización.
+4. Completar servicio, edad, sexo y persona que responde.
+5. En una pregunta 1–7 elegir `Malo` y seleccionar al menos un motivo.
+6. Mover el NPS a un valor concreto (p. ej. `8`).
 7. Finalizar la encuesta.
-8. Desconectar la red, crear otra respuesta y comprobar que queda pendiente.
-9. Reconectar y pulsar sincronizacion manual.
-10. Verificar en PostgreSQL respuestas con `pregunta_id` del 1 al 13.
+8. Verificar en PostgreSQL que llegaron 13 filas con el mismo `sesion_id`:
 
 ```sql
-SELECT pregunta_id, respuesta, informante, motivos, usuario_id, fecha
+SELECT sesion_id, pregunta_id, respuesta, persona_que_responde, usuario_id, fecha
 FROM respuestas
 ORDER BY id DESC
-LIMIT 20;
+LIMIT 15;
 ```
 
-## Dashboard
+9. Desconectar la red, crear otra encuesta → verificar que queda pendiente (punto naranja).
+10. Reconectar → sincronización automática (punto verde).
 
-`dashboard/index.html` usa actualmente datos simulados y preguntas del catalogo
-antiguo. Para datos reales, el backend debe exponer un endpoint de lectura y el
-dashboard debe adaptarse al formulario unificado. No debe presentarse como conectado
-hasta verificar datos reales en pantalla.
+## 8. Prueba de aceptación — administrador (ROLE_ADMIN)
+
+1. Iniciar sesión con un usuario `ROLE_ADMIN`.
+2. Verificar que aparece el dashboard (no el flujo de encuesta).
+3. Cambiar el filtro entre Hoy / Esta semana / Este mes y verificar que las tarjetas cambian.
+4. Usar el botón "Rango 📅" y seleccionar fechas personalizadas.
+5. Verificar que la sección "Orientadores activos" muestra los usuarios con sesión reciente.
 
 ## Seguridad
 
-- No subir `local.properties`, contrasenas, tokens JWT ni claves de firma.
-- No usar el usuario DEBUG en la tablet del hospital.
-- Migrar HTTP a HTTPS antes de produccion.
+- No subir `local.properties`, contraseñas, tokens JWT ni claves de firma.
+- No usar los usuarios DEBUG (`admin_test`, `admin_admin`) en la tablet del hospital.
+- Migrar HTTP a HTTPS antes de producción.
 - Hacer copias de seguridad de PostgreSQL antes de cualquier cambio.
 - No usar `fallbackToDestructiveMigration()` en la app.
 
-## Criterio de listo
+## Criterio de "listo"
 
-La entrega esta lista cuando el APK release instala, el login funciona, una encuesta
-se guarda offline, las 13 respuestas llegan al servidor al recuperar la red y
-Sistemas confirma que los registros se leen correctamente en PostgreSQL.
+La entrega está lista cuando:
+- El APK release instala sin errores.
+- El login funciona con usuarios reales de ambos roles.
+- Una encuesta se guarda offline y sus 13 respuestas (con el mismo `sesion_id`) llegan al servidor al recuperar la red.
+- El dashboard del administrador muestra datos reales del servidor (no el banner de datos de prueba).
+- Sistemas confirma que los registros se leen correctamente en PostgreSQL.

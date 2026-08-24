@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 data class SurveyFlowState(
     val screen: String = "start",
@@ -17,6 +18,7 @@ data class SurveyFlowState(
     val edad: Int = 0,
     val sexo: String = "",
     val personaQueResponde: String = "",
+    val sesionId: String = "",
     val preguntas: List<Question> = emptyList(),
     val preguntasCargando: Boolean = false,
     val preguntasError: String? = null
@@ -30,7 +32,13 @@ class SurveyFlowViewModel(
     val state: StateFlow<SurveyFlowState> = _state.asStateFlow()
 
     fun seleccionarTipo(tipo: String) {
-        _state.update { it.copy(tipoEncuesta = tipo, screen = "servicio") }
+        _state.update {
+            it.copy(
+                tipoEncuesta = tipo,
+                screen = "servicio",
+                sesionId = UUID.randomUUID().toString()
+            )
+        }
         cargarPreguntas()
     }
 

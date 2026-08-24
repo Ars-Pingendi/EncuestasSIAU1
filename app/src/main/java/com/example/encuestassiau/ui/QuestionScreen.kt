@@ -50,6 +50,7 @@ fun QuestionScreen(
     edad: Int,
     sexo: String,
     personaQueResponde: String,
+    sesionId: String,
     repository: Repository,
     onFinish: () -> Unit,
     onCancel: () -> Unit,
@@ -381,6 +382,7 @@ fun QuestionScreen(
                             viewModel.guardarRespuesta(
                                 context,
                                 Respuesta(
+                                    sesionId = sesionId.ifBlank { null },
                                     encuestaTipo = tipoEncuesta,
                                     preguntaId = preguntaActual.id,
                                     respuesta = respuestaTexto,

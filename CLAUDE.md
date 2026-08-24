@@ -16,16 +16,20 @@
 
 ```
 MainActivity
-└── LoginScreen  (si no hay sesión activa)
-└── AppNavigation  (si hay sesión)
-    ├── StartScreen          → selección de tipo de encuesta
-    ├── ServiceScreen        → selección de servicio
-    ├── EdadSexoScreen       → edad, sexo, quién responde
-    ├── QuestionScreen       → 13 preguntas del formulario unificado
-    └── GraciasScreen        → pantalla final
+└── LoginScreen      (si no hay sesión activa)
+└── AppNavigation    (si hay sesión y rol = ROLE_USER)
+│   ├── StartScreen          → selección de tipo de encuesta
+│   ├── ServiceScreen        → selección de servicio
+│   ├── EdadSexoScreen       → edad, sexo, quién responde
+│   ├── QuestionScreen       → 13 preguntas del formulario unificado
+│   └── GraciasScreen        → pantalla final
+└── AdminNavigation  (si hay sesión y rol = ROLE_ADMIN)
+    └── AdminDashboardScreen → resumen, filtro de fechas, orientadores activos
 ```
 
 **Flujo de estado**: `SurveyFlowViewModel` (StateFlow) controla la navegación entre pantallas mediante el campo `screen` en `SurveyFlowState`. No se usa Navigation Compose para la navegación principal.
+
+**Sistema de roles**: el campo `authorities` del JWT determina el flujo al que entra el usuario tras el login. `SessionManager.isAdmin()` es la fuente de verdad en toda la app.
 
 ---
 
@@ -39,10 +43,10 @@ app/src/main/
 ├── java/com/example/encuestassiau/
 │   ├── MainActivity.kt             ← kiosco, sesión, NetworkObserver
 │   ├── data/
-│   │   ├── AppDatabase.kt          ← Room v4, migraciones 1→2→3→4
-│   │   ├── Respuesta.kt            ← entidad Room (@Serializable)
+│   │   ├── AppDatabase.kt          ← Room v6, migraciones 1→2→3→4→5→6
+│   │   ├── Respuesta.kt            ← entidad Room (@Serializable), incluye sesionId
 │   │   ├── Repository.kt           ← lógica de negocio, login, sync, CSV
-│   │   ├── SessionManager.kt       ← EncryptedSharedPreferences (JWT)
+│   │   ├── SessionManager.kt       ← EncryptedSharedPreferences (JWT + rol)
 │   │   ├── PreguntaDao.kt
 │   │   ├── RespuestaDao.kt
 │   │   └── converters/
@@ -52,11 +56,15 @@ app/src/main/
 │   ├── network/
 │   │   ├── AuthApi.kt              ← POST auth/login
 │   │   ├── SyncApi.kt              ← POST respuestas
-│   │   ├── RetrofitClient.kt       ← dos instancias Retrofit (auth + sync)
+│   │   ├── AdminApi.kt             ← GET /respuestas/resumen, GET /orientadores/activos, PATCH /usuarios/actividad
+│   │   ├── RetrofitClient.kt       ← authApi + syncApi + adminApi (syncApi y adminApi comparten instancia Retrofit)
 │   │   ├── LoginRequest.kt         ← {username, password}
 │   │   └── LoginResponse.kt        ← {jwt, refreshToken?}
 │   ├── ui/
-│   │   ├── AppNavigation.kt        ← switch de pantallas según state.screen
+│   │   ├── AppNavigation.kt        ← switch de pantallas según state.screen (ROLE_USER)
+│   │   ├── admin/
+│   │   │   ├── AdminNavigation.kt  ← enrutador de pantallas admin (ROLE_ADMIN)
+│   │   │   └── AdminDashboardScreen.kt ← dashboard con filtros y tarjetas
 │   │   ├── LoginScreen.kt
 │   │   ├── StartScreen.kt
 │   │   ├── ServiceScreen.kt
@@ -78,7 +86,7 @@ app/src/main/
 
 ---
 
-## Base de datos Room (versión 4)
+## Base de datos Room (versión 6)
 
 ### Entidades
 - `respuestas` — respuestas individuales por pregunta
@@ -90,6 +98,8 @@ app/src/main/
 | 1 → 2 | Añade `usuarioId`, `usuarioNombre` a `respuestas`; crea tabla `preguntas` |
 | 2 → 3 | Añade `seccion`, `tipo` a `preguntas`; añade `personaQueResponde` a `respuestas`; borra preguntas obsoletas |
 | 3 → 4 | Añade `tipificacion TEXT` a `respuestas` |
+| 4 → 5 | Recrea `respuestas` para eliminar columnas huérfanas de rama abandonada |
+| 5 → 6 | Añade `sesionId TEXT` (nullable) a `respuestas` |
 
 **Nunca usar `fallbackToDestructiveMigration()`** — hay datos reales de pacientes en producción.
 
@@ -138,10 +148,12 @@ EncryptedSharedPreferences.create(filename, alias, context, keyScheme, valueSche
 Archivo de prefs: `encuestas_sesion_v2` (el `v2` evita conflictos con instancias anteriores sin cifrado).
 
 ### Credenciales de prueba (solo DEBUG)
-En `Repository.login()` hay un bypass protegido por `BuildConfig.DEBUG`:
-- Usuario: `admin_test`
-- Contraseña: `siau2024`
-- **Eliminar antes de release a producción**
+En `Repository.login()` hay bypasses protegidos por `BuildConfig.DEBUG`:
+| Usuario | Contraseña | Rol |
+|---------|-----------|-----|
+| `admin_test` | `siau2024` | `ROLE_USER` (orientador) |
+| `admin_admin` | `siau2024` | `ROLE_ADMIN` (administrador) |
+- **Eliminar ambos antes de release a producción**
 
 ---
 
@@ -303,12 +315,14 @@ MasterKey.Builder(context).setKeyScheme(...).build()
 
 | Prioridad | Tarea |
 |-----------|-------|
-| Alta | Confirmar IP y puerto del servidor con el área de IT y actualizar `local.properties` + `network_security_config.xml` |
-| Alta | Confirmar contrato del endpoint `POST /respuestas` con el backend antes de ir a producción |
-| Alta | **Eliminar el bypass de credenciales de prueba** en `Repository.login()` antes del release |
+| Alta | Confirmar IP y puerto del servidor con IT; actualizar `local.properties` + `network_security_config.xml` |
+| Alta | **Eliminar los bypasses de credenciales de prueba** (`admin_test`, `admin_admin`) en `Repository.login()` antes del release |
+| Alta | Sistemas debe implementar `GET /respuestas/resumen`, `GET /orientadores/activos` y `PATCH /usuarios/actividad` para el dashboard de administrador |
+| Alta | El JWT que genera el backend debe incluir el campo `authorities` con valor `"ROLE_USER"` o `"ROLE_ADMIN"` |
+| Media | Confirmar contrato del endpoint `POST /respuestas` (ver `INSTRUCCIONES_ENTREGA_PILOTO.md`) |
 | Media | Migrar a HTTPS cuando el servidor tenga certificado; actualizar `network_security_config.xml` |
-| Baja | Configurar Device Owner en la tablet para activar `startLockTask()` (coordinación con IT) |
-| Baja | Configurar CI/CD cuando haya repositorio remoto |
+| Baja | Configurar Device Owner en la tablet de orientadores para activar `startLockTask()` (coordinación con IT) |
+| Baja | Configurar CI/CD |
 | Baja | Evaluar Crashlytics o Sentry para observabilidad en producción |
 
 ---
