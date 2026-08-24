@@ -2,7 +2,9 @@
     <string name="app_name">EncuestasSIAU</string>
 
     <!-- Login -->
-    <string name="login_titulo">Ingreso al sistema</string>
+    <string name="login_titulo">Encuesta de satisfacción</string>
+    <string name="login_siau">SIAU</string>
+    <string name="login_siau_nombre">Servicio de Información y Atención al Usuario</string>
     <string name="login_campo_usuario">Usuario</string>
     <string name="login_campo_contrasena">Contraseña</string>
     <string name="login_boton">Ingresar</string>
