@@ -9,6 +9,9 @@ import kotlinx.serialization.Serializable
 data class Respuesta(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
 
+    /** UUID generado por la app al iniciar una encuesta. Agrupa las 13 respuestas de un formulario. */
+    val sesionId: String? = null,
+
     val encuestaTipo: String,
     val preguntaId: Int,
     val respuesta: String,

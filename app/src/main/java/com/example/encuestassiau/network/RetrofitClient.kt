@@ -56,12 +56,15 @@ object RetrofitClient {
             .create(AuthApi::class.java)
     }
 
-    val syncApi: SyncApi by lazy {
+    private val apiRetrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BuildConfig.API_URL.trimEnd('/') + "/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
-            .create(SyncApi::class.java)
     }
+
+    val syncApi: SyncApi by lazy { apiRetrofit.create(SyncApi::class.java) }
+
+    val adminApi: AdminApi by lazy { apiRetrofit.create(AdminApi::class.java) }
 }

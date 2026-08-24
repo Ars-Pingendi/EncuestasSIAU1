@@ -21,7 +21,7 @@ import kotlinx.serialization.json.Json
         Respuesta::class,
         Question::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = false
 )
 @TypeConverters(StringListConverter::class)
@@ -57,6 +57,12 @@ abstract class AppDatabase : RoomDatabase() {
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `respuestas` ADD COLUMN `tipificacion` TEXT")
+            }
+        }
+
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `respuestas` ADD COLUMN `sesionId` TEXT")
             }
         }
 
@@ -150,7 +156,8 @@ abstract class AppDatabase : RoomDatabase() {
                         MIGRATION_1_2,
                         MIGRATION_2_3,
                         MIGRATION_3_4,
-                        MIGRATION_4_5
+                        MIGRATION_4_5,
+                        MIGRATION_5_6
                     )
                     .addCallback(object : RoomDatabase.Callback() {
 

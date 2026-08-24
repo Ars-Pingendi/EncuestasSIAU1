@@ -45,17 +45,25 @@ class Repository(
         password: String
     ): Result<Unit> {
 
-        // Bypass de pruebas — solo en builds DEBUG, no llega a producción
-        if (BuildConfig.DEBUG && username == "admin_test" && password == "siau2024") {
-            // JWT ficticio: payload {"sub":"test","name_user":"Usuario Test","exp":9999999999}
-            // exp = año 2286, no expira durante las pruebas
-            val fakeJwt = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0" +
-                ".eyJzdWIiOiJ0ZXN0IiwibmFtZV91c2VyIjoiVXN1YXJpbyBUZXN0IiwiZXhwIjo5OTk5OTk5OTk5fQ" +
-                ".test_sig"
-            SessionManager.saveToken(context, fakeJwt)
-            SessionManager.saveUsuario(context, username, "Usuario Test")
-            Log.i("LOGIN", "🧪 Sesión de prueba iniciada (admin_test)")
-            return Result.success(Unit)
+        // Bypasses de prueba — solo en builds DEBUG, no llegan a producción
+        if (BuildConfig.DEBUG) {
+            val fakeCreds = mapOf(
+                "admin_test"  to Triple("siau2024", "Orientador Test", "ROLE_USER"),
+                "admin_admin" to Triple("siau2024", "Administrador SIAU", "ROLE_ADMIN")
+            )
+            fakeCreds[username]?.let { (pwd, nombre, rol) ->
+                if (password == pwd) {
+                    // JWT ficticio: payload no tiene authorities real, el rol se guarda directamente
+                    val fakeJwt = "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0" +
+                        ".eyJzdWIiOiJ0ZXN0IiwibmFtZV91c2VyIjoiVGVzdCIsImV4cCI6OTk5OTk5OTk5OX0" +
+                        ".test_sig"
+                    SessionManager.saveToken(context, fakeJwt)
+                    SessionManager.saveUsuario(context, username, nombre)
+                    SessionManager.saveRol(context, rol)
+                    Log.i("LOGIN", "🧪 Sesión de prueba: $nombre ($rol)")
+                    return Result.success(Unit)
+                }
+            }
         }
 
         return try {
@@ -73,14 +81,16 @@ class Repository(
 
                     val nombreUsuario =
                         obtenerNombreDesdeToken(context) ?: "Usuario"
+                    val rol = JwtUtils.extractRole(jwt)
 
                     SessionManager.saveUsuario(
                         context = context,
                         usuarioId = username,
                         usuarioNombre = nombreUsuario
                     )
+                    SessionManager.saveRol(context, rol)
 
-                    Log.i("LOGIN", "✅ Sesión iniciada: $nombreUsuario ($username)")
+                    Log.i("LOGIN", "✅ Sesión iniciada: $nombreUsuario ($username) [$rol]")
 
                     Result.success(Unit)
                 } else {

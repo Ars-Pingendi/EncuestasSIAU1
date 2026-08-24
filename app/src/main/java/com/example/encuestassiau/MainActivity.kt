@@ -19,6 +19,7 @@ import com.example.encuestassiau.data.Repository
 import com.example.encuestassiau.data.SessionManager
 import com.example.encuestassiau.ui.AppNavigation
 import com.example.encuestassiau.ui.LoginScreen
+import com.example.encuestassiau.ui.admin.AdminNavigation
 import com.example.encuestassiau.util.AppPreferences
 import com.example.encuestassiau.util.IdleTimeoutManager
 import com.example.encuestassiau.util.NetworkObserver
@@ -28,6 +29,7 @@ class MainActivity : ComponentActivity() {
 
     // Estado elevado al nivel de Activity para evitar recreate() en Lock Task Mode
     private var autenticado by mutableStateOf(false)
+    private var esAdmin by mutableStateOf(false)
 
     private lateinit var networkObserver: NetworkObserver
 
@@ -65,6 +67,7 @@ class MainActivity : ComponentActivity() {
             SessionManager.clearSession(this)
         }
         autenticado = SessionManager.isLoggedIn(this)
+        esAdmin = SessionManager.isAdmin(this)
 
         AppPreferences.cargar(this)
 
@@ -83,13 +86,21 @@ class MainActivity : ComponentActivity() {
                 }
 
                 if (autenticado) {
-                    AppNavigation(
-                        repository = repository,
-                        onLogout = { cerrarSesion() }
-                    )
+                    if (esAdmin) {
+                        AdminNavigation(
+                            repository = repository,
+                            onLogout = { cerrarSesion() }
+                        )
+                    } else {
+                        AppNavigation(
+                            repository = repository,
+                            onLogout = { cerrarSesion() }
+                        )
+                    }
                 } else {
                     LoginScreen(repository) {
                         autenticado = true
+                        esAdmin = SessionManager.isAdmin(this@MainActivity)
                     }
                 }
             }
@@ -114,6 +125,7 @@ class MainActivity : ComponentActivity() {
     private fun cerrarSesion() {
         SessionManager.clearSession(this)
         autenticado = false
+        esAdmin = false
     }
 
     override fun onDestroy() {

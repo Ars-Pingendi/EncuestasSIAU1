@@ -20,4 +20,10 @@ object JwtUtils {
         if (exp == 0L) return false
         return System.currentTimeMillis() / 1000 >= exp
     }
+
+    fun extractRole(token: String): String {
+        val payload = decodePayload(token) ?: return "ROLE_USER"
+        return payload.optString("authorities", "ROLE_USER")
+            .ifBlank { "ROLE_USER" }
+    }
 }

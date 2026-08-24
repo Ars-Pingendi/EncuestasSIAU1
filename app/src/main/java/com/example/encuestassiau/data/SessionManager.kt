@@ -15,6 +15,7 @@ object SessionManager {
     private const val KEY_JWT = "jwt_token"
     private const val KEY_USUARIO_ID = "usuario_id"
     private const val KEY_USUARIO_NOMBRE = "usuario_nombre"
+    private const val KEY_ROL = "usuario_rol"
 
     private fun getPrefs(context: Context): SharedPreferences {
         return try {
@@ -43,6 +44,15 @@ object SessionManager {
             .putString(KEY_USUARIO_NOMBRE, usuarioNombre)
             .apply()
     }
+
+    fun saveRol(context: Context, rol: String) {
+        getPrefs(context).edit().putString(KEY_ROL, rol).apply()
+    }
+
+    fun getRol(context: Context): String =
+        getPrefs(context).getString(KEY_ROL, "ROLE_USER") ?: "ROLE_USER"
+
+    fun isAdmin(context: Context): Boolean = getRol(context) == "ROLE_ADMIN"
 
     fun getToken(context: Context): String? =
         getPrefs(context).getString(KEY_JWT, null)
