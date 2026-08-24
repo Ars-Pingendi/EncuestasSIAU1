@@ -21,7 +21,7 @@ import kotlinx.serialization.json.Json
         Respuesta::class,
         Question::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 @TypeConverters(StringListConverter::class)
@@ -60,6 +60,46 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """CREATE TABLE `respuestas_new` (
+                        `id` INTEGER NOT NULL,
+                        `encuestaTipo` TEXT NOT NULL,
+                        `preguntaId` INTEGER NOT NULL,
+                        `respuesta` TEXT NOT NULL,
+                        `servicio` TEXT NOT NULL,
+                        `edad` INTEGER NOT NULL,
+                        `sexo` TEXT NOT NULL,
+                        `identificacion` TEXT,
+                        `comentario` TEXT,
+                        `fecha` TEXT NOT NULL,
+                        `usuarioId` TEXT NOT NULL,
+                        `usuarioNombre` TEXT NOT NULL,
+                        `personaQueResponde` TEXT NOT NULL,
+                        `tipificacion` TEXT,
+                        `sincronizado` INTEGER NOT NULL,
+                        PRIMARY KEY(`id`)
+                    )"""
+                )
+                db.execSQL(
+                    """INSERT INTO `respuestas_new` (
+                        `id`, `encuestaTipo`, `preguntaId`, `respuesta`, `servicio`,
+                        `edad`, `sexo`, `identificacion`, `comentario`, `fecha`,
+                        `usuarioId`, `usuarioNombre`, `personaQueResponde`,
+                        `tipificacion`, `sincronizado`
+                    ) SELECT
+                        `id`, `encuestaTipo`, `preguntaId`, `respuesta`, `servicio`,
+                        `edad`, `sexo`, `identificacion`, `comentario`, `fecha`,
+                        `usuarioId`, `usuarioNombre`, COALESCE(`informante`, ''),
+                        `motivos`, `sincronizado`
+                    FROM `respuestas`"""
+                )
+                db.execSQL("DROP TABLE `respuestas`")
+                db.execSQL("ALTER TABLE `respuestas_new` RENAME TO `respuestas`")
+            }
+        }
+
         private val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `preguntas` ADD COLUMN `seccion` TEXT NOT NULL DEFAULT ''")
@@ -86,7 +126,12 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "encuestas_db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(
+                        MIGRATION_1_2,
+                        MIGRATION_2_3,
+                        MIGRATION_3_4,
+                        MIGRATION_4_5
+                    )
                     .addCallback(object : RoomDatabase.Callback() {
 
                         override fun onCreate(db: SupportSQLiteDatabase) {
