@@ -1,95 +1,146 @@
 -- =====================================================================
 --  EncuestasSIAU — Esquema de base de datos (PostgreSQL)
---  Servidor del hospital
+--  Versión: formulario unificado (13 preguntas, app v2.0)
 --
---  Genera las tablas que respaldan la app Android:
---    - preguntas   : catálogo de preguntas de cada encuesta
---    - respuestas  : respuestas que el celular envía vía POST /respuestas
+--  Genera las dos tablas que respaldan la app Android:
+--    · preguntas  — catálogo de las 13 preguntas del formulario
+--    · respuestas — cada fila es UNA respuesta enviada por la app
+--                   vía POST /respuestas
 --
---  Ejecutar como:  psql -U <usuario> -d <basededatos> -f 01_schema.sql
---  Luego cargar el catálogo con: 02_seed_preguntas.sql
+--  Orden de ejecución:
+--    1. psql -U <usuario> -d <basededatos> -f 01_schema.sql
+--    2. psql -U <usuario> -d <basededatos> -f 02_seed_preguntas.sql
 -- =====================================================================
 
+
 -- ---------------------------------------------------------------------
--- Tabla: preguntas (catálogo)
---   Los ids son FIJOS y los define la app (1..12 ambulatoria, 101..114
---   internación). NO se autogeneran: deben coincidir con los del cliente.
+-- Tabla: preguntas  (catálogo — no crece en producción)
+--
+-- Los IDs son FIJOS (1–13) y los define la app.
+-- Deben coincidir exactamente con preguntas_unificadas.json.
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS preguntas (
-    id                   INTEGER      PRIMARY KEY,
-    tipo_encuesta        VARCHAR(20)  NOT NULL
-                         CHECK (tipo_encuesta IN ('ambulatoria', 'internacion')),
-    texto                TEXT         NOT NULL,
-    -- Lista de opciones. La app la serializa como arreglo JSON, p.ej.
-    -- ["Muy mala","Mala","Regular","Buena","Muy buena"]
-    opciones             JSONB        NOT NULL DEFAULT '[]'::jsonb,
-    requiere_comentario  BOOLEAN      NOT NULL DEFAULT FALSE,
-    -- Opciones de tipificación que se muestran si la pregunta es calificada
-    -- en nivel detractor. Arreglo JSON; vacío = no aplica (p.ej. preguntas Sí/No).
-    motivos              JSONB        NOT NULL DEFAULT '[]'::jsonb
+    id                  INTEGER      PRIMARY KEY,
+
+    -- Siempre 'unificado' en la versión actual del formulario.
+    tipo_encuesta       VARCHAR(20)  NOT NULL DEFAULT 'unificado',
+
+    -- Nombre de la sección del formulario (informativo).
+    seccion             TEXT         NOT NULL DEFAULT '',
+
+    -- Tipo de componente de UI que usa la app para esta pregunta.
+    tipo                VARCHAR(20)  NOT NULL
+                        CHECK (tipo IN ('escala', 'sino', 'nps', 'texto_libre')),
+
+    texto               TEXT         NOT NULL,
+
+    -- Opciones de respuesta válidas, como arreglo JSON.
+    -- Ejemplo escala: ["Muy malo","Malo","Regular","Bueno","Muy bueno"]
+    -- Ejemplo sino:   ["Sí","No"]
+    -- Ejemplo nps:    ["0","1","2","3","4","5","6","7","8","9","10"]
+    -- texto_libre:    [] (vacío — el usuario escribe libremente)
+    opciones            JSONB        NOT NULL DEFAULT '[]'::jsonb,
+
+    requiere_comentario BOOLEAN      NOT NULL DEFAULT FALSE
 );
 
-CREATE INDEX IF NOT EXISTS idx_preguntas_tipo
-    ON preguntas (tipo_encuesta);
+COMMENT ON TABLE  preguntas IS
+    'Catálogo de las 13 preguntas del formulario unificado SIAU (app v2.0).';
+COMMENT ON COLUMN preguntas.tipo IS
+    'Tipo de componente UI: escala (caritas 1-5), sino, nps (0-10), texto_libre.';
+COMMENT ON COLUMN preguntas.opciones IS
+    'Arreglo JSON con las opciones válidas de respuesta para esta pregunta.';
 
-COMMENT ON TABLE  preguntas IS 'Catálogo de preguntas de las encuestas SIAU.';
-COMMENT ON COLUMN preguntas.id IS 'Id fijo definido por la app; debe coincidir con el cliente.';
-COMMENT ON COLUMN preguntas.opciones IS 'Arreglo JSON de opciones de respuesta.';
 
 -- ---------------------------------------------------------------------
 -- Tabla: respuestas
---   Recibe lo que la app envía en POST /respuestas (JSON camelCase).
---   El PK 'id' lo genera el servidor; el id local del dispositivo se
---   guarda aparte en 'id_local' solo para trazabilidad.
+--
+-- Recibe el JSON que la app Android envía en POST /respuestas.
+-- Cada fila = una respuesta a UNA pregunta de UNA encuesta.
+-- Una encuesta completa produce 13 filas (una por pregunta).
+--
+-- Mapeo JSON (camelCase app) → columna PostgreSQL (snake_case):
+--   encuestaTipo       → encuesta_tipo
+--   preguntaId         → pregunta_id
+--   usuarioId          → usuario_id
+--   usuarioNombre      → usuario_nombre
+--   personaQueResponde → persona_que_responde
+--   sincronizado       → (ignorar; siempre llega false desde la app)
+--   id                 → id_local (solo informativo)
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS respuestas (
-    id              BIGINT       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-    -- Id que trae el JSON del cliente (Room autoincremental por dispositivo).
-    -- Es solo informativo: NO debe usarse como clave primaria del servidor
-    -- porque cada celular tiene su propia secuencia y colisionarían.
-    id_local        INTEGER,
+    -- PK generada por el servidor. El id que trae la app (id_local)
+    -- es un autoincremental por dispositivo y NO sirve como PK global.
+    id                   BIGINT       GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 
-    -- UUID que agrupa todas las respuestas de UNA misma encuesta.
-    encuesta_id     VARCHAR(64)  NOT NULL,
+    -- Id local del dispositivo (informativo, para trazabilidad).
+    id_local             INTEGER,
 
-    encuesta_tipo   VARCHAR(20)  NOT NULL
-                    CHECK (encuesta_tipo IN ('ambulatoria', 'internacion')),
-    pregunta_id     INTEGER      NOT NULL REFERENCES preguntas (id),
-    respuesta       TEXT         NOT NULL,
-    servicio        VARCHAR(150) NOT NULL,
-    edad            INTEGER      NOT NULL CHECK (edad BETWEEN 0 AND 150),
-    sexo            VARCHAR(20)  NOT NULL,
-    informante      VARCHAR(30)  NOT NULL,       -- 'Paciente' o 'Cuidador principal'
-    identificacion  VARCHAR(30),                 -- opcional (puede ser NULL)
-    comentario      TEXT,                        -- opcional (puede ser NULL)
-    -- Motivos tipificados de detracción (arreglo JSON; vacío si no es detractor).
-    motivos         JSONB        NOT NULL DEFAULT '[]'::jsonb,
-    fecha           TIMESTAMPTZ  NOT NULL,       -- ISO-8601 con zona: 2026-06-30T14:23:05-05:00
+    -- 'ambulatoria' o 'internacion' según la selección en la app.
+    -- Las 13 preguntas son las mismas en ambos casos.
+    encuesta_tipo        VARCHAR(20)  NOT NULL
+                         CHECK (encuesta_tipo IN ('ambulatoria', 'internacion')),
 
-    -- Usuario que realizó la encuesta (del JWT / login)
-    usuario_id      VARCHAR(30)  NOT NULL,
-    usuario_nombre  VARCHAR(150) NOT NULL,
+    -- Referencia al catálogo de preguntas (IDs 1–13).
+    pregunta_id          INTEGER      NOT NULL REFERENCES preguntas (id),
 
-    -- Identificador de la tablet que registró la respuesta (ANDROID_ID).
-    -- Útil cuando todos los orientadores comparten un mismo usuario.
-    dispositivo_id  VARCHAR(64)  NOT NULL DEFAULT '',
+    -- Valor de la respuesta (texto).
+    -- Escala:    "Muy malo" | "Malo" | "Regular" | "Bueno" | "Muy bueno"
+    -- Sino:      "Sí" | "No"
+    -- NPS:       "0" … "10"
+    -- TextoLibre: texto libre del usuario
+    respuesta            TEXT         NOT NULL,
 
-    sincronizado    BOOLEAN      NOT NULL DEFAULT TRUE,  -- en el servidor ya está sincronizada
-    creado_en       TIMESTAMPTZ  NOT NULL DEFAULT now()  -- auditoría: cuándo la recibió el servidor
+    -- Nombre del servicio seleccionado (ej: "CONSULTA EXTERNA").
+    servicio             VARCHAR(150) NOT NULL,
+
+    -- Datos demográficos del encuestado.
+    edad                 INTEGER      NOT NULL CHECK (edad BETWEEN 0 AND 150),
+    sexo                 VARCHAR(30)  NOT NULL,
+
+    -- Quién responde la encuesta.
+    -- Valores: "El paciente" | "El cuidador principal / Familiar acompañante"
+    persona_que_responde VARCHAR(80)  NOT NULL DEFAULT '',
+
+    -- Por política de anonimato la app siempre envía null.
+    identificacion       VARCHAR(30),
+
+    -- Comentario adicional libre (solo pregunta 13 y casos especiales).
+    comentario           TEXT,
+
+    -- Fecha y hora de la respuesta en formato ISO-8601.
+    -- El backend debe interpretar como hora Colombia (UTC-5) si no trae zona.
+    fecha                TIMESTAMPTZ  NOT NULL,
+
+    -- Operador del hospital que realizó la encuesta (extraído del JWT).
+    usuario_id           VARCHAR(100) NOT NULL,
+    usuario_nombre       VARCHAR(150) NOT NULL,
+
+    -- Motivos de insatisfacción (tipificación).
+    -- Solo aplica cuando la respuesta es negativa ("Muy malo", "Malo",
+    -- "Regular" en preguntas 1–7, o NPS 0–6 en pregunta 12).
+    -- Formato: ítems separados por "|".
+    -- Ejemplo: "Tono de voz rudo|Atención con afán"
+    -- NULL si no aplica tipificación.
+    tipificacion         TEXT,
+
+    -- Metadatos del servidor (no los envía la app).
+    creado_en            TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_respuestas_pregunta   ON respuestas (pregunta_id);
-CREATE INDEX IF NOT EXISTS idx_respuestas_usuario     ON respuestas (usuario_id);
-CREATE INDEX IF NOT EXISTS idx_respuestas_fecha       ON respuestas (fecha);
-CREATE INDEX IF NOT EXISTS idx_respuestas_tipo        ON respuestas (encuesta_tipo);
-CREATE INDEX IF NOT EXISTS idx_respuestas_encuesta    ON respuestas (encuesta_id);
-CREATE INDEX IF NOT EXISTS idx_respuestas_dispositivo ON respuestas (dispositivo_id);
+-- Índices para las consultas más frecuentes de reporting.
+CREATE INDEX IF NOT EXISTS idx_resp_pregunta  ON respuestas (pregunta_id);
+CREATE INDEX IF NOT EXISTS idx_resp_tipo      ON respuestas (encuesta_tipo);
+CREATE INDEX IF NOT EXISTS idx_resp_servicio  ON respuestas (servicio);
+CREATE INDEX IF NOT EXISTS idx_resp_usuario   ON respuestas (usuario_id);
+CREATE INDEX IF NOT EXISTS idx_resp_fecha     ON respuestas (fecha);
 
-COMMENT ON TABLE  respuestas IS 'Respuestas de encuestas enviadas desde la app.';
-COMMENT ON COLUMN respuestas.id_local IS 'Id local del dispositivo (informativo, no es la PK).';
-COMMENT ON COLUMN respuestas.encuesta_id IS 'UUID que agrupa las respuestas de una misma encuesta.';
-COMMENT ON COLUMN respuestas.informante IS 'Quién responde: Paciente o Cuidador principal.';
-COMMENT ON COLUMN respuestas.motivos IS 'Motivos tipificados de detracción (arreglo JSON).';
-COMMENT ON COLUMN respuestas.dispositivo_id IS 'Id de la tablet (ANDROID_ID) que registró la respuesta.';
-COMMENT ON COLUMN respuestas.fecha IS 'Fecha/hora de la respuesta en ISO-8601 con zona horaria.';
+COMMENT ON TABLE  respuestas IS
+    'Respuestas individuales enviadas desde la app Android vía POST /respuestas.';
+COMMENT ON COLUMN respuestas.id_local IS
+    'Id autoincremental del dispositivo (informativo). No usar como PK global.';
+COMMENT ON COLUMN respuestas.tipificacion IS
+    'Motivos de detracción separados por "|". NULL si la calificación es neutra o positiva.';
+COMMENT ON COLUMN respuestas.creado_en IS
+    'Timestamp en que el servidor recibió la respuesta (auditoría).';

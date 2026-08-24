@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -54,7 +55,6 @@ fun QuestionScreen(
     onCancel: () -> Unit,
     onBack: () -> Unit
 ) {
-    // Bloquea el botón Atrás del sistema durante la encuesta
     BackHandler(enabled = true) { }
 
     var currentIndex by remember { mutableIntStateOf(0) }
@@ -62,7 +62,6 @@ fun QuestionScreen(
     var textoLibre by remember { mutableStateOf("") }
     var tipificacionSeleccionada by remember { mutableStateOf<Set<String>>(emptySet()) }
     var textoOtroTipificacion by remember { mutableStateOf("") }
-    // NPS: posición visual del slider (arranca al centro) e indicador de interacción real
     var npsPos by remember { mutableFloatStateOf(5f) }
     var npsInteractuado by remember { mutableStateOf(false) }
 
@@ -101,9 +100,6 @@ fun QuestionScreen(
     }
 
     val preguntaActual = preguntas[currentIndex]
-    val mostrarSeccion = currentIndex == 0 ||
-        preguntas[currentIndex].seccion != preguntas[currentIndex - 1].seccion
-
     val tipConfig = tipificacionPorPregunta[preguntaActual.id]
     val mostrarTipificacion = tipConfig != null && respuestaSeleccionada in tipConfig.activadoPor
 
@@ -113,298 +109,319 @@ fun QuestionScreen(
         else -> respuestaSeleccionada != null
     }
 
-    Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
+    val progreso = (currentIndex + 1).toFloat() / preguntas.size
 
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState())
-        ) {
-            if (mostrarSeccion && preguntaActual.seccion.isNotEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
-                    Text(
-                        text = preguntaActual.seccion,
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+
+            // Header azul con progreso y sección
+            Surface(
+                color = MaterialTheme.colorScheme.primary,
+                shadowElevation = 4.dp
+            ) {
+                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = preguntaActual.seccion.ifEmpty { "Encuesta" },
+                            style = MaterialTheme.typography.titleSmall,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            text = stringResource(R.string.pregunta_contador, currentIndex + 1, preguntas.size),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f)
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LinearProgressIndicator(
+                        progress = { progreso },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.3f)
                     )
                 }
             }
 
-            Text(
-                stringResource(R.string.pregunta_contador, currentIndex + 1, preguntas.size),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.outline
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(preguntaActual.texto, style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.height(20.dp))
+            // Contenido scrollable
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 24.dp, vertical = 20.dp)
+            ) {
+                Text(preguntaActual.texto, style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(24.dp))
 
-            when (preguntaActual.tipo) {
+                when (preguntaActual.tipo) {
 
-                // Caritas para preguntas de escala 1-5
-                "escala" -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        preguntaActual.opciones.forEach { opcion ->
-                            val sel = respuestaSeleccionada == opcion
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .clickable { respuestaSeleccionada = opcion }
-                                    .padding(4.dp)
-                            ) {
-                                Card(
-                                    modifier = Modifier.size(72.dp),
-                                    shape = CircleShape,
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = if (sel)
-                                            MaterialTheme.colorScheme.primaryContainer
-                                        else
-                                            MaterialTheme.colorScheme.surfaceVariant
-                                    ),
-                                    border = if (sel) BorderStroke(
-                                        2.dp, MaterialTheme.colorScheme.primary
-                                    ) else null
+                    "escala" -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            preguntaActual.opciones.forEach { opcion ->
+                                val sel = respuestaSeleccionada == opcion
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .clickable { respuestaSeleccionada = opcion }
+                                        .padding(4.dp)
                                 ) {
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier.fillMaxSize()
+                                    Card(
+                                        modifier = Modifier.size(72.dp),
+                                        shape = CircleShape,
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (sel)
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            else
+                                                MaterialTheme.colorScheme.surfaceVariant
+                                        ),
+                                        border = if (sel) BorderStroke(
+                                            2.dp, MaterialTheme.colorScheme.primary
+                                        ) else null
                                     ) {
-                                        Text(
-                                            text = CARITAS[opcion] ?: opcion,
-                                            fontSize = 34.sp
-                                        )
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier.fillMaxSize()
+                                        ) {
+                                            Text(
+                                                text = CARITAS[opcion] ?: opcion,
+                                                fontSize = 34.sp
+                                            )
+                                        }
                                     }
+                                    Spacer(Modifier.height(4.dp))
+                                    Text(
+                                        text = opcion,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        textAlign = TextAlign.Center
+                                    )
                                 }
-                                Spacer(Modifier.height(4.dp))
+                            }
+                        }
+                    }
+
+                    "sino" -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            preguntaActual.opciones.forEach { opcion ->
+                                val sel = respuestaSeleccionada == opcion
+                                OutlinedButton(
+                                    onClick = { respuestaSeleccionada = opcion },
+                                    modifier = Modifier.size(width = 140.dp, height = 80.dp),
+                                    border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
+                                    colors = ButtonDefaults.outlinedButtonColors(
+                                        containerColor = if (sel)
+                                            MaterialTheme.colorScheme.primary
+                                        else Color.Transparent,
+                                        contentColor = if (sel)
+                                            MaterialTheme.colorScheme.onPrimary
+                                        else MaterialTheme.colorScheme.primary
+                                    )
+                                ) {
+                                    Text(opcion, style = MaterialTheme.typography.titleLarge)
+                                }
+                            }
+                        }
+                    }
+
+                    "nps" -> {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "0 = Nunca recomendaría",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                            Text(
+                                "10 = Seguro recomendaría",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline
+                            )
+                        }
+                        Slider(
+                            value = npsPos,
+                            onValueChange = {
+                                npsPos = it
+                                npsInteractuado = true
+                                respuestaSeleccionada = it.roundToInt().toString()
+                            },
+                            valueRange = 0f..10f,
+                            steps = 9,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (npsInteractuado) {
                                 Text(
-                                    text = opcion,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    textAlign = TextAlign.Center
+                                    text = npsPos.roundToInt().toString(),
+                                    style = MaterialTheme.typography.displaySmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            } else {
+                                Text(
+                                    text = "Desliza para calificar",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline
                                 )
                             }
                         }
                     }
-                }
 
-                // Botones grandes Sí / No
-                "sino" -> {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        preguntaActual.opciones.forEach { opcion ->
-                            val sel = respuestaSeleccionada == opcion
-                            OutlinedButton(
-                                onClick = { respuestaSeleccionada = opcion },
-                                modifier = Modifier.size(width = 140.dp, height = 80.dp),
-                                border = BorderStroke(2.dp, MaterialTheme.colorScheme.primary),
-                                colors = ButtonDefaults.outlinedButtonColors(
-                                    containerColor = if (sel)
-                                        MaterialTheme.colorScheme.primary
-                                    else Color.Transparent,
-                                    contentColor = if (sel)
-                                        MaterialTheme.colorScheme.onPrimary
-                                    else MaterialTheme.colorScheme.primary
-                                )
-                            ) {
-                                Text(opcion, style = MaterialTheme.typography.titleLarge)
-                            }
-                        }
+                    "texto_libre" -> {
+                        OutlinedTextField(
+                            value = textoLibre,
+                            onValueChange = { textoLibre = it },
+                            label = { Text(stringResource(R.string.pregunta_campo_comentario)) },
+                            modifier = Modifier.fillMaxWidth(),
+                            minLines = 4
+                        )
                     }
                 }
 
-                // Deslizador numérico NPS 0-10
-                "nps" -> {
+                if (mostrarTipificacion && tipConfig != null) {
+                    Spacer(Modifier.height(16.dp))
+                    HorizontalDivider()
+                    Spacer(Modifier.height(12.dp))
+                    Text(
+                        stringResource(R.string.tipificacion_titulo),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    tipConfig.opciones.forEach { motivo ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 2.dp)
+                                .clickable {
+                                    tipificacionSeleccionada =
+                                        if (motivo in tipificacionSeleccionada)
+                                            tipificacionSeleccionada - motivo
+                                        else
+                                            tipificacionSeleccionada + motivo
+                                },
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = motivo in tipificacionSeleccionada,
+                                onCheckedChange = { checked ->
+                                    tipificacionSeleccionada =
+                                        if (checked) tipificacionSeleccionada + motivo
+                                        else tipificacionSeleccionada - motivo
+                                }
+                            )
+                            Text(
+                                text = motivo,
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        }
+                    }
+                    if (TIPIFICACION_OTRO in tipificacionSeleccionada) {
+                        Spacer(Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = textoOtroTipificacion,
+                            onValueChange = { textoOtroTipificacion = it },
+                            label = { Text("Describa el motivo") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 40.dp),
+                            minLines = 2
+                        )
+                    }
+                }
+            }
+
+            // Botones fijos al fondo
+            Surface(shadowElevation = 8.dp) {
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text(
-                            "0 = Nunca recomendaría",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                        Text(
-                            "10 = Seguro recomendaría",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    }
-                    Slider(
-                        value = npsPos,
-                        onValueChange = {
-                            npsPos = it
-                            npsInteractuado = true
-                            respuestaSeleccionada = it.roundToInt().toString()
-                        },
-                        valueRange = 0f..10f,
-                        steps = 9,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (npsInteractuado) {
-                            Text(
-                                text = npsPos.roundToInt().toString(),
-                                style = MaterialTheme.typography.displaySmall,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        } else {
-                            Text(
-                                text = "Desliza para calificar",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                        }
-                    }
-                }
+                        OutlinedButton(
+                            onClick = { if (currentIndex > 0) currentIndex-- else onBack() },
+                            shape = RoundedCornerShape(10.dp)
+                        ) { Text(stringResource(R.string.pregunta_btn_atras)) }
 
-                // Campo de texto libre (Q13)
-                "texto_libre" -> {
-                    OutlinedTextField(
-                        value = textoLibre,
-                        onValueChange = { textoLibre = it },
-                        label = { Text(stringResource(R.string.pregunta_campo_comentario)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        minLines = 4
-                    )
-                }
-            }
-
-            // Menú de tipificación condicional
-            if (mostrarTipificacion && tipConfig != null) {
-                Spacer(Modifier.height(16.dp))
-                HorizontalDivider()
-                Spacer(Modifier.height(12.dp))
-                Text(
-                    stringResource(R.string.tipificacion_titulo),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-                Spacer(Modifier.height(8.dp))
-                tipConfig.opciones.forEach { motivo ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 2.dp)
-                            .clickable {
-                                tipificacionSeleccionada =
-                                    if (motivo in tipificacionSeleccionada)
-                                        tipificacionSeleccionada - motivo
-                                    else
-                                        tipificacionSeleccionada + motivo
+                        TextButton(
+                            onClick = {
+                                viewModel.cancelarEncuesta()
+                                onCancel()
                             },
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = motivo in tipificacionSeleccionada,
-                            onCheckedChange = { checked ->
-                                tipificacionSeleccionada =
-                                    if (checked) tipificacionSeleccionada + motivo
-                                    else tipificacionSeleccionada - motivo
-                            }
-                        )
-                        Text(
-                            text = motivo,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.padding(start = 4.dp)
-                        )
+                            colors = ButtonDefaults.textButtonColors(
+                                contentColor = MaterialTheme.colorScheme.error
+                            )
+                        ) { Text(stringResource(R.string.pregunta_btn_cancelar)) }
                     }
-                }
-                // Campo de texto que aparece debajo de los checkboxes cuando "Otro" está seleccionado
-                if (TIPIFICACION_OTRO in tipificacionSeleccionada) {
-                    Spacer(Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = textoOtroTipificacion,
-                        onValueChange = { textoOtroTipificacion = it },
-                        label = { Text("Describa el motivo") },
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Button(
+                        onClick = {
+                            val respuestaTexto = when (preguntaActual.tipo) {
+                                "texto_libre" -> textoLibre
+                                else -> respuestaSeleccionada ?: return@Button
+                            }
+
+                            viewModel.guardarRespuesta(
+                                context,
+                                Respuesta(
+                                    encuestaTipo = tipoEncuesta,
+                                    preguntaId = preguntaActual.id,
+                                    respuesta = respuestaTexto,
+                                    servicio = servicio,
+                                    edad = edad,
+                                    sexo = sexo,
+                                    identificacion = null,
+                                    comentario = null,
+                                    fecha = fechaActual,
+                                    usuarioId = "",
+                                    usuarioNombre = "",
+                                    personaQueResponde = personaQueResponde,
+                                    tipificacion = if (mostrarTipificacion) {
+                                        val items = tipificacionSeleccionada.map { item ->
+                                            if (item == TIPIFICACION_OTRO && textoOtroTipificacion.isNotBlank())
+                                                "$TIPIFICACION_OTRO: $textoOtroTipificacion"
+                                            else item
+                                        }.toSet()
+                                        tipificacionToString(items)
+                                    } else null,
+                                    sincronizado = false
+                                )
+                            )
+
+                            if (currentIndex < preguntas.lastIndex) currentIndex++
+                            else onFinish()
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(start = 40.dp),
-                        minLines = 2
-                    )
-                }
-            }
-        }
-
-        // Botones fijos al fondo
-        Column {
-            Spacer(Modifier.height(12.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Button(
-                    onClick = { if (currentIndex > 0) currentIndex-- else onBack() }
-                ) { Text(stringResource(R.string.pregunta_btn_atras)) }
-
-                Button(
-                    onClick = {
-                        viewModel.cancelarEncuesta()
-                        onCancel()
-                    }
-                ) { Text(stringResource(R.string.pregunta_btn_cancelar)) }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    val respuestaTexto = when (preguntaActual.tipo) {
-                        "texto_libre" -> textoLibre
-                        else -> respuestaSeleccionada ?: return@Button
-                    }
-
-                    viewModel.guardarRespuesta(
-                        context,
-                        Respuesta(
-                            encuestaTipo = tipoEncuesta,
-                            preguntaId = preguntaActual.id,
-                            respuesta = respuestaTexto,
-                            servicio = servicio,
-                            edad = edad,
-                            sexo = sexo,
-                            identificacion = null,
-                            comentario = null,
-                            fecha = fechaActual,
-                            usuarioId = "",
-                            usuarioNombre = "",
-                            personaQueResponde = personaQueResponde,
-                            tipificacion = if (mostrarTipificacion) {
-                                val items = tipificacionSeleccionada.map { item ->
-                                    if (item == TIPIFICACION_OTRO && textoOtroTipificacion.isNotBlank())
-                                        "$TIPIFICACION_OTRO: $textoOtroTipificacion"
-                                    else item
-                                }.toSet()
-                                tipificacionToString(items)
-                            } else null,
-                            sincronizado = false
+                            .height(52.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        enabled = puedeAvanzar
+                    ) {
+                        Text(
+                            if (currentIndex == preguntas.lastIndex)
+                                stringResource(R.string.pregunta_btn_finalizar)
+                            else
+                                stringResource(R.string.pregunta_btn_siguiente)
                         )
-                    )
-
-                    if (currentIndex < preguntas.lastIndex) currentIndex++
-                    else onFinish()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = puedeAvanzar
-            ) {
-                Text(
-                    if (currentIndex == preguntas.lastIndex)
-                        stringResource(R.string.pregunta_btn_finalizar)
-                    else
-                        stringResource(R.string.pregunta_btn_siguiente)
-                )
+                    }
+                }
             }
         }
     }

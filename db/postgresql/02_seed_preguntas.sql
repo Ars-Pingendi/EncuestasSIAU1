@@ -1,135 +1,200 @@
 -- =====================================================================
 --  EncuestasSIAU — Carga del catálogo de preguntas (PostgreSQL)
+--  Versión: formulario unificado (13 preguntas, app v2.0)
 --
---  Inserta las 26 preguntas (12 ambulatorias + 14 internación) con los
---  MISMOS ids y textos que precarga la app Android.
---
---  Ejecutar DESPUÉS de 01_schema.sql:
---      psql -U <usuario> -d <basededatos> -f 02_seed_preguntas.sql
+--  Inserta las 13 preguntas del formulario unificado con los MISMOS
+--  IDs, textos y opciones que usa la app (preguntas_unificadas.json).
 --
 --  Es idempotente: si la pregunta ya existe, actualiza sus datos.
+--
+--  Ejecutar DESPUÉS de 01_schema.sql:
+--    psql -U <usuario> -d <basededatos> -f 02_seed_preguntas.sql
 -- =====================================================================
 
-INSERT INTO preguntas (id, tipo_encuesta, texto, opciones, requiere_comentario) VALUES
--- ----------------------- AMBULATORIA -----------------------
-(1,  'ambulatoria', '¿Cómo calificaría la facilidad para conseguir una cita?',
-     '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(2,  'ambulatoria', '¿El tiempo de espera para ser atendido fue adecuado?',
-     '["Sí","No"]'::jsonb, FALSE),
-(3,  'ambulatoria', '¿Cómo calificaría la atención del personal administrativo?',
-     '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(4,  'ambulatoria', '¿El tiempo de espera para la consulta fue adecuado?',
-     '["Sí","No"]'::jsonb, FALSE),
-(5,  'ambulatoria', '¿Cómo calificaría la atención del médico?',
-     '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(6,  'ambulatoria', '¿El médico le explicó claramente su diagnóstico y tratamiento?',
-     '["Sí","No"]'::jsonb, FALSE),
-(7,  'ambulatoria', '¿Cómo calificaría la atención del personal de enfermería?',
-     '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(8,  'ambulatoria', '¿El personal de enfermería resolvió sus dudas?',
-     '["Sí","No"]'::jsonb, FALSE),
-(9,  'ambulatoria', '¿Las instalaciones del servicio ambulatorio le parecieron adecuadas?',
-     '["Muy inadecuadas","Inadecuadas","Regulares","Adecuadas","Muy adecuadas"]'::jsonb, FALSE),
-(10, 'ambulatoria', '¿Recomendaría este servicio ambulatorio a familiares o amigos?',
-     '["Definitivamente no","Probablemente no","Probablemente sí","Definitivamente sí"]'::jsonb, FALSE),
-(11, 'ambulatoria', '¿Cómo calificaría en general el servicio ambulatorio recibido?',
-     '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb, FALSE),
-(12, 'ambulatoria', '¿Tiene algún comentario adicional sobre el servicio ambulatorio?',
-     '["Ninguno","Sí, tengo un comentario"]'::jsonb, TRUE),
+INSERT INTO preguntas (id, tipo_encuesta, seccion, tipo, texto, opciones, requiere_comentario) VALUES
 
--- ----------------------- INTERNACIÓN -----------------------
-(101, 'internacion', '¿El trato recibido durante el ingreso fue digno, respetando sus creencias, costumbres y sin discriminación?',
-      '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb, FALSE),
-(102, 'internacion', '¿Al momento de su ingreso al hospital le dieron información clara sobre copagos y cuotas moderadoras?',
-      '["Sí","No"]'::jsonb, FALSE),
-(103, 'internacion', 'La información sobre clasificación y tiempo de atención según el triage en urgencias fue…',
-      '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(104, 'internacion', 'La información sobre su estado de salud y la atención recibida por el médico en claridad y suficiencia fue…',
-      '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(105, 'internacion', 'El trato por el médico en relación a dignidad, respetando sus creencias y costumbres fue…',
-      '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb, FALSE),
-(106, 'internacion', 'La atención del personal de enfermería fue…',
-      '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(107, 'internacion', 'La limpieza, el orden y el funcionamiento de las instalaciones fue…',
-      '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(108, 'internacion', '¿Recibió información sobre cómo presentar felicitaciones, reclamos o sugerencias y recibir respuesta?',
-      '["Sí","No"]'::jsonb, FALSE),
-(109, 'internacion', '¿Durante la hospitalización le dieron a conocer sus derechos y deberes como usuario?',
-      '["Sí","No"]'::jsonb, FALSE),
-(110, 'internacion', '¿Durante su hospitalización se le informó que los estudiantes en formación podían atenderlo?',
-      '["Sí","No","No aplica"]'::jsonb, FALSE),
-(111, 'internacion', '¿La alimentación formulada fue suministrada de forma adecuada?',
-      '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(112, 'internacion', 'Al egreso o alta del servicio, ¿le dieron indicaciones claras sobre los cuidados y signos de alarma?',
-      '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, FALSE),
-(113, 'internacion', '¿Cómo calificaría su experiencia general durante la hospitalización?',
-      '["Muy mala","Mala","Regular","Buena","Muy buena"]'::jsonb, TRUE),
-(114, 'internacion', '¿Recomendaría a sus familiares y amigos el Hospital Universitario?',
-      '["Definitivamente no","Probablemente no","Probablemente sí","Definitivamente sí"]'::jsonb, TRUE)
+-- -----------------------------------------------------------------------
+-- Sección 1: Trato digno y humanización  (preguntas 1–3, tipo escala)
+-- -----------------------------------------------------------------------
+(1, 'unificado',
+ 'Sección 1. Trato digno y humanización',
+ 'escala',
+ '¿Cómo califica el trato, respeto y amabilidad que recibió del personal administrativo?
+(Vigilantes, admisiones, facturadores y orientadores.)',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+(2, 'unificado',
+ 'Sección 1. Trato digno y humanización',
+ 'escala',
+ '¿Cómo califica el trato, respeto y amabilidad que recibió del personal de medicina?
+(Médicos generales y especialistas.)',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+(3, 'unificado',
+ 'Sección 1. Trato digno y humanización',
+ 'escala',
+ '¿Cómo califica el trato, respeto y amabilidad que recibió del personal de enfermería?
+(Enfermeras jefes y auxiliares de enfermería.)',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+-- -----------------------------------------------------------------------
+-- Sección 2: Información y comunicación  (preguntas 4–5, tipo escala)
+-- -----------------------------------------------------------------------
+(4, 'unificado',
+ 'Sección 2. Información y comunicación',
+ 'escala',
+ 'Entendimiento y claridad
+
+¿Las explicaciones que le dieron sobre su enfermedad, exámenes o tratamientos fueron fáciles de entender para usted?',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+(5, 'unificado',
+ 'Sección 2. Información y comunicación',
+ 'escala',
+ 'Oportunidad
+
+¿Al egreso o alta del servicio le entregaron información suficiente y clara sobre órdenes médicas, resultados de exámenes, indicaciones de cuidado, recomendaciones y signos de alarma para volver a consultar en caso necesario?',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+-- -----------------------------------------------------------------------
+-- Sección 3: Privacidad y confidencialidad  (preguntas 6–7, tipo escala)
+-- -----------------------------------------------------------------------
+(6, 'unificado',
+ 'Sección 3. Privacidad y confidencialidad',
+ 'escala',
+ 'Privacidad física
+
+Durante sus revisiones médicas, exámenes o procedimientos, ¿el personal médico y de enfermería protegió su cuerpo de la vista de otras personas?
+(Por ejemplo: utilizando cortinas, batas o biombos.)',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+(7, 'unificado',
+ 'Sección 3. Privacidad y confidencialidad',
+ 'escala',
+ 'Confidencialidad verbal
+
+Cuando el personal le habló sobre su enfermedad o tratamiento, ¿se hizo de manera reservada y en privado, sin que otros pacientes o personas ajenas se enteraran?',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+-- -----------------------------------------------------------------------
+-- Sección 4: Oportunidad general e infraestructura  (preguntas 8–11)
+-- -----------------------------------------------------------------------
+(8, 'unificado',
+ 'Sección 4. Oportunidad general e infraestructura',
+ 'escala',
+ 'Tiempo de espera
+
+¿El tiempo total que esperó en la sala para recibir su atención o asignación de cita fue el adecuado?',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+(9, 'unificado',
+ 'Sección 4. Oportunidad general e infraestructura',
+ 'escala',
+ 'Instalaciones
+
+¿Encontró las instalaciones del hospital (salas de espera, habitaciones y baños) limpias, cómodas y ordenadas?',
+ '["Muy malo","Malo","Regular","Bueno","Muy bueno"]'::jsonb,
+ FALSE),
+
+(10, 'unificado',
+ 'Sección 4. Oportunidad general e infraestructura',
+ 'sino',
+ '¿Durante su hospitalización, le dieron a conocer sus derechos y deberes como usuario de nuestra institución?',
+ '["Sí","No"]'::jsonb,
+ FALSE),
+
+(11, 'unificado',
+ 'Sección 4. Oportunidad general e infraestructura',
+ 'sino',
+ '¿Recibió información sobre cómo presentar una felicitación, reclamo, queja o sugerencia (PQRSF), así como sobre la forma de recibir una respuesta?',
+ '["Sí","No"]'::jsonb,
+ FALSE),
+
+-- -----------------------------------------------------------------------
+-- Sección 5: Net Promoter Score  (pregunta 12, tipo nps)
+-- -----------------------------------------------------------------------
+(12, 'unificado',
+ 'Sección 5. Indicador de recomendación (Net Promoter Score - NPS)',
+ 'nps',
+ 'Recomendación institucional
+
+Teniendo en cuenta toda su experiencia en el hospital, ¿qué tan probable es que nos recomiende a un familiar o amigo si llegara a necesitar atención médica?',
+ '["0","1","2","3","4","5","6","7","8","9","10"]'::jsonb,
+ FALSE),
+
+-- -----------------------------------------------------------------------
+-- Sección 6: Retroalimentación cualitativa  (pregunta 13, tipo texto_libre)
+-- -----------------------------------------------------------------------
+(13, 'unificado',
+ 'Sección 6. Retroalimentación cualitativa',
+ 'texto_libre',
+ '¿Tiene alguna sugerencia, felicitación o comentario adicional que nos ayude a mejorar el servicio?',
+ '[]'::jsonb,
+ FALSE)
 
 ON CONFLICT (id) DO UPDATE SET
     tipo_encuesta       = EXCLUDED.tipo_encuesta,
+    seccion             = EXCLUDED.seccion,
+    tipo                = EXCLUDED.tipo,
     texto               = EXCLUDED.texto,
     opciones            = EXCLUDED.opciones,
     requiere_comentario = EXCLUDED.requiere_comentario;
 
+
 -- =====================================================================
---  Catálogos de motivos de tipificación de detracción, por pregunta.
---  Deben coincidir EXACTAMENTE con MotivosDetraccion.kt de la app.
---  Se asignan por categoría a los ids correspondientes.
+--  Referencia: opciones de tipificación por pregunta
+--
+--  La app despliega estos menús automáticamente cuando la calificación
+--  es negativa ("Muy malo", "Malo" o "Regular" en preguntas 1–7;
+--  NPS 0–6 en pregunta 12). El campo tipificacion en la tabla respuestas
+--  llega con los ítems seleccionados separados por "|".
+--
+--  Esta sección es solo referencia para el backend/reporting.
+--  No requiere ejecutar ningún SQL adicional.
 -- =====================================================================
 
--- Administrativo (facilidad de cita, personal administrativo, trato en ingreso)
-UPDATE preguntas SET motivos = '[
-  "El personal ignoró al usuario o se negó a dar orientación",
-  "Expresiones corporales o tono de voz grosero/agresivo",
-  "Demora excesiva en la ventanilla para realizar el trámite",
-  "Información contradictoria entre funcionarios",
-  "Falta de personal en las taquillas de atención",
-  "Otro (especifique)"
-]'::jsonb WHERE id IN (1, 3, 101);
+-- Pregunta 1 — Personal administrativo:
+--   "El personal ignoró al usuario o se negó a dar orientación."
+--   "Expresiones corporales o tono de voz grosero/agresivo."
+--   "Demora excesiva en la ventanilla para realizar el trámite."
+--   "Información contradictoria (un funcionario dice una cosa y otro algo diferente)."
+--   "Falta de personal en las taquillas de atención."
+--   "Otro (especifique)"
 
--- Médico
-UPDATE preguntas SET motivos = '[
-  "El médico no miró a la cara (estuvo frente al computador)",
-  "Tono de voz rudo, regaño o falta de empatía ante el dolor",
-  "Atención demasiado rápida o con afán (no lo revisaron bien)",
-  "Minimización de los síntomas del paciente o cuidador",
-  "Otro (especifique)"
-]'::jsonb WHERE id IN (5, 105);
+-- Pregunta 2 — Personal médico:
+--   "El médico no miró al paciente a la cara (estuvo todo el tiempo frente al computador)."
+--   "Tono de voz rudo, regaño o falta de empatía ante el dolor del paciente."
+--   "Atención demasiado rápida o con afán (sintió que no lo revisaron bien)."
+--   "Minimización de los síntomas expresados por el paciente o cuidador."
+--   "Otro (especifique)"
 
--- Enfermería
-UPDATE preguntas SET motivos = '[
-  "Demora o falta de respuesta al llamado del timbre",
-  "Brusquedad al aplicar medicamentos, canalizar o mover al paciente",
-  "Respuestas evasivas o groseras ante las dudas",
-  "Falta de continuidad o descuido en los turnos de atención",
-  "Otro (especifique)"
-]'::jsonb WHERE id IN (7, 106);
+-- Pregunta 3 — Personal de enfermería:
+--   "Demora o falta de respuesta al llamado del timbre (en internación)."
+--   "Mala actitud o brusquedad al aplicar medicamentos, canalizar o mover al paciente."
+--   "Respuestas evasivas o groseras ante las dudas del paciente o familiar."
+--   "Falta de continuidad o descuido en los turnos de atención."
+--   "Otro (especifique)"
 
--- Privacidad e Información (triage, info estado de salud, indicaciones de egreso)
-UPDATE preguntas SET motivos = '[
-  "Falta de claridad: usaron palabras médicas muy difíciles",
-  "Falta de privacidad física durante el examen",
-  "Falla de confidencialidad: información en voz alta frente a otros",
-  "Falta de oportunidad: entrega tardía de resultados o fórmulas",
-  "Otro (especifique)"
-]'::jsonb WHERE id IN (103, 104, 112);
+-- Preguntas 4–7 — Información y privacidad:
+--   "Falta de Claridad: Usaron palabras médicas muy difíciles que nadie entendió."
+--   "Falta de Privacidad Física: Lo examinaron con la puerta/cortina abierta o personas ajenas mirando."
+--   "Falla de Confidencialidad: El médico dio el diagnóstico en voz alta frente a otros."
+--   "Falta de Oportunidad: Entrega tardía de resultados, historias clínicas o fórmulas médicas."
+--   "Otro (especifique)"
 
--- Infraestructura (instalaciones, limpieza, alimentación)
-UPDATE preguntas SET motivos = '[
-  "Instalaciones sucias o con mal aseo",
-  "Falta de mantenimiento (baños, camas o equipos dañados)",
-  "Ruido excesivo o falta de comodidad",
-  "Señalización confusa para ubicarse",
-  "Otro (especifique)"
-]'::jsonb WHERE id IN (9, 107, 111);
-
--- General (recomendación y experiencia global)
-UPDATE preguntas SET motivos = '[
-  "Tiempo de espera prolongado",
-  "Desorganización en el servicio",
-  "Mala coordinación entre áreas",
-  "Trato poco humanizado en general",
-  "Otro (especifique)"
-]'::jsonb WHERE id IN (10, 11, 113, 114);
+-- Pregunta 12 — NPS detractor (puntaje 0–6):
+--   "Trato humano"
+--   "Comunicación e información"
+--   "Oportunidad en la atención (tiempos de espera)"
+--   "Calidad de la atención"
+--   "Procesos administrativos"
+--   "Instalaciones y comodidad"
+--   "Otro (especifique)"

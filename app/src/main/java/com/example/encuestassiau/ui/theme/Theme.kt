@@ -1,56 +1,41 @@
 package com.example.encuestassiau.ui.theme
 
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
-)
-
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+private val HusjColorScheme = lightColorScheme(
+    primary = Azul50,
     onPrimary = Color.White,
+    primaryContainer = Azul10,
+    onPrimaryContainer = Azul90,
+    secondary = Azul70,
     onSecondary = Color.White,
+    secondaryContainer = Azul10,
+    onSecondaryContainer = Azul90,
+    tertiary = Dorado60,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiaryContainer = Dorado10,
+    onTertiaryContainer = NavyTexto,
+    background = AzulSurface,
+    onBackground = NavyTexto,
+    surface = Color.White,
+    onSurface = NavyTexto,
+    surfaceVariant = Azul10,
+    onSurfaceVariant = NavyMedio,
+    error = Rojo,
+    errorContainer = RojoClaro,
+    onError = Color.White,
+    outline = NavyClaro
 )
 
 @Composable
 fun EncuestasSIAUTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = HusjColorScheme,
         typography = Typography,
         content = content
     )
