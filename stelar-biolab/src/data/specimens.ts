@@ -1,0 +1,258 @@
+import type { SavedSpecimen, LabState, Organism } from "../types";
+import {
+  defaultState,
+  defaultOrganism,
+  STELLAR_PRESETS,
+  WORLD_PRESETS,
+} from "./scenarios";
+import { generarNombreComun, generarNombreCientifico } from "../engine/nameGenerator";
+
+function stellar(id: string) {
+  return STELLAR_PRESETS.find((p) => p.id === id)!.apply();
+}
+function world(id: string) {
+  return WORLD_PRESETS.find((p) => p.id === id)!.apply();
+}
+
+function organism(seed: number, over: Partial<Organism>): Organism {
+  const base = defaultOrganism(seed);
+  const metabolism = over.metabolism ?? base.metabolism;
+  return {
+    ...base,
+    ...over,
+    id: `org-${seed}`,
+    commonName: over.commonName ?? generarNombreComun(seed, metabolism),
+    scientificName: over.scientificName ?? generarNombreCientifico(seed, "superficie"),
+    genetics: { ...base.genetics, ...(over.genetics ?? {}) },
+  };
+}
+
+function state(partial: Partial<LabState>): LabState {
+  return { ...defaultState(), ...partial };
+}
+
+// Catálogo inicial: al menos seis especímenes con estrategias y entornos distintos.
+export const SPECIMEN_CATALOG: SavedSpecimen[] = [
+  {
+    id: "spec-europa-quimio",
+    name: "Pastor de respiraderos",
+    description: "Organismo quimiosintético de un océano subglacial, anclado cerca de fuentes hidrotermales.",
+    createdAt: 0,
+    updatedAt: 0,
+    state: state({
+      stellar: stellar("sol"),
+      environment: world("europa"),
+      chemistry: {
+        architecture: "carbono_agua",
+        solvent: "agua",
+        availableElements: { C: 70, H: 85, O: 80, N: 55, P: 40, S: 80, Si: 50, Fe: 75 },
+        structuralElements: ["C", "H", "O", "N"],
+        metabolicElements: ["S", "Fe", "H"],
+      },
+      organism: organism(220411, {
+        locomotion: "sesil",
+        bodyCovering: "caparazon_mineral",
+        metabolism: "quimiosintetico",
+        sensors: ["quimiorrecepcion", "presion", "vibracion"],
+        sizeMeters: 0.35,
+        massKg: 4,
+        appendageCount: 8,
+        bodyWidth: 1.3,
+        bodyHeight: 0.6,
+        bodyDensity: 1.1,
+        thermalProtection: 55,
+        buoyancyCapacity: 35,
+        mobility: 15,
+        energyUse: 35,
+        environmentalTolerance: 75,
+        sensoryCapacity: 60,
+        radiationProtection: 70,
+      }),
+    }),
+  },
+  {
+    id: "spec-gigante-filtrador",
+    name: "Vela de amoníaco",
+    description: "Filtrador flotante de una atmósfera densa de un gigante de hielo.",
+    createdAt: 0,
+    updatedAt: 0,
+    state: state({
+      stellar: stellar("caliente"),
+      environment: world("gigante_hielo"),
+      chemistry: {
+        architecture: "carbono_solvente_alt",
+        solvent: "amoniaco",
+        availableElements: { C: 65, H: 95, O: 40, N: 85, P: 30, S: 35, Si: 20, Fe: 25 },
+        structuralElements: ["C", "H", "N"],
+        metabolicElements: ["H", "C"],
+      },
+      organism: organism(771203, {
+        locomotion: "filtrador_flotante",
+        bodyCovering: "membrana_flexible",
+        metabolism: "fototrofia_ir",
+        sensors: ["fotorecepcion", "presion", "quimiorrecepcion"],
+        sizeMeters: 9,
+        massKg: 60,
+        appendageCount: 14,
+        bodyWidth: 2.4,
+        bodyHeight: 2.2,
+        bodyDensity: 0.7,
+        thermalProtection: 60,
+        buoyancyCapacity: 90,
+        mobility: 40,
+        energyUse: 45,
+        environmentalTolerance: 55,
+        sensoryCapacity: 50,
+        radiationProtection: 35,
+      }),
+    }),
+  },
+  {
+    id: "spec-supertierra-excavador",
+    name: "Zapador coriáceo",
+    description: "Excavador protegido de radiación en un mundo árido de gravedad alta.",
+    createdAt: 0,
+    updatedAt: 0,
+    state: state({
+      stellar: stellar("caliente"),
+      environment: { ...world("supertierra_arida"), habitat: "subsuelo" },
+      chemistry: {
+        architecture: "carbono_agua",
+        solvent: "agua",
+        availableElements: { C: 75, H: 70, O: 70, N: 60, P: 45, S: 55, Si: 65, Fe: 60 },
+        structuralElements: ["C", "H", "O", "Si"],
+        metabolicElements: ["C", "O"],
+      },
+      organism: organism(430917, {
+        locomotion: "excavador",
+        bodyCovering: "quitina",
+        metabolism: "quimiosintetico",
+        sensors: ["vibracion", "quimiorrecepcion", "presion"],
+        sizeMeters: 0.5,
+        massKg: 20,
+        appendageCount: 6,
+        bodyWidth: 1.4,
+        bodyHeight: 0.5,
+        bodyDensity: 1.2,
+        thermalProtection: 50,
+        buoyancyCapacity: 5,
+        mobility: 45,
+        energyUse: 55,
+        environmentalTolerance: 70,
+        sensoryCapacity: 55,
+        radiationProtection: 80,
+      }),
+    }),
+  },
+  {
+    id: "spec-metanogeno",
+    name: "Lodo metanario",
+    description: "Organismo metanogénico hipotético de un entorno rico en hidrógeno y carbono.",
+    createdAt: 0,
+    updatedAt: 0,
+    state: state({
+      stellar: stellar("enana_roja"),
+      environment: world("errante"),
+      chemistry: {
+        architecture: "carbono_agua",
+        solvent: "agua",
+        availableElements: { C: 80, H: 95, O: 55, N: 50, P: 35, S: 40, Si: 30, Fe: 45 },
+        structuralElements: ["C", "H", "O"],
+        metabolicElements: ["H", "C"],
+      },
+      organism: organism(560128, {
+        locomotion: "serpenteante",
+        bodyCovering: "membrana_flexible",
+        metabolism: "metanogenico",
+        sensors: ["quimiorrecepcion", "vibracion"],
+        sizeMeters: 0.25,
+        massKg: 2,
+        appendageCount: 0,
+        bodyWidth: 0.7,
+        bodyHeight: 0.5,
+        bodyDensity: 1.05,
+        thermalProtection: 40,
+        buoyancyCapacity: 30,
+        mobility: 50,
+        energyUse: 40,
+        environmentalTolerance: 60,
+        sensoryCapacity: 40,
+        radiationProtection: 55,
+      }),
+    }),
+  },
+  {
+    id: "spec-electrotrofo",
+    name: "Hebra conductora",
+    description: "Criatura electrótrofa de un medio conductor rico en minerales.",
+    createdAt: 0,
+    updatedAt: 0,
+    state: state({
+      stellar: stellar("sol"),
+      environment: { ...world("enceladus"), oxidants: 25, reductants: 70 },
+      chemistry: {
+        architecture: "hibrida_carbono_silicio",
+        solvent: "agua",
+        availableElements: { C: 60, H: 70, O: 65, N: 45, P: 40, S: 55, Si: 70, Fe: 90 },
+        structuralElements: ["C", "Si", "Fe"],
+        metabolicElements: ["Fe", "C"],
+      },
+      organism: organism(901771, {
+        locomotion: "sesil",
+        bodyCovering: "malla_piezoelectrica",
+        metabolism: "electrotrofo",
+        sensors: ["electrorecepcion", "magnetorecepcion", "quimiorrecepcion"],
+        sizeMeters: 0.15,
+        massKg: 0.4,
+        appendageCount: 10,
+        bodyWidth: 0.6,
+        bodyHeight: 1.6,
+        bodyDensity: 1.3,
+        thermalProtection: 35,
+        buoyancyCapacity: 10,
+        mobility: 10,
+        energyUse: 30,
+        environmentalTolerance: 65,
+        sensoryCapacity: 75,
+        radiationProtection: 60,
+      }),
+    }),
+  },
+  {
+    id: "spec-sesil-oscuro",
+    name: "Coral de sombra",
+    description: "Organismo sésil de un ecosistema oscuro, dependiente de química local.",
+    createdAt: 0,
+    updatedAt: 0,
+    state: state({
+      stellar: stellar("errante"),
+      environment: world("enceladus"),
+      chemistry: {
+        architecture: "carbono_agua",
+        solvent: "agua",
+        availableElements: { C: 70, H: 80, O: 75, N: 55, P: 50, S: 70, Si: 45, Fe: 60 },
+        structuralElements: ["C", "H", "O", "N"],
+        metabolicElements: ["S", "H"],
+      },
+      organism: organism(123987, {
+        locomotion: "sesil",
+        bodyCovering: "caparazon_mineral",
+        metabolism: "azufre",
+        sensors: ["quimiorrecepcion", "presion", "radiacion"],
+        sizeMeters: 0.8,
+        massKg: 25,
+        appendageCount: 12,
+        bodyWidth: 1.8,
+        bodyHeight: 1.4,
+        bodyDensity: 1.25,
+        thermalProtection: 45,
+        buoyancyCapacity: 15,
+        mobility: 5,
+        energyUse: 25,
+        environmentalTolerance: 70,
+        sensoryCapacity: 50,
+        radiationProtection: 75,
+      }),
+    }),
+  },
+];
