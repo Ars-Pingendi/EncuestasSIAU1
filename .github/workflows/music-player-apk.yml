@@ -1,0 +1,64 @@
+name: Mi Reproductor - compilar APK
+
+on:
+  push:
+    branches: ["ccr-87fb0d44-h5atsk"]
+    paths:
+      - "MusicPlayer/**"
+      - ".github/workflows/music-player-apk.yml"
+  workflow_dispatch:
+    inputs:
+      commit_apk:
+        description: "Guardar el APK compilado en MusicPlayer/dist/ dentro del repositorio"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: music-player-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Aceptar licencias del SDK de Android
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Compilar APK (release, firmado)
+        working-directory: MusicPlayer
+        run: ./gradlew --no-daemon --stacktrace :app:assembleRelease
+
+      - name: Preparar APK
+        run: |
+          mkdir -p MusicPlayer/dist
+          cp MusicPlayer/app/build/outputs/apk/release/app-release.apk MusicPlayer/dist/MiReproductor.apk
+          ls -l MusicPlayer/dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MiReproductor-apk
+          path: MusicPlayer/dist/MiReproductor.apk
+          if-no-files-found: error
+
+      - name: Guardar APK en el repositorio
+        if: github.event_name == 'workflow_dispatch' && inputs.commit_apk
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f MusicPlayer/dist/MiReproductor.apk
+          git commit -m "build(MusicPlayer): APK compilado por CI"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"

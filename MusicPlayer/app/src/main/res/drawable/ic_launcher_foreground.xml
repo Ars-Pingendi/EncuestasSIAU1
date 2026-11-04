@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Cinco barras de ecualizador -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M26,44h8v20h-8z M38,36h8v36h-8z M50,30h8v48h-8z M62,39h8v30h-8z M74,34h8v40h-8z" />
+    <!-- Puntos de control -->
+    <path
+        android:fillColor="#4DD9C0"
+        android:pathData="M30,40m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0 M42,32m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0 M54,26m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0 M66,35m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0 M78,30m-4,0a4,4 0 1,1 8,0a4,4 0 1,1 -8,0" />
+</vector>
