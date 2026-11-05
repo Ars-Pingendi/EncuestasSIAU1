@@ -88,7 +88,7 @@ fun HomeScreen(vm: MainViewModel) {
 
     Column(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         TopAppBar(
-            title = { Text("Mi música") },
+            title = { Text("Pipo Music Player") },
             actions = {
                 IconButton(onClick = { vm.navigate(Route.SearchRoute) }) {
                     Icon(Icons.Filled.Search, contentDescription = "Buscar")

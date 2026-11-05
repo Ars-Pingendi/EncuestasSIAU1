@@ -150,7 +150,7 @@ private fun PermissionScreen(vm: MainViewModel) {
                 modifier = Modifier.size(72.dp),
             )
             Spacer(Modifier.height(16.dp))
-            Text("Mi Reproductor", style = MaterialTheme.typography.headlineMedium)
+            Text("Pipo Music Player", style = MaterialTheme.typography.headlineMedium)
             Spacer(Modifier.height(12.dp))
             Text(
                 "Para mostrar tu música necesito permiso para leer los archivos de audio de este dispositivo. " +

@@ -93,7 +93,7 @@ fun SettingsScreen(vm: MainViewModel) {
 
             SectionTitle("Acerca de")
             Text(
-                "Mi Reproductor 1.1\n" +
+                "Pipo Music Player 1.1.1\n" +
                     "${pluralSongs(library.tracks.size)} · ${library.albums.size} álbumes · ${library.artists.size} artistas",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

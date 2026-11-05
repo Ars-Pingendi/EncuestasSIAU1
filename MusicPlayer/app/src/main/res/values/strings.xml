@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Mi Reproductor</string>
+    <string name="app_name">Pipo Music Player</string>
     <!-- Sobrescribe el nombre del canal de notificación de Media3 -->
     <string name="default_notification_channel_name">Reproducción</string>
 </resources>

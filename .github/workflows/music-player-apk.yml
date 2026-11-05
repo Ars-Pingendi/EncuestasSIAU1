@@ -1,4 +1,4 @@
-name: Mi Reproductor - compilar APK
+name: Pipo Music Player - compilar APK
 
 on:
   push:
@@ -44,13 +44,13 @@ jobs:
       - name: Preparar APK
         run: |
           mkdir -p MusicPlayer/dist
-          cp MusicPlayer/app/build/outputs/apk/release/app-release.apk MusicPlayer/dist/MiReproductor.apk
+          cp MusicPlayer/app/build/outputs/apk/release/app-release.apk MusicPlayer/dist/PipoMusicPlayer.apk
           ls -l MusicPlayer/dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: MiReproductor-apk
-          path: MusicPlayer/dist/MiReproductor.apk
+          name: PipoMusicPlayer-apk
+          path: MusicPlayer/dist/PipoMusicPlayer.apk
           if-no-files-found: error
 
       - name: Guardar APK en el repositorio
@@ -58,7 +58,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -f MusicPlayer/dist/MiReproductor.apk
+          git add -f MusicPlayer/dist/PipoMusicPlayer.apk
           git commit -m "build(MusicPlayer): APK compilado por CI"
           git pull --rebase origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"

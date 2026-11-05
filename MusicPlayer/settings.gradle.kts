@@ -19,5 +19,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "MiReproductor"
+rootProject.name = "PipoMusicPlayer"
 include(":app")

@@ -1,4 +1,4 @@
-# Mi Reproductor
+# Pipo Music Player
 
 Reproductor de música personal para Android (minSdk 26, Android 8.0+). Kotlin + Jetpack Compose + Media3.
 
@@ -14,12 +14,12 @@ Reproductor de música personal para Android (minSdk 26, Android 8.0+). Kotlin +
 
 ## Compilar
 
-El APK se compila con GitHub Actions (`.github/workflows/music-player-apk.yml`) y queda como artefacto `MiReproductor-apk`.
+El APK se compila con GitHub Actions (`.github/workflows/music-player-apk.yml`) y queda como artefacto `PipoMusicPlayer-apk`.
 Localmente: `./gradlew :app:assembleRelease` (requiere JDK 17 y Android SDK 34).
 El APK sale firmado con `keystore/reproductor.jks`, por lo que las futuras versiones se instalan encima de la anterior sin perder listas ni favoritos.
 
 ## Instalar
 
-1. Copia `MiReproductor.apk` al teléfono (o descárgalo desde GitHub).
+1. Copia `PipoMusicPlayer.apk` al teléfono (o descárgalo desde GitHub).
 2. Ábrelo y permite «Instalar apps desconocidas» para el explorador/navegador que uses.
 3. Al abrir la app, concede el permiso de música y de notificaciones.
