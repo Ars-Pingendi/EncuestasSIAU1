@@ -74,7 +74,9 @@ private fun MainContent(vm: MainViewModel) {
     BackHandler(enabled = nowPlayingOpen) { vm.closeNowPlaying() }
     BackHandler(enabled = !nowPlayingOpen && stack.size > 1) { vm.back() }
 
-    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
+    // Surface (y no un Box) para que todo el contenido herede el color de texto del tema;
+    // sin esto, los textos sin color propio salían negros sobre el fondo oscuro.
+    Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) { Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 HomeScreen(vm)
@@ -104,7 +106,7 @@ private fun MainContent(vm: MainViewModel) {
         ) {
             NowPlayingScreen(vm)
         }
-    }
+    } }
 
     AppDialogs(vm)
 }

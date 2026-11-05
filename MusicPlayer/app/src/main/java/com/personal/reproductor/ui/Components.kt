@@ -144,7 +144,12 @@ fun LoadingState(message: String) {
     ) {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
-        Text(message, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
+        Text(
+            message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -169,7 +174,12 @@ fun EmptyState(
             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
         )
         Spacer(Modifier.height(16.dp))
-        Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
         Spacer(Modifier.height(8.dp))
         Text(
             message,
@@ -201,7 +211,13 @@ fun ListRow(
         leading()
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
             Text(
                 subtitle,
                 style = MaterialTheme.typography.bodyMedium,
@@ -415,6 +431,7 @@ fun AlbumCard(album: Album, isFavorite: Boolean, onClick: () -> Unit, modifier: 
         Text(
             album.title,
             style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Medium,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
