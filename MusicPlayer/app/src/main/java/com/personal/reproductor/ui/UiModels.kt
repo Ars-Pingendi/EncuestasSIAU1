@@ -29,7 +29,8 @@ sealed interface DialogState {
     data class DeletePlaylist(val id: Long, val name: String) : DialogState
 }
 
-data class PlaylistUi(val id: Long, val name: String, val tracks: List<Track>)
+/** [storedIds] son los ids guardados en la base de datos, alineados uno a uno con [tracks]. */
+data class PlaylistUi(val id: Long, val name: String, val tracks: List<Track>, val storedIds: List<Long>)
 
 data class PlayerUi(
     val connected: Boolean = false,
@@ -51,6 +52,8 @@ data class PlayerUi(
 
 data class QueueItem(
     val index: Int,
+    /** Identificador único dentro de la cola (una misma canción puede estar repetida). */
+    val uid: String,
     val trackId: Long,
     val title: String,
     val artist: String,

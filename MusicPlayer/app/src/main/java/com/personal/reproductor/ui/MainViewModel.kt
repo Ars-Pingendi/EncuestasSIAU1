@@ -107,12 +107,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         combine(userData.playlists, userData.playlistTracks, library) { lists, items, lib ->
             val byList = items.groupBy { it.playlistId }
             lists.map { p ->
+                // (id guardado, canción resuelta en la biblioteca actual), en el orden de la lista
+                val resolved = byList[p.id].orEmpty()
+                    .sortedBy { it.position }
+                    .mapNotNull { row -> lib.resolve(row.trackId, row.path)?.let { row.trackId to it } }
                 PlaylistUi(
                     id = p.id,
                     name = p.name,
-                    tracks = byList[p.id].orEmpty()
-                        .sortedBy { it.position }
-                        .mapNotNull { lib.resolve(it.trackId, it.path) },
+                    tracks = resolved.map { it.second },
+                    storedIds = resolved.map { it.first },
                 )
             }
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
@@ -199,6 +202,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             userData.removeFromPlaylist(playlistId, track)
             toast("Quitada de la lista")
         }
+    }
+
+    fun reorderPlaylist(playlistId: Long, orderedStoredIds: List<Long>) {
+        viewModelScope.launch { userData.reorderPlaylist(playlistId, orderedStoredIds) }
     }
 
     fun renamePlaylist(id: Long, name: String) {
@@ -412,12 +419,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun queueSnapshot(): List<QueueItem> {
         val c = controller ?: return emptyList()
+        val seen = HashMap<Long, Int>()
         return List(c.mediaItemCount) { i ->
             val item = c.getMediaItemAt(i)
             val md = item.mediaMetadata
+            val id = item.mediaId.toLongOrNull() ?: -1L
+            val occurrence = seen[id] ?: 0
+            seen[id] = occurrence + 1
             QueueItem(
                 index = i,
-                trackId = item.mediaId.toLongOrNull() ?: -1L,
+                uid = "$id#$occurrence",
+                trackId = id,
                 title = md.title?.toString().orEmpty(),
                 artist = md.artist?.toString().orEmpty(),
                 albumId = md.extras?.getLong(EXTRA_ALBUM_ID) ?: 0L,
@@ -434,6 +446,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun removeFromQueue(index: Int) {
         controller?.removeMediaItem(index)
+    }
+
+    fun moveInQueue(from: Int, to: Int) {
+        controller?.moveMediaItem(from, to)
     }
 
     fun clearQueue() {

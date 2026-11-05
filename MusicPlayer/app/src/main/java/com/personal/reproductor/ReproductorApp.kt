@@ -7,6 +7,7 @@ import com.personal.reproductor.data.AppSettings
 import com.personal.reproductor.data.LibraryRepository
 import com.personal.reproductor.data.UserDataRepository
 import com.personal.reproductor.data.db.AppDb
+import com.personal.reproductor.playback.QueueStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,5 +23,6 @@ class ReproductorApp : Application() {
     val userData: UserDataRepository by lazy { UserDataRepository(db.userDao()) }
     val library: LibraryRepository by lazy { LibraryRepository(this, settings, appScope) }
     val effects: AudioEffectsController by lazy { AudioEffectsController(this) }
+    val queueStore: QueueStore by lazy { QueueStore(this) }
     val sleepTimer: SleepTimer by lazy { SleepTimer(mainScope) }
 }

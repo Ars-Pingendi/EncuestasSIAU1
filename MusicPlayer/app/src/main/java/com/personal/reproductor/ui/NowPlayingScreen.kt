@@ -4,6 +4,7 @@ package com.personal.reproductor.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.basicMarquee
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -62,6 +63,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.Player
 
@@ -289,8 +293,16 @@ fun NowPlayingScreen(vm: MainViewModel) {
 @Composable
 private fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
     val p by vm.player.collectAsStateWithLifecycle()
-    val items = remember(p.queueVersion, p.queueSize) { vm.queueSnapshot() }
+    val snapshot = remember(p.queueVersion, p.queueSize) { vm.queueSnapshot() }
+    // Copia local que se reordena mientras se arrastra; se aplica al reproductor al soltar.
+    val working = remember(snapshot) { snapshot.toMutableStateList() }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = (p.index - 2).coerceAtLeast(0))
+    val reorder = rememberDragReorderState(
+        listState = listState,
+        headerCount = 0,
+        onSwap = { from, to -> working.add(to, working.removeAt(from)) },
+        onDrop = { from, to -> if (from != to) vm.moveInQueue(from, to) },
+    )
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -301,7 +313,7 @@ private fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                "Cola de reproducción (${items.size})",
+                "Cola de reproducción (${working.size})",
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f),
             )
@@ -315,13 +327,19 @@ private fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
             state = listState,
             modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp),
         ) {
-            itemsIndexed(items) { index, item ->
-                val isCurrent = index == p.index
+            itemsIndexed(working, key = { _, item -> item.uid }) { position, item ->
+                val isCurrent = item.index == p.index
+                val dragged = reorder.draggedKey == item.uid
                 Row(
                     Modifier
+                        .zIndex(if (dragged) 1f else 0f)
+                        .graphicsLayer { translationY = reorder.translationFor(item.uid) }
+                        .then(
+                            if (dragged) Modifier.background(MaterialTheme.colorScheme.surfaceVariant) else Modifier,
+                        )
                         .fillMaxWidth()
-                        .clickable { vm.jumpToQueueIndex(index) }
-                        .padding(start = 24.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
+                        .clickable { vm.jumpToQueueIndex(position) }
+                        .padding(start = 24.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Artwork(item.trackId, item.albumId, Modifier.size(44.dp), requestPx = 160)
@@ -343,7 +361,8 @@ private fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
                             overflow = TextOverflow.Ellipsis,
                         )
                     }
-                    IconButton(onClick = { vm.removeFromQueue(index) }) {
+                    DragHandle(item.uid, reorder)
+                    IconButton(onClick = { vm.removeFromQueue(position) }) {
                         Icon(Icons.Filled.Close, contentDescription = "Quitar de la cola")
                     }
                 }

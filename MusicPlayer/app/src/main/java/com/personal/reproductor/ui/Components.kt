@@ -66,7 +66,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -266,13 +268,24 @@ fun TrackRow(
     modifier: Modifier = Modifier,
     leadingNumber: Int? = null,
     extraMenu: (@Composable (track: Track, dismiss: () -> Unit) -> Unit)? = null,
+    reorder: DragReorderState? = null,
 ) {
     val isCurrent = track.id == currentId
     val isFavorite = track.id in favorites
     var menu by remember { mutableStateOf(false) }
+    val dragged = reorder != null && reorder.draggedKey == track.id
+    val reorderModifier = if (reorder != null) {
+        Modifier
+            .zIndex(if (dragged) 1f else 0f)
+            .graphicsLayer { translationY = reorder.translationFor(track.id) }
+    } else {
+        Modifier
+    }
 
     Row(
         modifier
+            .then(reorderModifier)
+            .then(if (dragged) Modifier.background(MaterialTheme.colorScheme.surfaceVariant) else Modifier)
             .fillMaxWidth()
             .combinedClickable(onClick = onClick, onLongClick = { menu = true })
             .padding(start = 16.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
@@ -321,6 +334,7 @@ fun TrackRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp),
         )
+        if (reorder != null) DragHandle(track.id, reorder)
         Box {
             IconButton(onClick = { menu = true }) {
                 Icon(Icons.Filled.MoreVert, contentDescription = "Más opciones")

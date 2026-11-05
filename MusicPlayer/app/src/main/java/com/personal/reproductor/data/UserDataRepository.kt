@@ -34,6 +34,9 @@ class UserDataRepository(private val dao: UserDao) {
     suspend fun removeFromPlaylist(playlistId: Long, track: Track) =
         dao.removeFromPlaylist(playlistId, track.id, track.path)
 
+    suspend fun reorderPlaylist(playlistId: Long, orderedTrackIds: List<Long>) =
+        dao.reorderPlaylist(playlistId, orderedTrackIds)
+
     suspend fun addFavoriteTrack(track: Track) =
         dao.insertFavoriteTrack(FavoriteTrackEntity(track.id, track.path, System.currentTimeMillis()))
 

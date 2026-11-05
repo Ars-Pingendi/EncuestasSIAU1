@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
@@ -41,6 +42,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -207,30 +210,47 @@ fun TrackCollectionScreen(
     emptyMessage: String,
     actions: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit = {},
     extraMenu: (@Composable (track: Track, dismiss: () -> Unit) -> Unit)? = null,
+    onReorder: ((List<Track>) -> Unit)? = null,
 ) {
     val currentId by vm.currentTrackId.collectAsStateWithLifecycle()
     val favs by vm.favoriteTrackIds.collectAsStateWithLifecycle()
 
+    // Con reordenamiento se trabaja sobre una copia local que se guarda al soltar.
+    val listState = rememberLazyListState()
+    val working = remember(tracks) { tracks.toMutableStateList() }
+    val reorder = if (onReorder != null) {
+        rememberDragReorderState(
+            listState = listState,
+            headerCount = 1,
+            onSwap = { from, to -> working.add(to, working.removeAt(from)) },
+            onDrop = { from, to -> if (from != to) onReorder(working.toList()) },
+        )
+    } else {
+        null
+    }
+    val shown: List<Track> = if (onReorder != null) working else tracks
+
     DetailScaffold(title = title, onBack = { vm.back() }, actions = actions) {
-        if (tracks.isEmpty()) {
+        if (shown.isEmpty()) {
             EmptyState(emptyIcon, "Aquí no hay canciones", emptyMessage)
         } else {
-            LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
+            LazyColumn(state = listState, modifier = Modifier.weight(1f).fillMaxWidth()) {
                 item {
                     PlayShuffleRow(
-                        count = tracks.size,
-                        onPlay = { vm.play(tracks, 0, shuffle = false) },
-                        onShuffle = { vm.playShuffled(tracks) },
+                        count = shown.size,
+                        onPlay = { vm.play(shown.toList(), 0, shuffle = false) },
+                        onShuffle = { vm.playShuffled(shown.toList()) },
                     )
                 }
-                itemsIndexed(tracks, key = { _, t -> t.id }) { index, track ->
+                itemsIndexed(shown, key = { _, t -> t.id }) { index, track ->
                     TrackRow(
                         track = track,
                         vm = vm,
                         currentId = currentId,
                         favorites = favs,
-                        onClick = { vm.play(tracks, index) },
+                        onClick = { vm.play(shown.toList(), index) },
                         extraMenu = extraMenu,
+                        reorder = reorder,
                     )
                 }
             }
@@ -290,6 +310,12 @@ fun PlaylistScreen(vm: MainViewModel, id: Long) {
         tracks = playlist?.tracks.orEmpty(),
         emptyIcon = Icons.AutoMirrored.Filled.PlaylistPlay,
         emptyMessage = "Añade canciones desde el menú ⋮ de cualquier canción, álbum o desde el reproductor.",
+        onReorder = { newOrder ->
+            if (playlist != null) {
+                val storedIdOf = playlist.tracks.zip(playlist.storedIds).associate { (track, stored) -> track.id to stored }
+                vm.reorderPlaylist(playlist.id, newOrder.mapNotNull { storedIdOf[it.id] })
+            }
+        },
         actions = {
             if (playlist != null) {
                 IconButton(onClick = { vm.showDialog(DialogState.RenamePlaylist(playlist.id, playlist.name)) }) {

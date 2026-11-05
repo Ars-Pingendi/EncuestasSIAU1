@@ -99,6 +99,7 @@ fun EqualizerScreen(vm: MainViewModel) {
                 else -> {
                     BandsCard(eq, controller)
                     PresetsSection(eq, controller, onSave = { showSave = true })
+                    EngineSection(eq, controller)
                     EffectsSection(eq, controller)
                     Text(
                         "Los efectos usan el procesador de audio de tu dispositivo, así que el rango y la " +
@@ -186,7 +187,7 @@ private fun BandsCard(eq: AudioEffectsController.EqState, controller: AudioEffec
                             modifier = Modifier.height(210.dp),
                         )
                         Text(
-                            formatHz(eq.centerFreqsHz.getOrElse(index) { 0 }),
+                            formatHz(eq.centerFreqsHz.getOrElse(index) { 0 }, compact = eq.levelsMb.size > 6),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center,
@@ -253,7 +254,7 @@ private fun VerticalBandSlider(
 
     Canvas(
         modifier = modifier
-            .width(44.dp)
+            .fillMaxWidth()
             .pointerInput(minMb, maxMb, padPx) {
                 awaitEachGesture {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -349,6 +350,63 @@ private fun PresetsSection(
     }
 }
 
+// ---------------------------------------------------------------------------- motor y salida de audio
+
+@Composable
+private fun EngineSection(eq: AudioEffectsController.EqState, controller: AudioEffectsController) {
+    SectionTitle("Motor del ecualizador", Modifier.padding(top = 8.dp))
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        FilterChip(
+            selected = eq.engine == AudioEffectsController.Engine.SOFTWARE,
+            onClick = { controller.setEngine(AudioEffectsController.Engine.SOFTWARE) },
+            label = { Text("10 bandas (recomendado)") },
+        )
+        FilterChip(
+            selected = eq.engine == AudioEffectsController.Engine.SYSTEM,
+            enabled = eq.sysAvailable,
+            onClick = { controller.setEngine(AudioEffectsController.Engine.SYSTEM) },
+            label = {
+                Text(if (eq.sysAvailable) "Sistema (${eq.sysBandCount} bandas)" else "Sistema (no disponible)")
+            },
+        )
+    }
+    Text(
+        if (eq.engine == AudioEffectsController.Engine.SOFTWARE) {
+            "Ecualizador propio de la app: suena igual en cualquier dispositivo y reduce la ganancia " +
+                "automáticamente al realzar bandas para evitar la distorsión."
+        } else {
+            "Ecualizador integrado de Android: sus bandas y su rango dependen del fabricante."
+        },
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp),
+    )
+
+    SectionTitle("Salida de audio")
+    Row(
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text("Ajuste según la salida", style = MaterialTheme.typography.bodyLarge)
+            Text(
+                if (eq.autoProfiles) {
+                    "Ahora: ${eq.profile.label}. Altavoz, cable y Bluetooth recuerdan cada uno su ecualizador."
+                } else {
+                    "Un solo ajuste para todas las salidas."
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Switch(checked = eq.autoProfiles, onCheckedChange = { controller.setAutoProfiles(it) })
+    }
+}
+
 // ---------------------------------------------------------------------------- efectos
 
 @Composable
@@ -415,12 +473,19 @@ private fun EffectSlider(
 
 // ---------------------------------------------------------------------------- formato
 
-private fun formatDb(mb: Int): String =
-    if (mb == 0) "0" else String.format(Locale.getDefault(), "%+.1f", mb / 100f)
+private fun formatDb(mb: Int): String = when {
+    mb == 0 -> "0"
+    mb % 100 == 0 -> String.format(Locale.getDefault(), "%+d", mb / 100)
+    else -> String.format(Locale.getDefault(), "%+.1f", mb / 100f)
+}
 
-private fun formatHz(hz: Int): String = when {
+private fun formatHz(hz: Int, compact: Boolean): String = when {
     hz <= 0 -> ""
-    hz < 1000 -> "$hz Hz"
-    hz % 1000 == 0 -> "${hz / 1000} kHz"
-    else -> String.format(Locale.getDefault(), "%.1f kHz", hz / 1000f)
+    hz < 1000 -> if (compact) "$hz" else "$hz Hz"
+    hz % 1000 == 0 -> if (compact) "${hz / 1000}k" else "${hz / 1000} kHz"
+    else -> if (compact) {
+        String.format(Locale.getDefault(), "%.1fk", hz / 1000f)
+    } else {
+        String.format(Locale.getDefault(), "%.1f kHz", hz / 1000f)
+    }
 }

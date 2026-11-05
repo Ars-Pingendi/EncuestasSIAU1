@@ -6,8 +6,9 @@ Reproductor de música personal para Android (minSdk 26, Android 8.0+). Kotlin +
 
 - **Biblioteca automática**: lee el índice de audio de Android (memoria interna y tarjeta SD) y se actualiza solo cuando agregas música. Opción «Buscar música de nuevo» para forzar el escaneo.
 - **Clasificación**: Canciones (con orden por título, artista, álbum, recientes, duración), Álbumes, Artistas, Géneros, Carpetas, Listas y Favoritos. Listas automáticas: agregadas recientemente, más reproducidas, reproducidas recientemente.
-- **Ecualizador**: bandas reales del dispositivo con curva en vivo, 13 preajustes, preajustes propios guardables, refuerzo de graves, sonido envolvente y amplificación de volumen. Se conserva entre sesiones.
-- **Listas de reproducción y favoritos** (canciones y álbumes), guardados en una base de datos local (Room).
+- **Ecualizador**: propio de 10 bandas (31 Hz – 16 kHz, ±12 dB, con reducción automática de ganancia y limitador suave) o el integrado de Android, con curva en vivo, 13 preajustes y preajustes propios. Refuerzo de graves, sonido envolvente y amplificación de volumen. **Cada salida de audio (altavoz, cable, Bluetooth) recuerda su propio ajuste** y se cambia sola.
+- **Listas de reproducción y favoritos** (canciones y álbumes), guardados en una base de datos local (Room). Las canciones de una lista y la cola se **reordenan arrastrando**.
+- **Retoma donde lo dejaste**: la cola, la canción, la posición, el aleatorio y la repetición se conservan al cerrar la app.
 - Reproducción en segundo plano con notificación, pantalla de bloqueo y botones de auriculares/Bluetooth; cola editable, aleatorio, repetir y temporizador de apagado.
 - Búsqueda por canción, álbum o artista (sin importar tildes).
 

@@ -35,6 +35,20 @@ abstract class UserDao {
     @Query("DELETE FROM playlist_tracks WHERE playlistId = :playlistId AND (trackId = :trackId OR path = :path)")
     abstract suspend fun removeFromPlaylist(playlistId: Long, trackId: Long, path: String)
 
+    @Query("SELECT trackId FROM playlist_tracks WHERE playlistId = :playlistId ORDER BY position")
+    abstract suspend fun trackIdsOf(playlistId: Long): List<Long>
+
+    @Query("UPDATE playlist_tracks SET position = :position WHERE playlistId = :playlistId AND trackId = :trackId")
+    abstract suspend fun setPosition(playlistId: Long, trackId: Long, position: Int)
+
+    /** Guarda el nuevo orden; las canciones que ya no están en la biblioteca conservan su lugar al final. */
+    @Transaction
+    open suspend fun reorderPlaylist(playlistId: Long, orderedTrackIds: List<Long>) {
+        val listed = orderedTrackIds.toSet()
+        val rest = trackIdsOf(playlistId).filter { it !in listed }
+        (orderedTrackIds + rest).forEachIndexed { index, id -> setPosition(playlistId, id, index) }
+    }
+
     // ---- Favoritos ----
     @Query("SELECT * FROM favorite_tracks")
     abstract fun favoriteTracks(): Flow<List<FavoriteTrackEntity>>
