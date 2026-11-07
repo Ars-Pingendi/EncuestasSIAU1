@@ -5,6 +5,7 @@ on:
     branches: ["ccr-87fb0d44-h5atsk"]
     paths:
       - "MusicPlayer/**"
+      - "!MusicPlayer/manual/**"
       - ".github/workflows/music-player-apk.yml"
   workflow_dispatch:
     inputs:

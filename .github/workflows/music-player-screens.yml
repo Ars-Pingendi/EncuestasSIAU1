@@ -1,0 +1,67 @@
+name: Pipo Music Player - capturas del manual
+
+on:
+  push:
+    branches: ["ccr-87fb0d44-h5atsk"]
+    paths:
+      - "MusicPlayer/manual/*.py"
+      - "MusicPlayer/manual/*.sh"
+      - ".github/workflows/music-player-screens.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: music-player-screens-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Habilitar KVM (aceleración del emulador)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: ffmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+
+      - name: Música de ejemplo (ficticia)
+        run: bash MusicPlayer/manual/make_samples.sh "$RUNNER_TEMP/samples"
+
+      - name: Emulador y capturas
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          script: python3 MusicPlayer/manual/capture.py MusicPlayer/dist/PipoMusicPlayer.apk "$RUNNER_TEMP/samples" MusicPlayer/manual/capturas || true
+
+      - name: Reducir capturas a JPG
+        run: |
+          cd MusicPlayer/manual/capturas
+          for f in *.png; do ffmpeg -loglevel error -y -i "$f" -vf scale=540:-1 -q:v 3 "${f%.png}.jpg" && rm "$f"; done
+          ls -l
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: capturas-manual
+          path: MusicPlayer/manual/capturas
+
+      - name: Guardar capturas en el repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f MusicPlayer/manual/capturas
+          git commit -m "docs(MusicPlayer): capturas del manual" || exit 0
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
