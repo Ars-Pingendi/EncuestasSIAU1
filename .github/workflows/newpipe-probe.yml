@@ -1,0 +1,75 @@
+name: Sonda NewPipeExtractor (temporal)
+
+on:
+  push:
+    branches: ["ccr-87fb0d44-h5atsk"]
+    paths:
+      - ".github/workflows/newpipe-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Versiones y configuración de NewPipe
+        run: |
+          echo "== RELEASES NewPipeExtractor"
+          curl -s "https://api.github.com/repos/TeamNewPipe/NewPipeExtractor/releases?per_page=6" | jq -r '.[] | "\(.tag_name) \(.published_at)"'
+          echo "== RELEASES NewPipe (app)"
+          curl -s "https://api.github.com/repos/TeamNewPipe/NewPipe/releases?per_page=3" | jq -r '.[] | "\(.tag_name) \(.published_at)"'
+          for f in app/build.gradle app/build.gradle.kts gradle/libs.versions.toml settings.gradle settings.gradle.kts; do
+            echo "== NEWPIPE $f"
+            curl -sf "https://raw.githubusercontent.com/TeamNewPipe/NewPipe/dev/$f" | grep -niE "extractor|desugar|okhttp|exclude|jitpack|minSdk|compileSdk|rhino|teamnewpipe" || echo "(no existe)"
+          done
+          echo "== NEWPIPE DownloaderImpl"
+          curl -sf "https://raw.githubusercontent.com/TeamNewPipe/NewPipe/dev/app/src/main/java/org/schabi/newpipe/DownloaderImpl.java" \
+            | grep -vE '^\s*(\*|/\*\*|//)' | grep -vE '^import|^$' | head -120 || echo "(no existe)"
+          echo "== NEWPIPE YoutubeHttpDataSource (cabeceras)"
+          curl -sf "https://raw.githubusercontent.com/TeamNewPipe/NewPipe/dev/app/src/main/java/org/schabi/newpipe/player/datasource/YoutubeHttpDataSource.java" \
+            | grep -nE "UserAgent|isAndroidStreamingUrl|isIosStreamingUrl|isWebStreamingUrl|isTvHtml5|ORIGIN|REFERER|rangeParameter|rnParameter|POST|setRequestProperty|getAndroidUserAgent|getIosUserAgent" | head -60 || echo "(no existe)"
+
+      - name: API pública del extractor
+        run: |
+          TAG=$(curl -s "https://api.github.com/repos/TeamNewPipe/NewPipeExtractor/releases/latest" | jq -r .tag_name)
+          echo "TAG=$TAG"
+          mkdir p && cd p
+          curl -sfL -o extractor.jar "https://jitpack.io/com/github/TeamNewPipe/NewPipeExtractor/extractor/$TAG/extractor-$TAG.jar" && echo "jar OK" || echo "jar NO DISPONIBLE"
+          ls -l
+          echo "== POM raíz"; curl -sfL "https://jitpack.io/com/github/TeamNewPipe/NewPipeExtractor/$TAG/NewPipeExtractor-$TAG.pom" | grep -E "artifactId|version|groupId" | head -30
+          echo "== POM extractor"; curl -sfL "https://jitpack.io/com/github/TeamNewPipe/NewPipeExtractor/extractor/$TAG/extractor-$TAG.pom" | grep -E "artifactId|<version>|groupId|scope" | head -60
+          show() { echo "== $1"; javap -cp extractor.jar -public "$1" 2>&1 | grep -vE "^Compiled" | grep -E "${2:-.}" | head -${3:-60}; }
+          show org.schabi.newpipe.extractor.downloader.Downloader
+          show org.schabi.newpipe.extractor.downloader.Request
+          show org.schabi.newpipe.extractor.downloader.Response
+          show org.schabi.newpipe.extractor.NewPipe
+          show org.schabi.newpipe.extractor.ServiceList
+          show org.schabi.newpipe.extractor.StreamingService "Search|LHFactory|getServiceId|class"
+          show org.schabi.newpipe.extractor.search.SearchInfo "static|getNextPage|getRelatedItems|class"
+          show org.schabi.newpipe.extractor.ListExtractor\$InfoItemsPage
+          show org.schabi.newpipe.extractor.InfoItem "getUrl|getName|getThumbnail|class"
+          show org.schabi.newpipe.extractor.stream.StreamInfoItem
+          show org.schabi.newpipe.extractor.stream.StreamInfo "static|getAudioStreams|getName|getUploaderName|getDuration|getThumbnail|class"
+          show org.schabi.newpipe.extractor.stream.AudioStream "public|class"
+          show org.schabi.newpipe.extractor.stream.Stream "public|class"
+          show org.schabi.newpipe.extractor.stream.DeliveryMethod
+          show org.schabi.newpipe.extractor.stream.StreamType
+          show org.schabi.newpipe.extractor.Image "getUrl|getHeight|getWidth|class"
+          show org.schabi.newpipe.extractor.MediaFormat "public static final|getMimeType|class"
+          show org.schabi.newpipe.extractor.localization.Localization "public Localization|class"
+          show org.schabi.newpipe.extractor.localization.ContentCountry "public ContentCountry|class"
+          show org.schabi.newpipe.extractor.linkhandler.LinkHandlerFactory "getId|class"
+          show org.schabi.newpipe.extractor.linkhandler.SearchQueryHandlerFactory "fromQuery|class"
+          show org.schabi.newpipe.extractor.services.youtube.linkHandler.YoutubeSearchQueryHandlerFactory "static final|class"
+          show org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper "UserAgent|StreamingUrl|class" 40
+          show org.schabi.newpipe.extractor.exceptions.ReCaptchaException
+          echo "== Clases PoToken / visitorData"
+          unzip -l extractor.jar | grep -iE "potoken|visitor" | head -20
+          show org.schabi.newpipe.extractor.services.youtube.extractors.YoutubeStreamExtractor "static|PoToken|class" 30
