@@ -354,7 +354,9 @@ def s_youtube():
     typed = [n for n in nodes() if n.get("class") == "android.widget.EditText" and "beethoven" in (n.get("text") or "")]
     if not typed:
         raise RuntimeError("el texto no entró en el buscador de YouTube")
-    key(66)  # Enter = buscar (acción del teclado)
+    # Tecla "buscar" del teclado en pantalla (abajo a la derecha). Un Enter simulado no sirve:
+    # al soltarse, activa el botón que recibe el foco tras la búsqueda (la lupa de arriba).
+    tap_xy(990, 2180, wait=2)
     ns = wait_for(lambda ns: len(find(ns, desc="Más opciones")) >= 2
                   or find(ns, text="No se pudo buscar") or find(ns, text="Sin resultados"), timeout=40)
     shot("21-youtube-resultados")
