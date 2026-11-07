@@ -331,33 +331,45 @@ def s_busqueda():
     key(4)
 
 
+def wait_for(pred, timeout=30, step=3):
+    t0 = time.time()
+    while time.time() - t0 < timeout:
+        ns = nodes()
+        if pred(ns):
+            return ns
+        time.sleep(step)
+    return None
+
+
 def s_youtube():
     go_home()
     tap_tab("YouTube")
     shot("20-youtube")
-    try:
-        tap(text="Buscar en YouTube", wait=1.2)
-    except RuntimeError:
-        chips = find(nodes(), text="Canciones")
-        x, y = center(chips[-1])
-        tap_xy(540, y - 170, wait=1.2)
+    fields = [n for n in nodes() if n.get("class") == "android.widget.EditText" and visible(n)]
+    if not fields:
+        raise RuntimeError("no encontré el buscador de YouTube")
+    tap_xy(*center(fields[-1]), wait=1.5)
     shell("input text 'beethoven%ssymphony%s9'")
-    time.sleep(1)
-    key(66)  # Enter = buscar
-    time.sleep(12)
-    key(4)  # oculta el teclado si sigue abierto
+    time.sleep(1.5)
+    typed = [n for n in nodes() if n.get("class") == "android.widget.EditText" and "beethoven" in (n.get("text") or "")]
+    if not typed:
+        raise RuntimeError("el texto no entró en el buscador de YouTube")
+    key(66)  # Enter = buscar (acción del teclado)
+    ns = wait_for(lambda ns: len(find(ns, desc="Más opciones")) >= 2
+                  or find(ns, text="No se pudo buscar") or find(ns, text="Sin resultados"), timeout=40)
     shot("21-youtube-resultados")
-    ns = nodes()
-    menus = find(ns, desc="Más opciones")
-    if len(menus) < 2:
+    if ns is None or len(find(ns, desc="Más opciones")) < 2:
         raise RuntimeError("sin resultados de YouTube")
-    row_menu = menus[1]
+    row_menu = find(ns, desc="Más opciones")[1]
     _, ry = center(row_menu)
     tap_xy(*center(row_menu))
     shot("22-youtube-menu")
-    tap(text="Descargar", wait=30)
+    tap(text="Descargar", wait=3)
+    wait_for(lambda ns: bool(find(ns, desc="Descargada")), timeout=60)
     shot("23-youtube-descarga")
-    tap_xy(420, ry, wait=15)  # reproducir el primer resultado
+    tap_xy(420, ry, wait=3)  # reproducir el primer resultado
+    wait_for(lambda ns: bool(find(ns, desc="Pausar")), timeout=30)
+    time.sleep(3)
     shot("24-youtube-reproduciendo")
     key(127)
 
@@ -392,10 +404,10 @@ for name, fn in [
 ]:
     scene(name, fn)
 
-log = run(["adb", "logcat", "-d", "-v", "brief"], timeout=120).stdout
-interesting = [line for line in log.splitlines()
-               if re.search(r"YouTube|PlaybackService|YouTubeDownloads|AudioEffects|AndroidRuntime|MainViewModel|ExoPlayerImplInternal", line)]
-print("== LOGCAT (filtrado, últimas 80 líneas)")
-print("\n".join(interesting[-80:]))
+log = run(["adb", "logcat", "-d", "-v", "brief", "-s",
+           "YouTube:*", "YouTubeDownloads:*", "PlaybackService:*", "MainViewModel:*",
+           "ExoPlayerImplInternal:*", "AudioEffects:*"], timeout=120).stdout
+print("== LOGCAT de la app (últimas 80 líneas)")
+print("\n".join(log.splitlines()[-80:]))
 print("== ERRORES:", errors if errors else "ninguno")
 print("== CAPTURAS:", sorted(os.listdir(OUT)))
