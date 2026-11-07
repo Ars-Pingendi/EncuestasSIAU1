@@ -159,6 +159,16 @@ def tap_tab(name):
     raise RuntimeError(f"no encontré la pestaña {name!r}")
 
 
+def go_home():
+    """Vuelve a Inicio cerrando pantallas de detalle (botón "Atrás") o "Reproduciendo" (botón "Cerrar")."""
+    for _ in range(6):
+        ns = nodes()
+        if find(ns, desc="Atrás") or find(ns, desc="Cerrar"):
+            key(4)
+        else:
+            return
+
+
 def launch():
     shell(f"am start -W -n {PKG}/.MainActivity")
     time.sleep(4)
@@ -276,18 +286,20 @@ def s_notificacion():
 
 
 def s_ecualizador():
-    tap(desc="Ecualizador", wait=2.5)
-    tap(text="Rock", wait=1.5)
-    shot("11-ecualizador")
-    swipe(540, 1950, 540, 750)
-    shot("12-ecualizador-2")
-    swipe(540, 1950, 540, 750)
-    shot("13-ecualizador-3")
-    key(4)  # al álbum
-    key(4)  # a Inicio
+    try:
+        tap(desc="Ecualizador", wait=2.5)
+        tap(text="Graves potentes", wait=1.5)
+        shot("11-ecualizador")
+        swipe(540, 1950, 540, 750)
+        shot("12-ecualizador-2")
+        swipe(540, 1950, 540, 750)
+        shot("13-ecualizador-3")
+    finally:
+        go_home()
 
 
 def s_listas():
+    go_home()
     tap_tab("Listas")
     shot("14-listas")
     tap(text="Para correr", wait=2.5)
@@ -296,11 +308,13 @@ def s_listas():
 
 
 def s_favoritos():
+    go_home()
     tap_tab("Favoritos")
     shot("16-favoritos")
 
 
 def s_artistas_generos():
+    go_home()
     tap_tab("Artistas")
     shot("17-artistas")
     tap_tab("Géneros")
@@ -308,6 +322,7 @@ def s_artistas_generos():
 
 
 def s_busqueda():
+    go_home()
     tap(desc="Buscar", pick=0, wait=2)
     shell("input text luna")
     time.sleep(2)
@@ -317,6 +332,7 @@ def s_busqueda():
 
 
 def s_youtube():
+    go_home()
     tap_tab("YouTube")
     shot("20-youtube")
     try:
@@ -348,6 +364,7 @@ def s_youtube():
 
 def s_ajustes():
     key(127)
+    go_home()
     tap(desc="Más opciones", pick=0)
     tap(text="Ajustes", wait=2.5)
     shot("25-ajustes")
