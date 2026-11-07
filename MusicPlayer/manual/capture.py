@@ -34,14 +34,16 @@ def key(code):
     time.sleep(1.2)
 
 
-def shot(name):
+def shot(name, check=True):
+    if check:
+        clear_dialogs()
     data = subprocess.run(["adb", "exec-out", "screencap", "-p"], capture_output=True, timeout=60).stdout
     with open(os.path.join(OUT, f"{name}.png"), "wb") as f:
         f.write(data)
     print(f"  captura: {name} ({len(data)} bytes)", flush=True)
 
 
-def nodes():
+def raw_nodes():
     for _ in range(5):
         r = run(["adb", "shell", "uiautomator", "dump", "/sdcard/ui.xml"], timeout=60)
         if "dumped" in (r.stdout + r.stderr).lower():
@@ -54,6 +56,32 @@ def nodes():
                     pass
         time.sleep(2)
     raise RuntimeError("no se pudo leer la interfaz (uiautomator)")
+
+
+SYSTEM_DIALOG = re.compile(r"isn.t responding|no responde|has stopped|se detuvo|keeps stopping", re.I)
+
+
+def clear_dialogs():
+    """Cierra avisos del sistema ("X isn't responding") que tapan la app en un emulador recién encendido."""
+    for _ in range(4):
+        ns = raw_nodes()
+        if not any(SYSTEM_DIALOG.search(n.get("text") or "") for n in ns):
+            return ns
+        print("  aviso del sistema detectado: cerrándolo", flush=True)
+        for label in ("Wait", "Esperar", "Close app", "Cerrar app", "OK", "Aceptar"):
+            hit = [n for n in ns if (n.get("text") or "") == label]
+            if hit:
+                x1, y1, x2, y2 = map(int, re.findall(r"-?\d+", hit[0].get("bounds")))
+                shell(f"input tap {(x1 + x2) // 2} {(y1 + y2) // 2}")
+                break
+        else:
+            shell("am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS")
+        time.sleep(2)
+    return raw_nodes()
+
+
+def nodes():
+    return clear_dialogs()
 
 
 def box(n):
@@ -152,6 +180,11 @@ def scene(name, fn):
 # ----------------------------------------------------------------------------- preparación
 
 def setup():
+    # Dar tiempo a que el sistema termine de arrancar y evitar avisos de "no responde".
+    time.sleep(25)
+    shell("settings put global hide_error_dialogs 1")
+    shell("am force-stop com.google.android.apps.nexuslauncher")
+    shell("am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS")
     print(run(["adb", "install", "-r", APK], timeout=300).stdout, flush=True)
     shell("mkdir -p /sdcard/Music/Demo")
     for f in sorted(glob.glob(os.path.join(SAMPLES, "*.mp3"))):
@@ -236,7 +269,7 @@ def s_notificacion():
     time.sleep(2)
     shell("cmd statusbar expand-notifications")
     time.sleep(3)
-    shot("10-notificacion")
+    shot("10-notificacion", check=False)
     shell("cmd statusbar collapse")
     time.sleep(1.5)
     key(127)
