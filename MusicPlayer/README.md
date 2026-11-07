@@ -11,6 +11,7 @@ Reproductor de música personal para Android (minSdk 26, Android 8.0+). Kotlin +
 - **Retoma donde lo dejaste**: la cola, la canción, la posición, el aleatorio y la repetición se conservan al cerrar la app.
 - Reproducción en segundo plano con notificación, pantalla de bloqueo y botones de auriculares/Bluetooth; cola editable, aleatorio, repetir y temporizador de apagado.
 - Búsqueda por canción, álbum o artista (sin importar tildes).
+- **YouTube sin anuncios** (pestaña YouTube): búsqueda de canciones (YouTube Music) o videos; reproduce solo el audio, en segundo plano, con el ecualizador, y las canciones se pueden guardar en listas y favoritos junto a las locales. Usa [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) y no inicia sesión con ninguna cuenta. Incumple los términos de uso de YouTube y puede dejar de funcionar cuando YouTube cambie algo: la solución suele ser actualizar la librería.
 
 ## Compilar
 
@@ -23,3 +24,7 @@ El APK sale firmado con `keystore/reproductor.jks`, por lo que las futuras versi
 1. Copia `PipoMusicPlayer.apk` al teléfono (o descárgalo desde GitHub).
 2. Ábrelo y permite «Instalar apps desconocidas» para el explorador/navegador que uses.
 3. Al abrir la app, concede el permiso de música y de notificaciones.
+
+## Licencia
+
+Este proyecto usa NewPipeExtractor, publicado bajo GPL-3.0; por eso Pipo Music Player se distribuye también bajo **GPL-3.0** (ver `LICENSE`).

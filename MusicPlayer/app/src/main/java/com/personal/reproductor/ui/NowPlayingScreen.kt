@@ -73,7 +73,7 @@ import androidx.media3.common.Player
 fun NowPlayingScreen(vm: MainViewModel) {
     val p by vm.player.collectAsStateWithLifecycle()
     val pos by vm.position.collectAsStateWithLifecycle()
-    val library by vm.library.collectAsStateWithLifecycle()
+    val track by vm.currentTrack.collectAsStateWithLifecycle()
     val favs by vm.favoriteTrackIds.collectAsStateWithLifecycle()
     val sleepLeft by vm.sleepTimer.remainingMs.collectAsStateWithLifecycle()
 
@@ -82,7 +82,7 @@ fun NowPlayingScreen(vm: MainViewModel) {
     var dragging by remember { mutableStateOf(false) }
     var dragFraction by remember { mutableFloatStateOf(0f) }
 
-    val track = library.tracksById[p.trackId]
+    val isRemote = track?.isRemote == true
     val isFavorite = p.trackId in favs
     val duration = p.durationMs.coerceAtLeast(1L)
     val fraction = if (dragging) dragFraction else (pos.toFloat() / duration).coerceIn(0f, 1f)
@@ -121,6 +121,7 @@ fun NowPlayingScreen(vm: MainViewModel) {
                     Modifier.size(side),
                     requestPx = 800,
                     shape = RoundedCornerShape(28.dp),
+                    artworkUrl = p.artworkUrl,
                 )
             }
 
@@ -139,7 +140,7 @@ fun NowPlayingScreen(vm: MainViewModel) {
                         color = MaterialTheme.colorScheme.primary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable { vm.goToArtist(p.artist) },
+                        modifier = Modifier.clickable(enabled = !isRemote) { vm.goToArtist(p.artist) },
                     )
                     Text(
                         p.album,
@@ -147,10 +148,10 @@ fun NowPlayingScreen(vm: MainViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.clickable { vm.goToAlbum(p.albumId) },
+                        modifier = Modifier.clickable(enabled = !isRemote) { vm.goToAlbum(p.albumId) },
                     )
                 }
-                IconButton(onClick = { track?.let { vm.toggleFavorite(it) } }, enabled = track != null) {
+                IconButton(onClick = { track?.let { t -> vm.toggleFavorite(t) } }, enabled = track != null) {
                     Icon(
                         if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
                         contentDescription = if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos",
@@ -235,7 +236,7 @@ fun NowPlayingScreen(vm: MainViewModel) {
                     )
                 }
                 IconButton(
-                    onClick = { track?.let { vm.showDialog(DialogState.AddToPlaylist(listOf(it))) } },
+                    onClick = { track?.let { t -> vm.showDialog(DialogState.AddToPlaylist(listOf(t))) } },
                     enabled = track != null,
                 ) {
                     Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = "Añadir a una lista")
@@ -342,7 +343,7 @@ private fun QueueSheet(vm: MainViewModel, onDismiss: () -> Unit) {
                         .padding(start = 24.dp, end = 4.dp, top = 6.dp, bottom = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Artwork(item.trackId, item.albumId, Modifier.size(44.dp), requestPx = 160)
+                    Artwork(item.trackId, item.albumId, Modifier.size(44.dp), requestPx = 160, artworkUrl = item.artworkUrl)
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(

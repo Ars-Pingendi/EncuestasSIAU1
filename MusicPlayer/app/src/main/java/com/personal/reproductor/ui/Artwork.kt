@@ -34,6 +34,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Collections
 
 /** Carga carátulas (embebidas o de la carpeta) con caché en memoria. */
@@ -56,7 +58,42 @@ object ArtworkLoader {
     private fun key(trackId: Long, albumId: Long, bucket: Int) =
         if (albumId > 0) "a$albumId:$bucket" else "t$trackId:$bucket"
 
-    fun peek(trackId: Long, albumId: Long, px: Int): Bitmap? = cache.get(key(trackId, albumId, bucket(px)))
+    fun peek(trackId: Long, albumId: Long, px: Int, url: String? = null): Bitmap? =
+        cache.get(if (url != null) "u$url:${bucket(px)}" else key(trackId, albumId, bucket(px)))
+
+    /** Carátula remota (miniatura de YouTube). Los fallos no se recuerdan: puede volver la conexión. */
+    suspend fun loadUrl(url: String, px: Int): Bitmap? = withContext(Dispatchers.IO) {
+        val b = bucket(px)
+        val k = "u$url:$b"
+        cache.get(k)?.let { return@withContext it }
+        val bmp = try {
+            downloadSampled(url, b)
+        } catch (_: Exception) {
+            null
+        }
+        if (bmp != null) cache.put(k, bmp)
+        bmp
+    }
+
+    private fun downloadSampled(url: String, target: Int): Bitmap? {
+        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+            connectTimeout = 10_000
+            readTimeout = 15_000
+            setRequestProperty("User-Agent", "Mozilla/5.0")
+        }
+        try {
+            if (conn.responseCode !in 200..299) return null
+            val bytes = conn.inputStream.use { it.readBytes() }
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+            var sample = 1
+            while (bounds.outWidth / (sample * 2) >= target && bounds.outHeight / (sample * 2) >= target) sample *= 2
+            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+            return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+        } finally {
+            conn.disconnect()
+        }
+    }
 
     suspend fun load(context: Context, trackId: Long, albumId: Long, px: Int): Bitmap? =
         withContext(Dispatchers.IO) {
@@ -121,13 +158,19 @@ fun Artwork(
     modifier: Modifier = Modifier,
     requestPx: Int = 160,
     shape: Shape = RoundedCornerShape(8.dp),
+    artworkUrl: String? = null,
 ) {
     val context = LocalContext.current
+    val url = artworkUrl?.takeIf { it.startsWith("http") }
     val bitmap by produceState<Bitmap?>(
-        initialValue = ArtworkLoader.peek(trackId, albumId, requestPx),
-        trackId, albumId, requestPx,
+        initialValue = ArtworkLoader.peek(trackId, albumId, requestPx, url),
+        trackId, albumId, requestPx, url,
     ) {
-        value = ArtworkLoader.load(context, trackId, albumId, requestPx) ?: value
+        value = if (url != null) {
+            ArtworkLoader.loadUrl(url, requestPx)
+        } else {
+            ArtworkLoader.load(context, trackId, albumId, requestPx)
+        } ?: value
     }
 
     Box(

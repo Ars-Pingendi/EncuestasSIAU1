@@ -5,6 +5,7 @@ import com.personal.reproductor.data.db.FavoriteTrackEntity
 import com.personal.reproductor.data.db.PlayStatEntity
 import com.personal.reproductor.data.db.PlaylistEntity
 import com.personal.reproductor.data.db.PlaylistTrackEntity
+import com.personal.reproductor.data.db.RemoteTrackEntity
 import com.personal.reproductor.data.db.UserDao
 import kotlinx.coroutines.flow.Flow
 
@@ -15,6 +16,16 @@ class UserDataRepository(private val dao: UserDao) {
     val favoriteTracks: Flow<List<FavoriteTrackEntity>> = dao.favoriteTracks()
     val favoriteAlbums: Flow<List<FavoriteAlbumEntity>> = dao.favoriteAlbums()
     val stats: Flow<List<PlayStatEntity>> = dao.stats()
+    val remoteTracks: Flow<List<RemoteTrackEntity>> = dao.remoteTracks()
+
+    /** Guarda los datos de las canciones de YouTube para poder mostrarlas luego en listas y favoritos. */
+    suspend fun rememberRemote(tracks: List<Track>) {
+        val now = System.currentTimeMillis()
+        val items = tracks.mapNotNull { t ->
+            t.remoteId?.let { RemoteTrackEntity(it, t.title, t.artist, t.durationMs, t.artworkUrl, now) }
+        }
+        if (items.isNotEmpty()) dao.upsertRemote(items)
+    }
 
     suspend fun createPlaylist(name: String): Long =
         dao.insertPlaylist(PlaylistEntity(name = name, createdAt = System.currentTimeMillis()))
@@ -24,6 +35,7 @@ class UserDataRepository(private val dao: UserDao) {
     suspend fun deletePlaylist(id: Long) = dao.deletePlaylist(id)
 
     suspend fun addTracks(playlistId: Long, tracks: List<Track>) {
+        rememberRemote(tracks)
         var position = dao.maxPosition(playlistId) + 1
         val now = System.currentTimeMillis()
         dao.insertPlaylistTracks(
@@ -37,8 +49,10 @@ class UserDataRepository(private val dao: UserDao) {
     suspend fun reorderPlaylist(playlistId: Long, orderedTrackIds: List<Long>) =
         dao.reorderPlaylist(playlistId, orderedTrackIds)
 
-    suspend fun addFavoriteTrack(track: Track) =
+    suspend fun addFavoriteTrack(track: Track) {
+        rememberRemote(listOf(track))
         dao.insertFavoriteTrack(FavoriteTrackEntity(track.id, track.path, System.currentTimeMillis()))
+    }
 
     suspend fun removeFavoriteTrack(track: Track) = dao.deleteFavoriteTrack(track.id, track.path)
 
@@ -50,3 +64,5 @@ class UserDataRepository(private val dao: UserDao) {
     suspend fun recordPlay(trackId: Long, path: String) =
         dao.recordPlay(trackId, path, System.currentTimeMillis())
 }
+
+fun RemoteTrackEntity.toTrack(): Track = youTubeTrack(videoId, title, artist, durationMs, artworkUrl)

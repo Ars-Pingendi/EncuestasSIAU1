@@ -68,6 +68,13 @@ abstract class UserDao {
     @Query("DELETE FROM favorite_albums WHERE albumId = :albumId")
     abstract suspend fun deleteFavoriteAlbum(albumId: Long)
 
+    // ---- Canciones de YouTube ----
+    @Query("SELECT * FROM youtube_tracks")
+    abstract fun remoteTracks(): Flow<List<RemoteTrackEntity>>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    abstract suspend fun upsertRemote(items: List<RemoteTrackEntity>)
+
     // ---- Estadísticas de reproducción ----
     @Query("SELECT * FROM play_stats")
     abstract fun stats(): Flow<List<PlayStatEntity>>

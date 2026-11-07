@@ -56,3 +56,14 @@ data class PlayStatEntity(
     val playCount: Int,
     val lastPlayed: Long,
 )
+
+/** Datos de canciones de YouTube guardadas en listas, favoritos o estadísticas. */
+@Entity(tableName = "youtube_tracks")
+data class RemoteTrackEntity(
+    @PrimaryKey val videoId: String,
+    val title: String,
+    val artist: String,
+    val durationMs: Long,
+    val artworkUrl: String?,
+    val updatedAt: Long,
+)

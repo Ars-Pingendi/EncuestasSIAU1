@@ -20,8 +20,9 @@ class QueueStore(context: Context) {
         val albumId: Long,
         val durationMs: Long,
         val path: String,
+        val artworkUrl: String? = null,
     ) {
-        fun toMediaItem(): MediaItem = buildMediaItem(id, title, artist, album, albumId, durationMs, path)
+        fun toMediaItem(): MediaItem = buildMediaItem(id, title, artist, album, albumId, durationMs, path, artworkUrl)
     }
 
     data class Snapshot(
@@ -48,6 +49,7 @@ class QueueStore(context: Context) {
             albumId = extras?.getLong(EXTRA_ALBUM_ID) ?: 0L,
             durationMs = extras?.getLong(EXTRA_DURATION_MS) ?: 0L,
             path = extras?.getString(EXTRA_PATH).orEmpty(),
+            artworkUrl = extras?.getString(EXTRA_ARTWORK_URL),
         )
     }
 
@@ -64,7 +66,8 @@ class QueueStore(context: Context) {
                         .put(r.album)
                         .put(r.albumId)
                         .put(r.durationMs)
-                        .put(r.path),
+                        .put(r.path)
+                        .put(r.artworkUrl ?: ""),
                 )
             }
             tmpFile.writeText(array.toString())
@@ -101,6 +104,7 @@ class QueueStore(context: Context) {
                     albumId = r.getLong(4),
                     durationMs = r.getLong(5),
                     path = r.getString(6),
+                    artworkUrl = r.optString(7, "").ifEmpty { null },
                 )
             }
             if (rows.isEmpty()) return null

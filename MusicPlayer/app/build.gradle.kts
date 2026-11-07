@@ -13,8 +13,8 @@ android {
         applicationId = "com.personal.reproductor"
         minSdk = 26
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.1.2"
+        versionCode = 5
+        versionName = "1.2.0"
     }
 
     // Firma estable (keystore del repositorio) para poder actualizar el APK sin desinstalar.
@@ -40,6 +40,8 @@ android {
     }
 
     compileOptions {
+        // NewPipeExtractor usa APIs de Java modernas; el desugaring las hace funcionar en Android 8+.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -59,7 +61,15 @@ android {
 
     packaging {
         resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += setOf(
+                "/META-INF/{AL2.0,LGPL2.1}",
+                "META-INF/DEPENDENCIES",
+                "META-INF/LICENSE*",
+                "META-INF/NOTICE*",
+                "META-INF/*.md",
+                "META-INF/versions/9/module-info.class",
+                "META-INF/versions/*/OSGI-INF/MANIFEST.MF",
+            )
         }
     }
 }
@@ -82,6 +92,11 @@ dependencies {
     // Reproducción (ExoPlayer + MediaSession + notificación multimedia)
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-session:1.4.1")
+
+    // YouTube sin anuncios (misma librería que la app NewPipe). Licencia GPL-3.0.
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.0")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
 
     // Listas de reproducción, favoritos y estadísticas
     implementation("androidx.room:room-runtime:2.6.1")

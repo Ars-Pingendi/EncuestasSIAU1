@@ -11,7 +11,11 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Timeline
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.DefaultHttpDataSource
+import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.audio.AudioSink
 import androidx.media3.exoplayer.audio.DefaultAudioSink
@@ -19,6 +23,8 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import com.personal.reproductor.MainActivity
 import com.personal.reproductor.ReproductorApp
+import com.personal.reproductor.data.YouTubeIds
+import com.personal.reproductor.data.youTubeTrack
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -64,7 +70,19 @@ class PlaybackService : MediaSessionService() {
                     .build()
         }
 
+        // Fuente de datos: archivos locales tal cual; los enlaces "pipoyt://" se convierten
+        // en la petición real a YouTube justo antes de descargar (en el hilo de carga).
+        val httpFactory = DefaultHttpDataSource.Factory()
+            .setAllowCrossProtocolRedirects(true)
+            .setConnectTimeoutMs(15_000)
+            .setReadTimeoutMs(20_000)
+        val dataSourceFactory = ResolvingDataSource.Factory(
+            DefaultDataSource.Factory(this, httpFactory),
+            ResolvingDataSource.Resolver { spec -> app.youtube.resolveDataSpec(spec) },
+        )
+
         val player = ExoPlayer.Builder(this, renderersFactory)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -73,7 +91,7 @@ class PlaybackService : MediaSessionService() {
                 /* handleAudioFocus = */ true,
             )
             .setHandleAudioBecomingNoisy(true)
-            .setWakeMode(C.WAKE_MODE_LOCAL)
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
 
         // Sesión de audio fija: así los efectos del sistema siguen conectados entre canciones.
@@ -112,6 +130,9 @@ class PlaybackService : MediaSessionService() {
 
             override fun onPlayerError(error: PlaybackException) {
                 Log.w(TAG, "Error de reproducción", error)
+                // Si falló una canción de YouTube, se olvida su URL por si había caducado.
+                YouTubeIds.videoIdFromPath(player.currentMediaItem?.mediaMetadata?.extras?.getString(EXTRA_PATH))
+                    ?.let { app.youtube.invalidate(it) }
                 // Si un archivo falla (borrado, formato no soportado), pasa al siguiente
                 // sin cambiar si estaba reproduciendo o en pausa.
                 if (++consecutiveErrors <= MAX_CONSECUTIVE_ERRORS && player.hasNextMediaItem()) {
@@ -186,8 +207,26 @@ class PlaybackService : MediaSessionService() {
         if (player.currentPosition < threshold) return
         playCounted = true
         val trackId = item.mediaId.toLongOrNull() ?: return
-        val path = item.mediaMetadata.extras?.getString(EXTRA_PATH).orEmpty()
-        scope.launch { app.userData.recordPlay(trackId, path) }
+        val md = item.mediaMetadata
+        val path = md.extras?.getString(EXTRA_PATH).orEmpty()
+        val videoId = YouTubeIds.videoIdFromPath(path)
+        scope.launch {
+            // Las canciones de YouTube se guardan para que aparezcan en "Más reproducidas".
+            if (videoId != null) {
+                app.userData.rememberRemote(
+                    listOf(
+                        youTubeTrack(
+                            videoId,
+                            md.title?.toString().orEmpty(),
+                            md.artist?.toString().orEmpty(),
+                            md.extras?.getLong(EXTRA_DURATION_MS) ?: 0L,
+                            md.extras?.getString(EXTRA_ARTWORK_URL),
+                        ),
+                    ),
+                )
+            }
+            app.userData.recordPlay(trackId, path)
+        }
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession

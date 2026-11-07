@@ -316,7 +316,7 @@ fun TrackRow(
                 modifier = Modifier.width(32.dp),
             )
         } else {
-            Artwork(track.id, track.albumId, Modifier.size(52.dp), requestPx = 160)
+            Artwork(track.id, track.albumId, Modifier.size(52.dp), requestPx = 160, artworkUrl = track.artworkUrl)
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
@@ -379,16 +379,18 @@ fun TrackRow(
                     },
                     onClick = { close(); vm.toggleFavorite(track) },
                 )
-                DropdownMenuItem(
-                    text = { Text("Ir al álbum") },
-                    leadingIcon = { Icon(Icons.Filled.AlbumIcon, null) },
-                    onClick = { close(); vm.navigate(Route.AlbumRoute(track.albumId)) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Ir al artista") },
-                    leadingIcon = { Icon(Icons.Filled.Person, null) },
-                    onClick = { close(); vm.goToArtist(track.artist) },
-                )
+                if (!track.isRemote) {
+                    DropdownMenuItem(
+                        text = { Text("Ir al álbum") },
+                        leadingIcon = { Icon(Icons.Filled.AlbumIcon, null) },
+                        onClick = { close(); vm.navigate(Route.AlbumRoute(track.albumId)) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Ir al artista") },
+                        leadingIcon = { Icon(Icons.Filled.Person, null) },
+                        onClick = { close(); vm.goToArtist(track.artist) },
+                    )
+                }
                 extraMenu?.invoke(track, close)
             }
         }
@@ -469,7 +471,7 @@ fun MiniPlayer(vm: MainViewModel, modifier: Modifier = Modifier) {
                 Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Artwork(p.trackId, p.albumId, Modifier.size(44.dp), requestPx = 160)
+                Artwork(p.trackId, p.albumId, Modifier.size(44.dp), requestPx = 160, artworkUrl = p.artworkUrl)
                 Spacer(Modifier.width(12.dp))
                 Column(Modifier.weight(1f)) {
                     Text(

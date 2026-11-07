@@ -42,6 +42,9 @@ data class PlayerUi(
     val artist: String = "",
     val album: String = "",
     val albumId: Long = 0L,
+    val artworkUrl: String? = null,
+    /** Ruta del archivo, o "yt:VIDEO_ID" si la canción viene de YouTube. */
+    val path: String = "",
     val durationMs: Long = 0L,
     val shuffle: Boolean = false,
     val repeatMode: Int = Player.REPEAT_MODE_OFF,
@@ -59,4 +62,21 @@ data class QueueItem(
     val artist: String,
     val albumId: Long,
     val durationMs: Long,
+    val artworkUrl: String? = null,
+)
+
+enum class YtMode(val label: String, val filter: String) {
+    SONGS("Canciones", "music_songs"),
+    VIDEOS("Videos", "videos"),
+}
+
+data class YouTubeUi(
+    val query: String = "",
+    val mode: YtMode = YtMode.SONGS,
+    val loading: Boolean = false,
+    val loadingMore: Boolean = false,
+    val results: List<Track> = emptyList(),
+    val hasMore: Boolean = false,
+    val error: String? = null,
+    val searched: Boolean = false,
 )

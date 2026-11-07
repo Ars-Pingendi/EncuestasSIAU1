@@ -73,7 +73,7 @@ import com.personal.reproductor.data.SongSort
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.size
 
-private val TAB_TITLES = listOf("Canciones", "Álbumes", "Artistas", "Géneros", "Carpetas", "Listas", "Favoritos")
+private val TAB_TITLES = listOf("Canciones", "Álbumes", "Artistas", "Géneros", "Carpetas", "Listas", "Favoritos", "YouTube")
 
 @Composable
 fun HomeScreen(vm: MainViewModel) {
@@ -140,7 +140,8 @@ fun HomeScreen(vm: MainViewModel) {
                 3 -> GenresTab(vm)
                 4 -> FoldersTab(vm)
                 5 -> PlaylistsTab(vm)
-                else -> FavoritesTab(vm)
+                6 -> FavoritesTab(vm)
+                else -> YouTubeTab(vm)
             }
         }
     }

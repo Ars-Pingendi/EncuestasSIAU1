@@ -16,6 +16,11 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
+        // NewPipeExtractor (y su dependencia nanojson) se publican en JitPack.
+        maven {
+            url = uri("https://jitpack.io")
+            content { includeGroupByRegex("com\\.github\\..*") }
+        }
     }
 }
 

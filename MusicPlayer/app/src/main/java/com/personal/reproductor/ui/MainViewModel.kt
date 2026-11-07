@@ -21,7 +21,16 @@ import com.personal.reproductor.data.Library
 import com.personal.reproductor.data.SongSort
 import com.personal.reproductor.data.Track
 import com.personal.reproductor.data.LibraryBuilder
+import com.personal.reproductor.data.YouTubeIds
+import com.personal.reproductor.data.toTrack
+import com.personal.reproductor.data.youTubeTrack
+import com.personal.reproductor.data.youtube.YouTubeRepository
+import androidx.media3.common.PlaybackException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import com.personal.reproductor.playback.EXTRA_ALBUM_ID
+import com.personal.reproductor.playback.EXTRA_ARTWORK_URL
+import com.personal.reproductor.playback.EXTRA_PATH
 import com.personal.reproductor.playback.EXTRA_DURATION_MS
 import com.personal.reproductor.playback.toMediaItem
 import kotlinx.coroutines.Dispatchers
@@ -103,14 +112,24 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // ------------------------------------------------------------------ favoritos, listas, estadísticas
 
+    /** Canciones de YouTube guardadas (por id de video), para mostrarlas en listas y favoritos. */
+    private val remoteTracks: StateFlow<Map<String, Track>> =
+        userData.remoteTracks.map { list -> list.associate { it.videoId to it.toTrack() } }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    private fun resolveAny(lib: Library, remote: Map<String, Track>, id: Long, path: String?): Track? {
+        val videoId = YouTubeIds.videoIdFromPath(path)
+        return if (videoId != null) remote[videoId] else lib.resolve(id, path)
+    }
+
     val playlists: StateFlow<List<PlaylistUi>> =
-        combine(userData.playlists, userData.playlistTracks, library) { lists, items, lib ->
+        combine(userData.playlists, userData.playlistTracks, library, remoteTracks) { lists, items, lib, remote ->
             val byList = items.groupBy { it.playlistId }
             lists.map { p ->
                 // (id guardado, canción resuelta en la biblioteca actual), en el orden de la lista
                 val resolved = byList[p.id].orEmpty()
                     .sortedBy { it.position }
-                    .mapNotNull { row -> lib.resolve(row.trackId, row.path)?.let { row.trackId to it } }
+                    .mapNotNull { row -> resolveAny(lib, remote, row.trackId, row.path)?.let { row.trackId to it } }
                 PlaylistUi(
                     id = p.id,
                     name = p.name,
@@ -121,8 +140,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val favoriteTracks: StateFlow<List<Track>> =
-        combine(userData.favoriteTracks, library) { favs, lib ->
-            favs.sortedByDescending { it.addedAt }.mapNotNull { lib.resolve(it.trackId, it.path) }
+        combine(userData.favoriteTracks, library, remoteTracks) { favs, lib, remote ->
+            favs.sortedByDescending { it.addedAt }.mapNotNull { resolveAny(lib, remote, it.trackId, it.path) }
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
 
     val favoriteTrackIds: StateFlow<Set<Long>> =
@@ -140,16 +159,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
     val smartLists: StateFlow<Map<SmartList, List<Track>>> =
-        combine(library, userData.stats) { lib, stats ->
+        combine(library, userData.stats, remoteTracks) { lib, stats, remote ->
             mapOf(
                 SmartList.RECENTLY_ADDED to lib.tracks.sortedByDescending { it.dateAddedSec }.take(100),
                 SmartList.MOST_PLAYED to stats.filter { it.playCount > 0 }
                     .sortedByDescending { it.playCount }
-                    .mapNotNull { lib.resolve(it.trackId, it.path) }
+                    .mapNotNull { resolveAny(lib, remote, it.trackId, it.path) }
                     .take(100),
                 SmartList.RECENTLY_PLAYED to stats.filter { it.lastPlayed > 0 }
                     .sortedByDescending { it.lastPlayed }
-                    .mapNotNull { lib.resolve(it.trackId, it.path) }
+                    .mapNotNull { resolveAny(lib, remote, it.trackId, it.path) }
                     .take(100),
             )
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
@@ -278,12 +297,31 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val currentTrackId: StateFlow<Long> =
         player.map { it.trackId }.distinctUntilChanged().stateIn(viewModelScope, SharingStarted.Eagerly, -1L)
 
+    /** La canción que suena, sea del dispositivo o de YouTube (para favoritos y listas desde el reproductor). */
+    val currentTrack: StateFlow<Track?> =
+        combine(player, library) { p, lib ->
+            val videoId = YouTubeIds.videoIdFromPath(p.path)
+            when {
+                !p.hasMedia -> null
+                videoId != null -> youTubeTrack(videoId, p.title, p.artist, p.durationMs, p.artworkUrl)
+                else -> lib.tracksById[p.trackId]
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     private var controllerFuture: ListenableFuture<MediaController>? = null
     private var controller: MediaController? = null
 
     private val playerListener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) {
             syncPlayer(events)
+        }
+
+        override fun onPlayerError(error: PlaybackException) {
+            val fromYouTube = YouTubeIds.videoIdFromPath(_player.value.path) != null
+            toast(
+                if (fromYouTube) "No se pudo reproducir desde YouTube; se pasa a la siguiente."
+                else "No se pudo reproducir este archivo; se pasa al siguiente.",
+            )
         }
     }
 
@@ -340,6 +378,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             artist = metadata?.artist?.toString().orEmpty(),
             album = metadata?.albumTitle?.toString().orEmpty(),
             albumId = extras?.getLong(EXTRA_ALBUM_ID) ?: 0L,
+            artworkUrl = extras?.getString(EXTRA_ARTWORK_URL),
+            path = extras?.getString(EXTRA_PATH).orEmpty(),
             durationMs = duration,
             shuffle = c.shuffleModeEnabled,
             repeatMode = c.repeatMode,
@@ -434,6 +474,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 artist = md.artist?.toString().orEmpty(),
                 albumId = md.extras?.getLong(EXTRA_ALBUM_ID) ?: 0L,
                 durationMs = md.extras?.getLong(EXTRA_DURATION_MS) ?: 0L,
+                artworkUrl = md.extras?.getString(EXTRA_ARTWORK_URL),
             )
         }
     }
@@ -456,6 +497,60 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         controller?.run {
             stop()
             clearMediaItems()
+        }
+    }
+
+    // ------------------------------------------------------------------ YouTube
+
+    private val youtubeRepo: YouTubeRepository = app.youtube
+    private val _youtube = MutableStateFlow(YouTubeUi())
+    val youtube: StateFlow<YouTubeUi> = _youtube.asStateFlow()
+    private var ytLastPage: YouTubeRepository.SearchPage? = null
+    private var ytJob: Job? = null
+
+    fun ytSearch(query: String, mode: YtMode = _youtube.value.mode) {
+        val q = query.trim()
+        if (q.isEmpty()) return
+        ytJob?.cancel()
+        ytLastPage = null
+        _youtube.value = YouTubeUi(query = q, mode = mode, loading = true, searched = true)
+        ytJob = viewModelScope.launch {
+            try {
+                val page = youtubeRepo.search(q, mode.filter)
+                ytLastPage = page
+                _youtube.value = _youtube.value.copy(loading = false, results = page.tracks, hasMore = page.hasMore)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Búsqueda en YouTube fallida", e)
+                _youtube.value = _youtube.value.copy(loading = false, error = youtubeRepo.describeError(e))
+            }
+        }
+    }
+
+    fun ytSetMode(mode: YtMode) {
+        val q = _youtube.value.query
+        if (q.isNotBlank()) ytSearch(q, mode) else _youtube.value = _youtube.value.copy(mode = mode)
+    }
+
+    fun ytLoadMore() {
+        val previous = ytLastPage ?: return
+        val state = _youtube.value
+        if (!previous.hasMore || state.loadingMore || state.loading) return
+        _youtube.value = state.copy(loadingMore = true)
+        ytJob = viewModelScope.launch {
+            try {
+                val page = youtubeRepo.more(previous)
+                ytLastPage = page
+                val merged = (_youtube.value.results + page.tracks).distinctBy { it.id }
+                _youtube.value = _youtube.value.copy(loadingMore = false, results = merged, hasMore = page.hasMore)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w(TAG, "Más resultados de YouTube fallidos", e)
+                _youtube.value = _youtube.value.copy(loadingMore = false)
+                toast(youtubeRepo.describeError(e))
+            }
         }
     }
 
