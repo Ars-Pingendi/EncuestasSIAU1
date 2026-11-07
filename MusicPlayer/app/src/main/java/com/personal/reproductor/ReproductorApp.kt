@@ -7,6 +7,7 @@ import com.personal.reproductor.data.AppSettings
 import com.personal.reproductor.data.LibraryRepository
 import com.personal.reproductor.data.UserDataRepository
 import com.personal.reproductor.data.db.AppDb
+import com.personal.reproductor.data.youtube.YouTubeDownloads
 import com.personal.reproductor.data.youtube.YouTubeRepository
 import com.personal.reproductor.playback.QueueStore
 import kotlinx.coroutines.CoroutineScope
@@ -26,5 +27,6 @@ class ReproductorApp : Application() {
     val effects: AudioEffectsController by lazy { AudioEffectsController(this) }
     val queueStore: QueueStore by lazy { QueueStore(this) }
     val youtube: YouTubeRepository by lazy { YouTubeRepository() }
+    val downloads: YouTubeDownloads by lazy { YouTubeDownloads(this, youtube, appScope) }
     val sleepTimer: SleepTimer by lazy { SleepTimer(mainScope) }
 }

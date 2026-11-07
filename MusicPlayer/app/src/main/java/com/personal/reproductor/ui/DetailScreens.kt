@@ -2,6 +2,7 @@
 
 package com.personal.reproductor.ui
 
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -296,6 +297,8 @@ fun SmartListScreen(vm: MainViewModel, kind: SmartList) {
             SmartList.RECENTLY_ADDED -> "Aún no hay música en tu biblioteca."
             SmartList.MOST_PLAYED, SmartList.RECENTLY_PLAYED ->
                 "Aparecerá aquí a medida que escuches música en esta app."
+            SmartList.DOWNLOADED ->
+                "Descarga canciones de YouTube con el menú ⋮ para escucharlas sin internet."
         },
     )
 }
@@ -318,6 +321,12 @@ fun PlaylistScreen(vm: MainViewModel, id: Long) {
         },
         actions = {
             if (playlist != null) {
+                val fromYouTube = playlist.tracks.filter { it.isRemote }
+                if (fromYouTube.isNotEmpty()) {
+                    IconButton(onClick = { vm.download(fromYouTube) }) {
+                        Icon(Icons.Filled.Download, contentDescription = "Descargar las canciones de YouTube de esta lista")
+                    }
+                }
                 IconButton(onClick = { vm.showDialog(DialogState.RenamePlaylist(playlist.id, playlist.name)) }) {
                     Icon(Icons.Filled.Edit, contentDescription = "Renombrar lista")
                 }

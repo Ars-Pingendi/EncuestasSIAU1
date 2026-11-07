@@ -2,6 +2,10 @@
 
 package com.personal.reproductor.ui
 
+import com.personal.reproductor.data.youtube.YouTubeDownloads
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -289,6 +293,7 @@ fun TrackRow(
     val isCurrent = track.id == currentId
     val isFavorite = track.id in favorites
     var menu by remember { mutableStateOf(false) }
+    val dl = rememberDownloadUi(vm, track.remoteId)
     val dragged = reorder != null && reorder.draggedKey == track.id
     val reorderModifier = if (reorder != null) {
         Modifier
@@ -344,6 +349,7 @@ fun TrackRow(
                 modifier = Modifier.padding(horizontal = 4.dp).size(16.dp),
             )
         }
+        DownloadIndicator(dl, Modifier.padding(horizontal = 4.dp))
         Text(
             formatDuration(track.durationMs),
             style = MaterialTheme.typography.labelMedium,
@@ -379,6 +385,28 @@ fun TrackRow(
                     },
                     onClick = { close(); vm.toggleFavorite(track) },
                 )
+                if (track.isRemote) {
+                    DropdownMenuItem(
+                        text = {
+                            Text(
+                                when (dl.kind) {
+                                    DownloadUiKind.DONE -> "Quitar descarga"
+                                    DownloadUiKind.QUEUED, DownloadUiKind.RUNNING -> "Descargando…"
+                                    DownloadUiKind.FAILED -> "Reintentar descarga"
+                                    DownloadUiKind.NONE -> "Descargar"
+                                },
+                            )
+                        },
+                        leadingIcon = {
+                            Icon(if (dl.kind == DownloadUiKind.DONE) Icons.Filled.Delete else Icons.Filled.Download, null)
+                        },
+                        enabled = !dl.busy,
+                        onClick = {
+                            close()
+                            if (dl.kind == DownloadUiKind.DONE) vm.deleteDownload(track) else vm.download(listOf(track))
+                        },
+                    )
+                }
                 if (!track.isRemote) {
                     DropdownMenuItem(
                         text = { Text("Ir al álbum") },
@@ -620,5 +648,49 @@ fun AppDialogs(vm: MainViewModel) {
             },
             dismissButton = { TextButton(onClick = { vm.showDialog(null) }) { Text("Cancelar") } },
         )
+    }
+}
+
+// ---------------------------------------------------------------------------- descargas de YouTube
+
+enum class DownloadUiKind { NONE, QUEUED, RUNNING, DONE, FAILED }
+
+data class DownloadUi(val kind: DownloadUiKind, val progress: Float? = null) {
+    val busy: Boolean get() = kind == DownloadUiKind.QUEUED || kind == DownloadUiKind.RUNNING
+}
+
+/** Estado de descarga de una canción de YouTube (NONE si es local). */
+@Composable
+fun rememberDownloadUi(vm: MainViewModel, videoId: String?): DownloadUi {
+    if (videoId == null) return DownloadUi(DownloadUiKind.NONE)
+    val downloaded by vm.downloadedIds.collectAsStateWithLifecycle()
+    val status by vm.downloadStatus.collectAsStateWithLifecycle()
+    if (videoId in downloaded) return DownloadUi(DownloadUiKind.DONE)
+    return when (val s = status[videoId]) {
+        is YouTubeDownloads.Status.Queued -> DownloadUi(DownloadUiKind.QUEUED)
+        is YouTubeDownloads.Status.Running -> DownloadUi(DownloadUiKind.RUNNING, s.progress)
+        is YouTubeDownloads.Status.Failed -> DownloadUi(DownloadUiKind.FAILED)
+        null -> DownloadUi(DownloadUiKind.NONE)
+    }
+}
+
+@Composable
+fun DownloadIndicator(dl: DownloadUi, modifier: Modifier = Modifier) {
+    when (dl.kind) {
+        DownloadUiKind.DONE -> Icon(
+            Icons.Filled.DownloadDone,
+            contentDescription = "Descargada",
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = modifier.size(16.dp),
+        )
+        DownloadUiKind.QUEUED, DownloadUiKind.RUNNING -> {
+            val p = dl.progress
+            if (p != null) {
+                CircularProgressIndicator(progress = { p }, modifier = modifier.size(16.dp), strokeWidth = 2.dp)
+            } else {
+                CircularProgressIndicator(modifier = modifier.size(16.dp), strokeWidth = 2.dp)
+            }
+        }
+        else -> Unit
     }
 }

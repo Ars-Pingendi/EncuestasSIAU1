@@ -78,7 +78,8 @@ class PlaybackService : MediaSessionService() {
             .setReadTimeoutMs(20_000)
         val dataSourceFactory = ResolvingDataSource.Factory(
             DefaultDataSource.Factory(this, httpFactory),
-            ResolvingDataSource.Resolver { spec -> app.youtube.resolveDataSpec(spec) },
+            // Primero la copia descargada (sin internet); si no hay, el audio en línea.
+            ResolvingDataSource.Resolver { spec -> app.downloads.localDataSpec(spec) ?: app.youtube.resolveDataSpec(spec) },
         )
 
         val player = ExoPlayer.Builder(this, renderersFactory)

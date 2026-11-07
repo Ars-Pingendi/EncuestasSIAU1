@@ -7,6 +7,7 @@ enum class SmartList(val title: String) {
     RECENTLY_ADDED("Agregadas recientemente"),
     MOST_PLAYED("Más reproducidas"),
     RECENTLY_PLAYED("Reproducidas recientemente"),
+    DOWNLOADED("Descargadas de YouTube"),
 }
 
 sealed interface Route {

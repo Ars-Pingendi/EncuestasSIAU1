@@ -12,6 +12,7 @@ Reproductor de música personal para Android (minSdk 26, Android 8.0+). Kotlin +
 - Reproducción en segundo plano con notificación, pantalla de bloqueo y botones de auriculares/Bluetooth; cola editable, aleatorio, repetir y temporizador de apagado.
 - Búsqueda por canción, álbum o artista (sin importar tildes).
 - **YouTube sin anuncios** (pestaña YouTube): búsqueda de canciones (YouTube Music) o videos; reproduce solo el audio, en segundo plano, con el ecualizador, y las canciones se pueden guardar en listas y favoritos junto a las locales. Usa [NewPipeExtractor](https://github.com/TeamNewPipe/NewPipeExtractor) y no inicia sesión con ninguna cuenta. Incumple los términos de uso de YouTube y puede dejar de funcionar cuando YouTube cambie algo: la solución suele ser actualizar la librería.
+- **Descargas de YouTube** para escuchar sin internet: se guardan dentro de la app, siguen en listas y favoritos, y aparecen en la lista automática «Descargadas de YouTube». Respetar los derechos de autor de lo que se descarga es responsabilidad de quien usa la app.
 
 ## Compilar
 

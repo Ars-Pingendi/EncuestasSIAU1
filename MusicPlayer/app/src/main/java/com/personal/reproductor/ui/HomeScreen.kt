@@ -2,6 +2,7 @@
 
 package com.personal.reproductor.ui
 
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -329,6 +330,7 @@ private fun PlaylistsTab(vm: MainViewModel) {
                             SmartList.RECENTLY_ADDED -> Icons.Filled.FiberNew
                             SmartList.MOST_PLAYED -> Icons.Filled.BarChart
                             SmartList.RECENTLY_PLAYED -> Icons.Filled.History
+                            SmartList.DOWNLOADED -> Icons.Filled.DownloadDone
                         },
                     )
                 },

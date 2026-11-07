@@ -2,6 +2,12 @@
 
 package com.personal.reproductor.ui
 
+import java.util.Locale
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -91,9 +97,47 @@ fun SettingsScreen(vm: MainViewModel) {
                 )
             }
 
+            SectionTitle("Descargas de YouTube")
+            val downloaded by vm.downloadedIds.collectAsStateWithLifecycle()
+            var confirmDelete by remember { mutableStateOf(false) }
+            val sizeMb = remember(downloaded) { vm.downloadsSizeBytes() / (1024.0 * 1024.0) }
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                Text(
+                    "${pluralSongs(downloaded.size)} · ${String.format(Locale.getDefault(), "%.1f", sizeMb)} MB",
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Text(
+                    "Se guardan dentro de la app y suenan sin internet. Si desinstalas la app, se borran.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (downloaded.isNotEmpty()) {
+                    TextButton(onClick = { confirmDelete = true }) { Text("Borrar todas las descargas") }
+                }
+            }
+            if (confirmDelete) {
+                AlertDialog(
+                    onDismissRequest = { confirmDelete = false },
+                    title = { Text("Borrar descargas") },
+                    text = {
+                        Text(
+                            "Se borrarán ${pluralSongs(downloaded.size)}. Seguirán en tus listas y favoritos, " +
+                                "pero necesitarán internet para sonar.",
+                        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            vm.deleteAllDownloads()
+                            confirmDelete = false
+                        }) { Text("Borrar") }
+                    },
+                    dismissButton = { TextButton(onClick = { confirmDelete = false }) { Text("Cancelar") } },
+                )
+            }
+
             SectionTitle("Acerca de")
             Text(
-                "Pipo Music Player 1.2.0\n" +
+                "Pipo Music Player 1.3.0\n" +
                     "${pluralSongs(library.tracks.size)} · ${library.albums.size} álbumes · ${library.artists.size} artistas",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

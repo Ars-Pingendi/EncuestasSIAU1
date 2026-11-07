@@ -2,6 +2,8 @@
 
 package com.personal.reproductor.ui
 
+import androidx.compose.material.icons.filled.DownloadDone
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.background
@@ -240,6 +242,28 @@ fun NowPlayingScreen(vm: MainViewModel) {
                     enabled = track != null,
                 ) {
                     Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = "Añadir a una lista")
+                }
+                if (isRemote) {
+                    val dl = rememberDownloadUi(vm, track?.remoteId)
+                    IconButton(
+                        onClick = {
+                            track?.let { t ->
+                                if (dl.kind == DownloadUiKind.DONE) vm.toast("Ya está descargada: suena sin internet")
+                                else vm.download(listOf(t))
+                            }
+                        },
+                        enabled = !dl.busy,
+                    ) {
+                        when (dl.kind) {
+                            DownloadUiKind.DONE -> Icon(
+                                Icons.Filled.DownloadDone,
+                                contentDescription = "Descargada",
+                                tint = MaterialTheme.colorScheme.primary,
+                            )
+                            DownloadUiKind.QUEUED, DownloadUiKind.RUNNING -> DownloadIndicator(dl, Modifier.size(22.dp))
+                            else -> Icon(Icons.Filled.Download, contentDescription = "Descargar para escuchar sin internet")
+                        }
+                    }
                 }
             }
             sleepLeft?.let { left ->

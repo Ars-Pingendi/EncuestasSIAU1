@@ -24,6 +24,7 @@ import com.personal.reproductor.data.LibraryBuilder
 import com.personal.reproductor.data.YouTubeIds
 import com.personal.reproductor.data.toTrack
 import com.personal.reproductor.data.youTubeTrack
+import com.personal.reproductor.data.youtube.YouTubeDownloads
 import com.personal.reproductor.data.youtube.YouTubeRepository
 import androidx.media3.common.PlaybackException
 import kotlinx.coroutines.CancellationException
@@ -159,7 +160,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
 
     val smartLists: StateFlow<Map<SmartList, List<Track>>> =
-        combine(library, userData.stats, remoteTracks) { lib, stats, remote ->
+        combine(library, userData.stats, remoteTracks, app.downloads.downloaded) { lib, stats, remote, downloaded ->
             mapOf(
                 SmartList.RECENTLY_ADDED to lib.tracks.sortedByDescending { it.dateAddedSec }.take(100),
                 SmartList.MOST_PLAYED to stats.filter { it.playCount > 0 }
@@ -170,6 +171,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     .sortedByDescending { it.lastPlayed }
                     .mapNotNull { resolveAny(lib, remote, it.trackId, it.path) }
                     .take(100),
+                SmartList.DOWNLOADED to downloaded.mapNotNull { remote[it] }
+                    .sortedWith(compareBy(LibraryBuilder.collator) { it.title }),
             )
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
@@ -328,6 +331,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     init {
         if (_permission.value) libraryRepo.start()
         connectController()
+        viewModelScope.launch { app.downloads.events.collect { toast(it) } }
         viewModelScope.launch {
             while (isActive) {
                 delay(400)
@@ -499,6 +503,41 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             clearMediaItems()
         }
     }
+
+    // ------------------------------------------------------------------ descargas de YouTube
+
+    private val downloadsRepo: YouTubeDownloads = app.downloads
+    val downloadedIds: StateFlow<Set<String>> = downloadsRepo.downloaded
+    val downloadStatus: StateFlow<Map<String, YouTubeDownloads.Status>> = downloadsRepo.status
+
+    fun download(tracks: List<Track>) {
+        val remote = tracks.filter { it.isRemote }
+        if (remote.isEmpty()) return
+        viewModelScope.launch {
+            userData.rememberRemote(remote)
+            val added = downloadsRepo.enqueue(remote)
+            toast(
+                when {
+                    added == 0 -> "Ya están descargadas o en cola"
+                    added == 1 -> "Descargando…"
+                    else -> "Descargando $added canciones…"
+                },
+            )
+        }
+    }
+
+    fun deleteDownload(track: Track) {
+        val id = track.remoteId ?: return
+        downloadsRepo.delete(id)
+        toast("Descarga eliminada")
+    }
+
+    fun deleteAllDownloads() {
+        downloadsRepo.deleteAll()
+        toast("Se borraron todas las descargas")
+    }
+
+    fun downloadsSizeBytes(): Long = downloadsRepo.totalBytes()
 
     // ------------------------------------------------------------------ YouTube
 

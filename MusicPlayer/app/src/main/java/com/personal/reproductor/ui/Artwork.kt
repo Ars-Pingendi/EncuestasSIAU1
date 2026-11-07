@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Collections
@@ -62,12 +63,13 @@ object ArtworkLoader {
         cache.get(if (url != null) "u$url:${bucket(px)}" else key(trackId, albumId, bucket(px)))
 
     /** Carátula remota (miniatura de YouTube). Los fallos no se recuerdan: puede volver la conexión. */
-    suspend fun loadUrl(url: String, px: Int): Bitmap? = withContext(Dispatchers.IO) {
+    suspend fun loadUrl(context: Context, url: String, px: Int): Bitmap? = withContext(Dispatchers.IO) {
         val b = bucket(px)
         val k = "u$url:$b"
         cache.get(k)?.let { return@withContext it }
         val bmp = try {
-            downloadSampled(url, b)
+            val bytes = readCachedOrDownload(context, url) ?: return@withContext null
+            decodeBytesSampled(bytes, b)
         } catch (_: Exception) {
             null
         }
@@ -75,7 +77,11 @@ object ArtworkLoader {
         bmp
     }
 
-    private fun downloadSampled(url: String, target: Int): Bitmap? {
+    /** Guarda las carátulas descargadas en el caché del teléfono para verlas también sin internet. */
+    private fun readCachedOrDownload(context: Context, url: String): ByteArray? {
+        val dir = File(context.cacheDir, "caratulas").also { it.mkdirs() }
+        val file = File(dir, "${url.hashCode().toUInt().toString(16)}_${url.length}.img")
+        if (file.isFile && file.length() > 0) return file.readBytes()
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000
             readTimeout = 15_000
@@ -84,15 +90,23 @@ object ArtworkLoader {
         try {
             if (conn.responseCode !in 200..299) return null
             val bytes = conn.inputStream.use { it.readBytes() }
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-            var sample = 1
-            while (bounds.outWidth / (sample * 2) >= target && bounds.outHeight / (sample * 2) >= target) sample *= 2
-            val opts = BitmapFactory.Options().apply { inSampleSize = sample }
-            return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
+            try {
+                file.writeBytes(bytes)
+            } catch (_: Exception) {
+            }
+            return bytes
         } finally {
             conn.disconnect()
         }
+    }
+
+    private fun decodeBytesSampled(bytes: ByteArray, target: Int): Bitmap? {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+        var sample = 1
+        while (bounds.outWidth / (sample * 2) >= target && bounds.outHeight / (sample * 2) >= target) sample *= 2
+        val opts = BitmapFactory.Options().apply { inSampleSize = sample }
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
     }
 
     suspend fun load(context: Context, trackId: Long, albumId: Long, px: Int): Bitmap? =
@@ -167,7 +181,7 @@ fun Artwork(
         trackId, albumId, requestPx, url,
     ) {
         value = if (url != null) {
-            ArtworkLoader.loadUrl(url, requestPx)
+            ArtworkLoader.loadUrl(context, url, requestPx)
         } else {
             ArtworkLoader.load(context, trackId, albumId, requestPx)
         } ?: value

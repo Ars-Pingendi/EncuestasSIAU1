@@ -10,6 +10,7 @@ import com.personal.reproductor.data.youTubeTrack
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.schabi.newpipe.extractor.Image
 import org.schabi.newpipe.extractor.InfoItem
 import org.schabi.newpipe.extractor.MediaFormat
@@ -27,6 +28,8 @@ import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
+import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -51,7 +54,10 @@ class YouTubeRepository {
         val hasMore: Boolean get() = next != null
     }
 
-    private class CachedUrl(val url: String, val expiresAt: Long)
+    private class CachedStream(val url: String, val formatName: String?, val expiresAt: Long)
+
+    /** Audio listo para descargar. [contentLength] es -1 si YouTube no lo indica. */
+    class DownloadSource(val url: String, val extension: String, val contentLength: Long)
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -60,7 +66,7 @@ class YouTubeRepository {
 
     @Volatile
     private var initialized = false
-    private val urlCache = ConcurrentHashMap<String, CachedUrl>()
+    private val urlCache = ConcurrentHashMap<String, CachedStream>()
     private val requestNumber = AtomicInteger(0)
 
     private fun ensureInit() {
@@ -147,20 +153,7 @@ class YouTubeRepository {
         } else {
             streamUrl
         }
-        val headers = HashMap<String, String>()
-        headers["User-Agent"] = if (YoutubeParsingHelper.isVisionOsStreamingUrl(url)) {
-            YoutubeParsingHelper.getVisionOsUserAgent(null)
-        } else {
-            PipoDownloader.USER_AGENT
-        }
-        if (YoutubeParsingHelper.isWebStreamingUrl(url)) {
-            headers["Origin"] = YOUTUBE_BASE_URL
-            headers["Referer"] = YOUTUBE_BASE_URL
-            headers["Sec-Fetch-Dest"] = "empty"
-            headers["Sec-Fetch-Mode"] = "cors"
-            headers["Sec-Fetch-Site"] = "cross-site"
-        }
-        headers["TE"] = "trailers"
+        val headers = streamingHeaders(url)
 
         return dataSpec.buildUpon()
             .setUri(Uri.parse(url))
@@ -175,9 +168,73 @@ class YouTubeRepository {
         urlCache.remove(videoId)
     }
 
-    private fun resolveStreamUrl(videoId: String): String {
+    /** Cabeceras que espera el servidor de audio de YouTube según el cliente que generó la URL. */
+    private fun streamingHeaders(url: String): Map<String, String> {
+        val headers = HashMap<String, String>()
+        headers["User-Agent"] = if (YoutubeParsingHelper.isVisionOsStreamingUrl(url)) {
+            YoutubeParsingHelper.getVisionOsUserAgent(null)
+        } else {
+            PipoDownloader.USER_AGENT
+        }
+        if (YoutubeParsingHelper.isWebStreamingUrl(url)) {
+            headers["Origin"] = YOUTUBE_BASE_URL
+            headers["Referer"] = YOUTUBE_BASE_URL
+            headers["Sec-Fetch-Dest"] = "empty"
+            headers["Sec-Fetch-Mode"] = "cors"
+            headers["Sec-Fetch-Site"] = "cross-site"
+        }
+        headers["TE"] = "trailers"
+        return headers
+    }
+
+    // ------------------------------------------------------------------ descarga
+
+    /** Elige el mejor audio del video para descargarlo (bloqueante: llamar fuera del hilo principal). */
+    fun resolveForDownload(videoId: String): DownloadSource {
+        val stream = bestStream(videoId)
+        val clen = Uri.parse(stream.url).getQueryParameter("clen")?.toLongOrNull() ?: -1L
+        val extension = when (stream.formatName) {
+            "M4A" -> "m4a"
+            "WEBMA", "WEBMA_OPUS" -> "webm"
+            "MP3" -> "mp3"
+            else -> "audio"
+        }
+        return DownloadSource(stream.url, extension, clen)
+    }
+
+    /**
+     * Descarga por fragmentos de 1 MB usando el parámetro "range" (como el reproductor de YouTube),
+     * porque YouTube limita las descargas de un solo golpe. Bloqueante.
+     */
+    fun downloadTo(source: DownloadSource, out: File, onProgress: (Float?) -> Unit) {
+        FileOutputStream(out).use { fos ->
+            var position = 0L
+            while (true) {
+                val end = position + CHUNK_BYTES - 1
+                val url = source.url + "&range=" + position + "-" + end + "&rn=" + requestNumber.getAndIncrement()
+                val builder = okhttp3.Request.Builder().url(url).post(POST_BODY.toRequestBody())
+                streamingHeaders(url).forEach { (name, value) -> builder.header(name, value) }
+                val bytes = client.newCall(builder.build()).execute().use { response ->
+                    if (!response.isSuccessful) throw IOException("YouTube respondió ${response.code}")
+                    response.body?.bytes() ?: ByteArray(0)
+                }
+                fos.write(bytes)
+                position += bytes.size
+                onProgress(
+                    if (source.contentLength > 0) (position.toFloat() / source.contentLength).coerceIn(0f, 1f) else null,
+                )
+                val finished = bytes.size < CHUNK_BYTES || (source.contentLength in 1..position)
+                if (finished) break
+            }
+            if (position == 0L) throw IOException("YouTube no envió datos")
+        }
+    }
+
+    private fun resolveStreamUrl(videoId: String): String = bestStream(videoId).url
+
+    private fun bestStream(videoId: String): CachedStream {
         val now = SystemClock.elapsedRealtime()
-        urlCache[videoId]?.let { if (it.expiresAt > now) return it.url }
+        urlCache[videoId]?.let { if (it.expiresAt > now) return it }
         ensureInit()
         val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId")
         val candidates = info.audioStreams.filter {
@@ -190,8 +247,9 @@ class YouTubeRepository {
             compareBy<AudioStream>({ bitrateOf(it) }, { if (it.format == MediaFormat.M4A) 1 else 0 }),
         ) ?: throw IOException("YouTube no ofreció audio para este video")
         Log.i(TAG, "Audio $videoId: ${best.format} ${bitrateOf(best)} bps")
-        urlCache[videoId] = CachedUrl(best.content, now + URL_TTL_MS)
-        return best.content
+        val cached = CachedStream(best.content, best.format?.name, now + URL_TTL_MS)
+        urlCache[videoId] = cached
+        return cached
     }
 
     private fun bitrateOf(s: AudioStream): Int = if (s.averageBitrate > 0) s.averageBitrate else s.bitrate
@@ -208,6 +266,7 @@ class YouTubeRepository {
         const val TAG = "YouTube"
         const val YOUTUBE_BASE_URL = "https://www.youtube.com"
         const val URL_TTL_MS = 90L * 60L * 1000L
+        const val CHUNK_BYTES = 1_048_576L
         val POST_BODY = byteArrayOf(0x78, 0)
     }
 }
