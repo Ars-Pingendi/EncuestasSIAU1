@@ -127,6 +127,14 @@ export interface PipoApi {
   ytVersion(): Promise<string>;
   openDownloadsFolder(): Promise<void>;
 
+  // Compartir
+  /** Muestra el archivo (con nombre legible) en el Explorador. */
+  shareReveal(trackId: string): Promise<boolean>;
+  saveCopy(trackId: string): Promise<string | null>;
+  exportMany(trackIds: string[]): Promise<number | null>;
+  /** Arrastrar la canción fuera de la app (WhatsApp, Explorador, correo…). */
+  startDrag(trackId: string): void;
+
   // Ventana y sistema
   appInfo(): Promise<AppInfo>;
   setTitleBarColors(colors: TitleBarColors): void;

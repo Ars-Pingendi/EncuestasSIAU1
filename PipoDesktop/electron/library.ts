@@ -80,6 +80,11 @@ export class Library {
     return this.byId.get(id);
   }
 
+  trackForId(id: string): Track | undefined {
+    const p = this.byId.get(id);
+    return p ? this.entries.get(p)?.track : undefined;
+  }
+
   artPath(artId: string): string | undefined {
     return this.arts.get(artId);
   }

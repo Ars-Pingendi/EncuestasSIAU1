@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import type { Track } from '../../shared/types';
-import { api } from '../api';
 import { Card, Empty, PageHeader, Segmented, ViewTitle } from '../components/Common';
 import { ConfirmDialog, openAddToPlaylist, openNewPlaylist, PromptDialog } from '../components/Dialogs';
 import { Icon } from '../components/Icon';
 import { TrackList } from '../components/TrackList';
+import { exportTracks } from '../components/trackMenu';
 import { formatBytes, formatLong, plural } from '../lib/format';
 import { useStore } from '../lib/store';
 import { data, deletePlaylist, movePlaylistItem, renamePlaylist } from '../state/data';
@@ -86,8 +86,8 @@ export function SmartView({ id }: { id: SmartId }) {
                   <Icon name="playlistAdd" size={20} /> Agregar a lista
                 </button>
                 {id === 'downloads' && (
-                  <button type="button" className="btn outline" onClick={() => void api.openDownloadsFolder()}>
-                    <Icon name="folder" size={20} /> Abrir carpeta
+                  <button type="button" className="btn outline" disabled={!tracks.length} onClick={() => void exportTracks(tracks)}>
+                    <Icon name="share" size={20} /> Guardar copias en una carpeta…
                   </button>
                 )}
               </>
@@ -181,6 +181,9 @@ export function PlaylistView({ id }: { id: string }) {
             tracks={tracks}
             extra={
               <>
+                <button type="button" className="btn outline" disabled={!tracks.length} onClick={() => void exportTracks(tracks)}>
+                  <Icon name="share" size={20} /> Guardar copias…
+                </button>
                 <button
                   type="button"
                   className="btn outline"

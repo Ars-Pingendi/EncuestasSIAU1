@@ -430,6 +430,10 @@ export class YouTube {
     return d && fs.existsSync(d.file) ? d.file : undefined;
   }
 
+  downloadInfo(videoId: string): DownloadInfo | undefined {
+    return this.downloads.get(videoId);
+  }
+
   downloadArt(videoId: string): string | undefined {
     const file = path.join(this.o.downloadsDir, `${videoId}.jpg`);
     return fs.existsSync(file) ? file : undefined;

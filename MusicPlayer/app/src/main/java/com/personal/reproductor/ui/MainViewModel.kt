@@ -20,6 +20,7 @@ import com.personal.reproductor.data.Album
 import com.personal.reproductor.data.Library
 import com.personal.reproductor.data.SongSort
 import com.personal.reproductor.data.Track
+import com.personal.reproductor.data.TrackSharing
 import com.personal.reproductor.data.LibraryBuilder
 import com.personal.reproductor.data.YouTubeIds
 import com.personal.reproductor.data.toTrack
@@ -50,6 +51,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.random.Random
 
 fun hasAudioPermission(context: Context): Boolean {
@@ -538,6 +540,51 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun downloadsSizeBytes(): Long = downloadsRepo.totalBytes()
+
+    // ------------------------------------------------------------------ compartir
+
+    /**
+     * Abre el menú «Compartir» de Android (WhatsApp, Bluetooth, correo, Drive…) con los archivos
+     * de audio. Las canciones de YouTube sin descargar se comparten como enlace.
+     */
+    fun share(context: Context, tracks: List<Track>) {
+        if (tracks.isEmpty()) return
+        val downloaded = downloadedIds.value
+        val withFile = tracks.filter { it.remoteId == null || it.remoteId in downloaded }
+        val linksOnly = tracks.filter { it.remoteId != null && it.remoteId !in downloaded }
+        viewModelScope.launch {
+            try {
+                if (withFile.isEmpty()) {
+                    context.startActivity(TrackSharing.linkChooser(linksOnly))
+                    return@launch
+                }
+                val items = withContext(Dispatchers.IO) { TrackSharing.prepare(app, withFile, downloadsRepo) }
+                if (items.isEmpty()) {
+                    toast("No se encontró el archivo para compartir")
+                    return@launch
+                }
+                val subject = if (withFile.size == 1) withFile.first().title else "${items.size} canciones"
+                context.startActivity(TrackSharing.chooser(items, subject))
+                if (linksOnly.isNotEmpty()) {
+                    toast(
+                        if (linksOnly.size == 1) "1 canción de YouTube sin descargar no se incluyó"
+                        else "${linksOnly.size} canciones de YouTube sin descargar no se incluyeron",
+                    )
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.w("MainViewModel", "No se pudo compartir", e)
+                toast("No se pudo compartir: ${e.message ?: e.javaClass.simpleName}")
+            }
+        }
+    }
+
+    /** Comparte el enlace de YouTube aunque la canción esté descargada. */
+    fun shareLink(context: Context, track: Track) {
+        if (track.remoteId == null) return
+        context.startActivity(TrackSharing.linkChooser(listOf(track)))
+    }
 
     // ------------------------------------------------------------------ YouTube
 

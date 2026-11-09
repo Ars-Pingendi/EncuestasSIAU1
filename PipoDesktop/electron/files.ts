@@ -77,3 +77,28 @@ export function fileResponse(file: string, range: string | null, cache = false):
   return new Response(Readable.toWeb(fs.createReadStream(file)) as ReadableStream, { status: 200, headers });
 }
 
+
+const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)$/i;
+
+/** «Artista - Título.ext» con caracteres válidos en Windows. */
+export function niceFileName(artist: string, title: string, ext: string): string {
+  const parts = [artist && artist !== 'Artista desconocido' ? artist : '', title || 'Canción'].filter(Boolean);
+  let base = parts
+    .join(' - ')
+    .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/[. ]+$/, '')
+    .slice(0, 120);
+  if (!base || RESERVED.test(base)) base = `Canción ${base}`.trim();
+  return `${base}${ext.startsWith('.') ? ext : `.${ext}`}`;
+}
+
+/** Ruta libre: si ya existe «nombre.ext», usa «nombre (2).ext», etc. */
+export function freePath(dir: string, name: string): string {
+  const ext = path.extname(name);
+  const base = name.slice(0, name.length - ext.length);
+  let candidate = path.join(dir, name);
+  for (let i = 2; fs.existsSync(candidate); i++) candidate = path.join(dir, `${base} (${i})${ext}`);
+  return candidate;
+}

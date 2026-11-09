@@ -2,6 +2,7 @@
 // favoritos, estado de descarga y reordenamiento arrastrando.
 import { useLayoutEffect, useMemo, useRef, useState, type DragEvent, type MouseEvent } from 'react';
 import type { Track } from '../../shared/types';
+import { api } from '../api';
 import { formatTime } from '../lib/format';
 import { artistOf } from '../lib/group';
 import { useStore } from '../lib/store';
@@ -105,7 +106,16 @@ export function TrackList({ tracks, numbered, showAlbum = true, playlistId, onRe
           },
           onDragEnd: () => setDrag(null),
         }
-      : {};
+      : t.source === 'local' || downloaded
+        ? {
+            // Arrastrar la canción a WhatsApp, al Explorador, a un correo…
+            draggable: true,
+            onDragStart: (e: DragEvent) => {
+              e.preventDefault();
+              api.startDrag(t.id);
+            },
+          }
+        : {};
     rows.push(
       <div
         key={`${t.id}-${i}`}

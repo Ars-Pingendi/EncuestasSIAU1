@@ -151,6 +151,10 @@ export function createMockApi(): PipoApi {
     ytUpdate: async () => 'El componente de YouTube ya está al día.',
     ytVersion: async () => '2026.10.26',
     openDownloadsFolder: async () => undefined,
+    shareReveal: async () => true,
+    saveCopy: async () => 'C:\\Users\\Pipo\\Downloads\\copia.m4a',
+    exportMany: async (ids) => ids.length,
+    startDrag: () => undefined,
     appInfo: async () => ({
       version: '1.0.0',
       platform: 'win32',

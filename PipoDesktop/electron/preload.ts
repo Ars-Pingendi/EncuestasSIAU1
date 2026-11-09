@@ -33,6 +33,11 @@ const api: PipoApi = {
   ytVersion: () => ipcRenderer.invoke('yt:version'),
   openDownloadsFolder: () => ipcRenderer.invoke('yt:openFolder'),
 
+  shareReveal: (id) => ipcRenderer.invoke('share:reveal', id),
+  saveCopy: (id) => ipcRenderer.invoke('share:saveCopy', id),
+  exportMany: (ids) => ipcRenderer.invoke('share:exportMany', ids),
+  startDrag: (id) => ipcRenderer.send('share:drag', id),
+
   appInfo: () => ipcRenderer.invoke('app:info'),
   setTitleBarColors: (colors) => ipcRenderer.send('win:titleBar', colors),
   sendPlayerState: (state) => ipcRenderer.send('player:state', state),

@@ -7,6 +7,7 @@ import {
   type IpcMainInvokeEvent, type ThumbarButton,
 } from 'electron';
 import type { DownloadEvent, LibrarySnapshot, PlayerStateMsg, ScanProgress, TitleBarColors, Track, YtSearchKind } from '../shared/types';
+import { freePath, niceFileName } from './files';
 import { Library } from './library';
 import { handleProtocol, registerScheme } from './protocol';
 import { JsonStore } from './store';
@@ -205,6 +206,77 @@ app.whenReady().then(() => {
   handle('yt:update', () => youtube.update());
   handle('yt:version', () => youtube.version());
   handle('yt:openFolder', () => shell.openPath(path.join(app.getPath('userData'), 'descargas')).then(() => undefined));
+
+  // Compartir: archivos con nombre legible para WhatsApp, Bluetooth, correo, USB…
+  const shareDir = path.join(app.getPath('userData'), 'compartir');
+  fs.rmSync(shareDir, { recursive: true, force: true });
+  const dragIcon = nativeImage.createFromPath(path.join(resourcesDir, 'icons', 'app.png')).resize({ width: 48, height: 48 });
+
+  /** Archivo listo para compartir y su nombre legible. */
+  const shareable = (id: string): { file: string; name: string } | undefined => {
+    if (id.startsWith('yt:')) {
+      const videoId = id.slice(3);
+      const source = youtube.downloadFile(videoId);
+      const info = youtube.downloadInfo(videoId);
+      if (!source || !info) return undefined;
+      const name = niceFileName(info.track.artist, info.track.title, path.extname(source));
+      const dir = path.join(shareDir, videoId);
+      const target = path.join(dir, name);
+      if (!fs.existsSync(target) || fs.statSync(target).size !== fs.statSync(source).size) {
+        fs.rmSync(dir, { recursive: true, force: true });
+        fs.mkdirSync(dir, { recursive: true });
+        fs.copyFileSync(source, target);
+      }
+      return { file: target, name };
+    }
+    const file = library.pathForId(id);
+    const track = library.trackForId(id);
+    if (!file || !track || !fs.existsSync(file)) return undefined;
+    // Las copias usan «Artista - Título»; el original se muestra tal cual en el Explorador.
+    return { file, name: niceFileName(track.artist, track.title, path.extname(file)) };
+  };
+
+  handle('share:reveal', (id: string) => {
+    const s = shareable(id);
+    if (!s) return false;
+    shell.showItemInFolder(s.file);
+    return true;
+  });
+  handle('share:saveCopy', async (id: string) => {
+    const s = shareable(id);
+    if (!s) return null;
+    const ext = path.extname(s.name).slice(1);
+    const r = await dialog.showSaveDialog(win!, {
+      title: 'Guardar una copia',
+      defaultPath: path.join(app.getPath('downloads'), s.name),
+      filters: [{ name: 'Audio', extensions: [ext] }],
+    });
+    if (r.canceled || !r.filePath) return null;
+    await fs.promises.copyFile(s.file, r.filePath);
+    return r.filePath;
+  });
+  handle('share:exportMany', async (ids: string[]) => {
+    const r = await dialog.showOpenDialog(win!, {
+      title: 'Elegir carpeta (por ejemplo, una memoria USB)',
+      buttonLabel: 'Guardar aquí',
+      properties: ['openDirectory', 'createDirectory'],
+    });
+    if (r.canceled || !r.filePaths.length) return null;
+    let count = 0;
+    for (const id of ids) {
+      const s = shareable(id);
+      if (!s) continue;
+      await fs.promises.copyFile(s.file, freePath(r.filePaths[0], s.name));
+      count++;
+    }
+    shell.openPath(r.filePaths[0]);
+    return count;
+  });
+  ipcMain.on('share:drag', (e, id: string) => {
+    if (!trusted(e)) return;
+    const s = shareable(id);
+    if (s) e.sender.startDrag({ file: s.file, icon: dragIcon });
+  });
 
   // Sistema
   handle('app:info', () => ({

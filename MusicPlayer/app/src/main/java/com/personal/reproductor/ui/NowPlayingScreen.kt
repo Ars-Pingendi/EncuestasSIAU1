@@ -4,6 +4,7 @@ package com.personal.reproductor.ui
 
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.background
@@ -59,6 +60,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -76,6 +78,7 @@ fun NowPlayingScreen(vm: MainViewModel) {
     val p by vm.player.collectAsStateWithLifecycle()
     val pos by vm.position.collectAsStateWithLifecycle()
     val track by vm.currentTrack.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val favs by vm.favoriteTrackIds.collectAsStateWithLifecycle()
     val sleepLeft by vm.sleepTimer.remainingMs.collectAsStateWithLifecycle()
 
@@ -242,6 +245,9 @@ fun NowPlayingScreen(vm: MainViewModel) {
                     enabled = track != null,
                 ) {
                     Icon(Icons.AutoMirrored.Filled.PlaylistAdd, contentDescription = "Añadir a una lista")
+                }
+                IconButton(onClick = { track?.let { t -> vm.share(context, listOf(t)) } }, enabled = track != null) {
+                    Icon(Icons.Filled.Share, contentDescription = "Compartir")
                 }
                 if (isRemote) {
                     val dl = rememberDownloadUi(vm, track?.remoteId)

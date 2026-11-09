@@ -3,6 +3,7 @@
 package com.personal.reproductor.ui
 
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +46,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.toMutableStateList
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -131,6 +133,10 @@ fun AlbumScreen(vm: MainViewModel, albumId: Long) {
                     }
                     IconButton(onClick = { vm.enqueue(album.tracks) }) {
                         Icon(Icons.AutoMirrored.Filled.QueueMusic, contentDescription = "Añadir álbum a la cola")
+                    }
+                    val context = LocalContext.current
+                    IconButton(onClick = { vm.share(context, album.tracks) }) {
+                        Icon(Icons.Filled.Share, contentDescription = "Compartir el álbum")
                     }
                 }
             }
@@ -288,10 +294,19 @@ fun FolderScreen(vm: MainViewModel, path: String) {
 @Composable
 fun SmartListScreen(vm: MainViewModel, kind: SmartList) {
     val smart by vm.smartLists.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val tracks = smart[kind].orEmpty()
     TrackCollectionScreen(
         vm = vm,
         title = kind.title,
-        tracks = smart[kind].orEmpty(),
+        tracks = tracks,
+        actions = {
+            if (kind == SmartList.DOWNLOADED && tracks.isNotEmpty()) {
+                IconButton(onClick = { vm.share(context, tracks) }) {
+                    Icon(Icons.Filled.Share, contentDescription = "Compartir todas las descargas")
+                }
+            }
+        },
         emptyIcon = Icons.AutoMirrored.Filled.QueueMusic,
         emptyMessage = when (kind) {
             SmartList.RECENTLY_ADDED -> "Aún no hay música en tu biblioteca."
@@ -321,6 +336,12 @@ fun PlaylistScreen(vm: MainViewModel, id: Long) {
         },
         actions = {
             if (playlist != null) {
+                val context = LocalContext.current
+                if (playlist.tracks.isNotEmpty()) {
+                    IconButton(onClick = { vm.share(context, playlist.tracks) }) {
+                        Icon(Icons.Filled.Share, contentDescription = "Compartir las canciones de esta lista")
+                    }
+                }
                 val fromYouTube = playlist.tracks.filter { it.isRemote }
                 if (fromYouTube.isNotEmpty()) {
                     IconButton(onClick = { vm.download(fromYouTube) }) {

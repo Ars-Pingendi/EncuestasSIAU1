@@ -6,6 +6,8 @@ import com.personal.reproductor.data.youtube.YouTubeDownloads
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -66,6 +68,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -293,6 +296,7 @@ fun TrackRow(
     val isCurrent = track.id == currentId
     val isFavorite = track.id in favorites
     var menu by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val dl = rememberDownloadUi(vm, track.remoteId)
     val dragged = reorder != null && reorder.draggedKey == track.id
     val reorderModifier = if (reorder != null) {
@@ -385,6 +389,18 @@ fun TrackRow(
                     },
                     onClick = { close(); vm.toggleFavorite(track) },
                 )
+                DropdownMenuItem(
+                    text = { Text(if (track.isRemote && dl.kind != DownloadUiKind.DONE) "Compartir enlace" else "Compartir") },
+                    leadingIcon = { Icon(Icons.Filled.Share, null) },
+                    onClick = { close(); vm.share(context, listOf(track)) },
+                )
+                if (track.isRemote && dl.kind == DownloadUiKind.DONE) {
+                    DropdownMenuItem(
+                        text = { Text("Compartir enlace de YouTube") },
+                        leadingIcon = { Icon(Icons.Filled.Link, null) },
+                        onClick = { close(); vm.shareLink(context, track) },
+                    )
+                }
                 if (track.isRemote) {
                     DropdownMenuItem(
                         text = {
