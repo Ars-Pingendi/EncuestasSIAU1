@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Editor de Video</string>
+
+    <!-- General -->
+    <string name="importar_videos">Importar videos</string>
+    <string name="agregar_clip">Agregar clip</string>
+    <string name="exportar">Exportar</string>
+    <string name="vacio_titulo">Crea tu primer proyecto</string>
+    <string name="vacio_texto">Importa uno o varios videos de tu galería para empezar a editar: recorta, une, agrega transiciones, música, texto y más.</string>
+    <string name="importando">Importando…</string>
+    <string name="cerrar">Cerrar</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="aplicar">Aplicar</string>
+    <string name="restablecer">Restablecer</string>
+    <string name="ver">Ver</string>
+    <string name="compartir">Compartir</string>
+    <string name="clip_n">Clip %1$d</string>
+    <string name="seleccione_clip">Selecciona un clip en la línea de tiempo.</string>
+    <string name="duracion_total">Duración total: %1$s</string>
+
+    <!-- Herramientas -->
+    <string name="tool_recortar">Recortar</string>
+    <string name="tool_clip">Clip</string>
+    <string name="tool_velocidad">Velocidad</string>
+    <string name="tool_filtros">Filtros</string>
+    <string name="tool_ajustes">Ajustes</string>
+    <string name="tool_girar">Girar</string>
+    <string name="tool_transicion">Transición</string>
+    <string name="tool_audio">Audio</string>
+    <string name="tool_musica">Música</string>
+    <string name="tool_texto">Texto</string>
+    <string name="tool_fondo">Quitar fondo</string>
+    <string name="tool_formato">Formato</string>
+
+    <!-- Recortar -->
+    <string name="recorte_inicio">Inicio: %1$s</string>
+    <string name="recorte_fin">Fin: %1$s</string>
+    <string name="recorte_duracion">Duración: %1$s</string>
+    <string name="fijar_inicio">Inicio aquí</string>
+    <string name="fijar_fin">Fin aquí</string>
+
+    <!-- Clip -->
+    <string name="dividir">Dividir en el cursor</string>
+    <string name="duplicar">Duplicar</string>
+    <string name="mover_izq">Mover antes</string>
+    <string name="mover_der">Mover después</string>
+    <string name="eliminar">Eliminar</string>
+    <string name="dividir_error">Mueve el cursor a un punto intermedio del clip para dividirlo.</string>
+
+    <!-- Velocidad -->
+    <string name="velocidad_actual">Velocidad: %1$sx</string>
+
+    <!-- Filtros -->
+    <string name="filtro_ninguno">Ninguno</string>
+    <string name="filtro_bn">Blanco y negro</string>
+    <string name="filtro_sepia">Sepia</string>
+    <string name="filtro_vivido">Vívido</string>
+    <string name="filtro_calido">Cálido</string>
+    <string name="filtro_frio">Frío</string>
+    <string name="filtro_vintage">Vintage</string>
+    <string name="filtro_invertido">Negativo</string>
+
+    <!-- Ajustes -->
+    <string name="brillo">Brillo</string>
+    <string name="contraste">Contraste</string>
+    <string name="saturacion">Saturación</string>
+
+    <!-- Girar -->
+    <string name="girar_der">Girar 90° a la derecha</string>
+    <string name="girar_izq">Girar 90° a la izquierda</string>
+    <string name="rotacion_actual">Rotación actual: %1$d°</string>
+
+    <!-- Transiciones -->
+    <string name="trans_ninguna">Corte directo</string>
+    <string name="trans_fundido_negro">Fundido a negro</string>
+    <string name="trans_fundido_blanco">Fundido a blanco</string>
+    <string name="trans_deslizar_izq">Deslizar lateral</string>
+    <string name="trans_deslizar_arriba">Deslizar vertical</string>
+    <string name="trans_zoom">Zoom</string>
+    <string name="trans_info">Transición de entrada a este clip (desde el clip anterior).</string>
+    <string name="trans_primero">El primer clip no tiene transición de entrada. Selecciona el segundo clip o uno posterior.</string>
+    <string name="trans_duracion">Duración de las transiciones: %1$s s</string>
+    <string name="trans_todos">Aplicar a todos los clips</string>
+
+    <!-- Audio -->
+    <string name="volumen_clip">Volumen del clip: %1$d %%</string>
+    <string name="silenciar_clip">Silenciar este clip</string>
+    <string name="quitar_audio_todo">Quitar todo el audio del video final</string>
+    <string name="silenciar_original">Silenciar el audio original (dejar solo la música)</string>
+    <string name="exportar_audio">Extraer audio (M4A)</string>
+    <string name="sin_audio_clip">Este clip no tiene pista de audio.</string>
+
+    <!-- Música -->
+    <string name="musica_elegir">Elegir música</string>
+    <string name="musica_cambiar">Cambiar música</string>
+    <string name="musica_quitar">Quitar música</string>
+    <string name="musica_ninguna">Sin música de fondo. La música se repite automáticamente hasta cubrir todo el video.</string>
+    <string name="musica_volumen">Volumen de la música: %1$d %%</string>
+
+    <!-- Texto -->
+    <string name="texto_hint">Escribe un título o subtítulo</string>
+    <string name="texto_arriba">Arriba</string>
+    <string name="texto_centro">Centro</string>
+    <string name="texto_abajo">Abajo</string>
+    <string name="texto_tamano">Tamaño</string>
+    <string name="texto_fondo">Fondo oscuro detrás del texto</string>
+    <string name="texto_info">El texto se muestra durante todo el video.</string>
+
+    <!-- Fondo -->
+    <string name="fondo_info">Separa a la persona del fondo y lo reemplaza, cuadro por cuadro, directamente en el teléfono. El proceso puede tardar varios segundos por cada segundo de video.</string>
+    <string name="fondo_detectar_persona">Detectar persona (IA)</string>
+    <string name="fondo_pantalla_verde">Pantalla verde</string>
+    <string name="fondo_color">Color sólido</string>
+    <string name="fondo_desenfoque">Desenfocar</string>
+    <string name="fondo_imagen">Imagen</string>
+    <string name="fondo_elegir_imagen">Elegir imagen</string>
+    <string name="fondo_aplicar">Quitar fondo de este clip</string>
+    <string name="fondo_restaurar">Restaurar clip original</string>
+    <string name="fondo_aplicado">Fondo reemplazado en este clip.</string>
+    <string name="fondo_procesando">Quitando fondo…</string>
+    <string name="sujeto">Sujeto</string>
+    <string name="nuevo_fondo">Nuevo fondo</string>
+
+    <!-- Formato -->
+    <string name="formato_original">Original</string>
+    <string name="formato_16_9">16:9 Horizontal</string>
+    <string name="formato_9_16">9:16 Vertical</string>
+    <string name="formato_1_1">1:1 Cuadrado</string>
+    <string name="formato_4_5">4:5 Retrato</string>
+    <string name="formato_rellenar">Rellenar el cuadro (recorta los bordes en lugar de barras negras)</string>
+    <string name="formato_resolucion">Resolución de salida: %1$d × %2$d</string>
+
+    <!-- Exportación -->
+    <string name="exportar_titulo">Exportar</string>
+    <string name="exportar_video_mp4">Video MP4 (H.264)</string>
+    <string name="exportando_video">Exportando video…</string>
+    <string name="exportando_audio">Extrayendo audio…</string>
+    <string name="exportado_video">Video guardado en Galería › Películas/EditorVideo</string>
+    <string name="exportado_audio">Audio guardado en Música/EditorVideo</string>
+    <string name="error_titulo">No se pudo completar</string>
+    <string name="error_import">Algunos archivos no se pudieron abrir como video.</string>
+    <string name="permiso_almacenamiento">Se necesita permiso de almacenamiento para guardar en la galería.</string>
+    <string name="no_cerrar">No cierres la aplicación mientras se procesa.</string>
+</resources>
