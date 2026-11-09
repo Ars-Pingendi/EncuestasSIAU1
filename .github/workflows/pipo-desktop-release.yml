@@ -46,6 +46,8 @@ jobs:
         run: |
           VERSION=$(node -p "require('./PipoDesktop/package.json').version")
           TAG="pipo-windows-v${VERSION}"
+          # Los instaladores deben corresponder a la versión del código.
+          ls instaladores/PipoMusicPlayer-Setup-${VERSION}.exe instaladores/PipoMusicPlayer-Portable-${VERSION}.exe
           cat > notas.md <<NOTAS
           Reproductor de música personal para **Windows 10 y 11** (64 bits), con las mismas funciones que la app de Android.
 
