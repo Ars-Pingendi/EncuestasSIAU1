@@ -2,11 +2,13 @@
 // del audio en streaming a través del protocolo propio y descargas para escuchar sin internet.
 // La extracción de los flujos de audio la hace yt-dlp (incluido con la app y actualizable).
 import { spawn, type ChildProcess } from 'node:child_process';
+import { Readable } from 'node:stream';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import type { DownloadEvent, DownloadInfo, ResolveResult, Track, YtItem, YtSearchKind } from '../shared/types';
 import type { JsonStore } from './store';
+import { corsHeaders, fileResponse } from './files';
 
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
 
@@ -15,15 +17,21 @@ const WEB_VERSION = '2.20260708.00.00';
 const SONGS_PARAMS = 'EgWKAQIIAWoKEAoQAxAEEAkQBQ==';
 const VIDEOS_PARAMS = 'EgIQAQ==';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
-const CHUNK = 8 * 1024 * 1024;
-const RESOLVE_TTL = 60 * 60 * 1000;
+interface StreamEntry {
+  videoId: string;
+  file?: string;
+  total: number;
+  done: boolean;
+  error?: string;
+  proc?: ChildProcess;
+  cancelled?: boolean;
+  lastUse: number;
+}
 
-interface Resolved {
-  url: string;
-  headers: Record<string, string>;
-  size: number;
-  mime: string;
-  at: number;
+const AUDIO_MIME: Record<string, string> = { webm: 'audio/webm', weba: 'audio/webm', m4a: 'audio/mp4', mp4: 'audio/mp4', mp3: 'audio/mpeg', opus: 'audio/ogg', ogg: 'audio/ogg' };
+
+function audioMime(file: string): string {
+  return AUDIO_MIME[path.extname(file).slice(1).toLowerCase()] ?? 'application/octet-stream';
 }
 
 export interface YouTubeOptions {
@@ -33,6 +41,9 @@ export interface YouTubeOptions {
   bundledBinDir: string;
   cacheDir: string;
   downloadsDir: string;
+  /** Caché temporal del audio que se está escuchando. */
+  streamDir: string;
+  logFile?: string;
   nodeRuntime?: string;
   onDownload: (e: DownloadEvent) => void;
 }
@@ -60,8 +71,8 @@ export function ytTrack(item: YtItem): Track {
 }
 
 export class YouTube {
-  private resolved = new Map<string, Resolved>();
-  private inflight = new Map<string, Promise<Resolved>>();
+  private streams = new Map<string, StreamEntry>();
+  private readonly streamDir: string;
   private downloads = new Map<string, DownloadInfo>();
   private dlQueue: Track[] = [];
   private dlActive: { videoId: string; proc: ChildProcess | null; cancelled: boolean } | null = null;
@@ -71,6 +82,10 @@ export class YouTube {
   constructor(private readonly o: YouTubeOptions) {
     fs.mkdirSync(o.downloadsDir, { recursive: true });
     fs.mkdirSync(o.cacheDir, { recursive: true });
+    // La caché de reproducción se vacía al abrir la app.
+    this.streamDir = o.streamDir;
+    fs.rmSync(this.streamDir, { recursive: true, force: true });
+    fs.mkdirSync(this.streamDir, { recursive: true });
     const saved = o.store.get<DownloadInfo[]>('descargas') ?? [];
     for (const d of saved) if (fs.existsSync(d.file)) this.downloads.set(d.videoId, d);
   }
@@ -304,51 +319,110 @@ export class YouTube {
   }
 
   // ───────────────────────────── Reproducción ─────────────────────────────
+  //
+  // yt-dlp descarga el audio a una caché temporal y la app lo reproduce mientras llega:
+  // así yt-dlp se encarga de todo lo que exige YouTube (firmas, clientes, trozos) y la app
+  // solo sirve un archivo que va creciendo. Adelantar funciona sobre lo ya descargado.
 
-  private async resolve(videoId: string, force = false): Promise<Resolved> {
-    const cached = this.resolved.get(videoId);
-    if (!force && cached && Date.now() - cached.at < RESOLVE_TTL) return cached;
-    const running = this.inflight.get(videoId);
-    if (running) return running;
-    const p = (async () => {
+  private startStream(videoId: string): StreamEntry {
+    const existing = this.streams.get(videoId);
+    if (existing && !existing.error) {
+      existing.lastUse = Date.now();
+      return existing;
+    }
+    // Como mucho dos descargas de reproducción a la vez (la actual y la siguiente).
+    const active = [...this.streams.values()].filter((e) => !e.done && !e.error).sort((a, b) => a.lastUse - b.lastUse);
+    while (active.length >= 2) this.dropStream(active.shift()!.videoId);
+
+    const entry: StreamEntry = { videoId, total: 0, done: false, lastUse: Date.now() };
+    this.streams.set(videoId, entry);
+    void (async () => {
       const js = await this.jsRuntimeArgs();
       const r = await this.run(
-        [...js, '-J', '--no-playlist', '--no-warnings', '-f', 'bestaudio[acodec=opus]/bestaudio[ext=m4a]/bestaudio/best',
+        [...js, '-f', 'bestaudio[protocol=https][acodec=opus]/bestaudio[protocol=https]/bestaudio/best',
+          '--no-playlist', '--no-part', '--no-mtime', '--newline', '--progress', '--no-warnings',
+          '-o', path.join(this.streamDir, '%(id)s.%(ext)s'),
+          '--progress-template', 'download:PIPO %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s %(info.ext)s',
           `https://www.youtube.com/watch?v=${videoId}`],
-        undefined,
-        90_000,
-      );
-      if (r.code !== 0) throw new Error(friendlyError(r.stderr) ?? 'No se pudo abrir este video.');
-      const info = JSON.parse(r.stdout);
-      const fmt = info.requested_formats?.[0] ?? info;
-      if (!fmt.url) throw new Error('YouTube no entregó un flujo de audio para este video.');
-      const headers: Record<string, string> = {};
-      for (const [k, v] of Object.entries<string>(fmt.http_headers ?? info.http_headers ?? {})) {
-        if (/^(user-agent|accept-language|origin|referer)$/i.test(k)) headers[k] = v;
+        (line) => {
+          const m = /^PIPO (\S+) (\S+) (\S+) (\S+)/.exec(line);
+          if (!m) return;
+          const total = Number(m[2]) || 0;
+          if (total) entry.total = total;
+          if (!entry.file && /^[\w]+$/.test(m[4])) entry.file = path.join(this.streamDir, `${videoId}.${m[4]}`);
+        },
+        3 * 60 * 60_000,
+        (proc) => (entry.proc = proc),
+      ).catch((err: Error) => ({ code: -1, stdout: '', stderr: err.message }));
+      entry.proc = undefined;
+      if (entry.cancelled) return;
+      if (!entry.file || !fs.existsSync(entry.file)) entry.file = this.findFile(this.streamDir, videoId);
+      if (r.code !== 0 || !entry.file) {
+        entry.error = friendlyError(r.stderr) ?? 'YouTube no entregó el audio de este video.';
+        this.log(`reproducir ${videoId}: código ${r.code}\n${r.stderr.split('\n').slice(-25).join('\n')}`);
+        if (entry.file) await fsp.rm(entry.file, { force: true }).catch(() => undefined);
+        return;
       }
-      const ext: string = fmt.ext ?? 'webm';
-      const resolved: Resolved = {
-        url: fmt.url,
-        headers,
-        size: fmt.filesize ?? fmt.filesize_approx ?? 0,
-        mime: ext === 'm4a' ? 'audio/mp4' : ext === 'mp4' ? 'video/mp4' : ext === 'mp3' ? 'audio/mpeg' : 'audio/webm',
-        at: Date.now(),
-      };
-      this.resolved.set(videoId, resolved);
-      return resolved;
-    })().finally(() => this.inflight.delete(videoId));
-    this.inflight.set(videoId, p);
-    return p;
+      entry.total = fs.statSync(entry.file).size;
+      entry.done = true;
+      this.trimStreamCache();
+    })();
+    return entry;
+  }
+
+  private dropStream(videoId: string) {
+    const e = this.streams.get(videoId);
+    if (!e) return;
+    this.streams.delete(videoId);
+    e.cancelled = true;
+    e.proc?.kill();
+    const file = e.file;
+    setTimeout(() => {
+      if (file) fs.rm(file, { force: true }, () => undefined);
+    }, 1500);
+  }
+
+  /** Conserva en la caché solo las últimas canciones escuchadas. */
+  private trimStreamCache() {
+    const done = [...this.streams.values()].filter((e) => e.done).sort((a, b) => b.lastUse - a.lastUse);
+    for (const e of done.slice(30)) this.dropStream(e.videoId);
+  }
+
+  private findFile(dir: string, videoId: string): string | undefined {
+    try {
+      const name = fs.readdirSync(dir).find((f) => f.startsWith(`${videoId}.`) && !/\.(jpg|part|ytdl|json|tmp)$/i.test(f));
+      return name ? path.join(dir, name) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private fileSize(file?: string): number {
+    try {
+      return file ? fs.statSync(file).size : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  private async waitFor(cond: () => boolean, timeoutMs: number) {
+    const start = Date.now();
+    while (!cond() && Date.now() - start < timeoutMs) await new Promise((r) => setTimeout(r, 150));
+    return cond();
   }
 
   async prepare(videoId: string): Promise<ResolveResult> {
     if (this.downloadFile(videoId)) return { ok: true };
-    try {
-      await this.resolve(videoId);
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, message: (err as Error).message };
-    }
+    const e = this.startStream(videoId);
+    // Listo cuando ya hay audio para empezar (o el archivo completo si es muy corto).
+    await this.waitFor(() => !!e.error || e.done || (this.fileSize(e.file) > 256 * 1024 && e.total > 0), 120_000);
+    if (e.error) return { ok: false, message: e.error };
+    if (!e.done && this.fileSize(e.file) === 0) return { ok: false, message: 'YouTube tardó demasiado en responder. Intenta de nuevo.' };
+    return { ok: true };
+  }
+
+  lastError(videoId: string): string | null {
+    return this.streams.get(videoId)?.error ?? null;
   }
 
   downloadFile(videoId: string): string | undefined {
@@ -361,37 +435,33 @@ export class YouTube {
     return fs.existsSync(file) ? file : undefined;
   }
 
-  /** Respuesta parcial (206) con un trozo del audio remoto, a partir de la cabecera Range del reproductor. */
+  /** Sirve el audio que yt-dlp va descargando, con soporte de rangos para poder adelantar. */
   async streamResponse(videoId: string, range: string | null): Promise<Response> {
-    let info = await this.resolve(videoId);
+    const e = this.startStream(videoId);
+    if (e.done && e.file) return fileResponse(e.file, range);
     const m = /bytes=(\d*)-(\d*)/.exec(range ?? '');
     const start = m && m[1] ? Number(m[1]) : 0;
-    let end = m && m[2] ? Number(m[2]) : start + CHUNK - 1;
-    end = Math.min(end, start + CHUNK - 1);
-    if (info.size) end = Math.min(end, info.size - 1);
-
-    const get = (r: Resolved) => this.o.fetch(r.url, { headers: { ...r.headers, Range: `bytes=${start}-${end}` } });
-    let res = await get(info);
-    if (res.status === 403 || res.status === 410 || res.status === 404) {
-      info = await this.resolve(videoId, true);
-      res = await get(info);
+    const reqEnd = m && m[2] ? Number(m[2]) : Infinity;
+    // Espera a conocer el tamaño total y a tener datos desde la posición pedida.
+    await this.waitFor(() => !!e.error || e.done || (e.total > 0 && this.fileSize(e.file) > start), 90_000);
+    if (e.done && e.file) return fileResponse(e.file, range);
+    const avail = this.fileSize(e.file);
+    if (e.error || !e.file || avail <= start) {
+      return new Response(e.error ?? 'Sin datos', { status: e.error ? 502 : 504, headers: corsHeaders() });
     }
-    if (res.status === 416) return new Response(null, { status: 416, headers: corsHeaders() });
-    if (!res.ok) return new Response(null, { status: 502, headers: corsHeaders() });
-
-    const cr = res.headers.get('content-range');
-    const total = cr ? Number(cr.split('/')[1]) || info.size : info.size;
-    if (total && !info.size) info.size = total;
+    const end = Math.min(reqEnd, avail - 1, start + 4 * 1024 * 1024 - 1);
     const headers = corsHeaders();
-    headers.set('Content-Type', info.mime);
+    headers.set('Content-Type', audioMime(e.file));
     headers.set('Accept-Ranges', 'bytes');
-    const len = res.headers.get('content-length');
-    if (len) headers.set('Content-Length', len);
-    if (res.status === 206 && cr) {
-      headers.set('Content-Range', cr);
-      return new Response(res.body, { status: 206, headers });
-    }
-    return new Response(res.body, { status: 200, headers });
+    headers.set('Content-Range', `bytes ${start}-${end}/${e.total || '*'}`);
+    headers.set('Content-Length', String(end - start + 1));
+    const body = Readable.toWeb(fs.createReadStream(e.file, { start, end })) as ReadableStream;
+    return new Response(body, { status: 206, headers });
+  }
+
+  private log(text: string) {
+    if (!this.o.logFile) return;
+    fs.appendFile(this.o.logFile, `[${new Date().toISOString()}] ${text}\n`, () => undefined);
   }
 
   // ───────────────────────────── Descargas ─────────────────────────────
@@ -440,9 +510,15 @@ export class YouTube {
     const active = this.dlActive;
     try {
       this.o.onDownload({ videoId, state: 'running', progress: 0 });
+      const cached = this.streams.get(videoId);
+      let r = { code: 0, stdout: '', stderr: '' };
+      if (cached?.done && cached.file && fs.existsSync(cached.file)) {
+        // Ya se escuchó completa: se copia de la caché sin volver a descargar.
+        await fsp.copyFile(cached.file, path.join(this.o.downloadsDir, path.basename(cached.file)));
+      } else {
       const js = await this.jsRuntimeArgs();
       let lastEmit = 0;
-      const r = await this.run(
+      r = await this.run(
         [...js, '-f', 'bestaudio[ext=m4a]/bestaudio[acodec=opus]/bestaudio/best', '--no-playlist', '--no-part', '--no-mtime',
           '--newline', '--progress', '--no-warnings', '-o', path.join(this.o.downloadsDir, '%(id)s.%(ext)s'),
           '--progress-template', 'download:PIPO %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s',
@@ -460,11 +536,15 @@ export class YouTube {
         30 * 60_000,
         (p) => (active.proc = p),
       );
+      }
       if (active.cancelled) {
         await this.deleteDownload(videoId);
         return;
       }
-      if (r.code !== 0) throw new Error(friendlyError(r.stderr) ?? 'La descarga no se completó.');
+      if (r.code !== 0) {
+        this.log(`descargar ${videoId}: código ${r.code}\n${r.stderr.split('\n').slice(-25).join('\n')}`);
+        throw new Error(friendlyError(r.stderr) ?? 'La descarga no se completó.');
+      }
       const files = await fsp.readdir(this.o.downloadsDir);
       const name = files.find((f) => f.startsWith(`${videoId}.`) && !/\.(jpg|part|ytdl|json|tmp)$/i.test(f));
       if (!name) throw new Error('No se encontró el archivo descargado.');
@@ -506,15 +586,10 @@ export class YouTube {
   stopAll() {
     this.dlQueue = [];
     this.dlActive?.proc?.kill();
+    for (const e of this.streams.values()) e.proc?.kill();
   }
 }
 
-export function corsHeaders(): Headers {
-  const h = new Headers();
-  h.set('Access-Control-Allow-Origin', '*');
-  h.set('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
-  return h;
-}
 
 function parseDuration(text?: string): number {
   if (!text) return 0;

@@ -22,6 +22,8 @@ const api: PipoApi = {
 
   ytSearch: (q, kind) => ipcRenderer.invoke('yt:search', q, kind),
   ytPrepare: (id) => ipcRenderer.invoke('yt:prepare', id),
+  ytLastError: (id) => ipcRenderer.invoke('yt:lastError', id),
+  ytOpenLog: () => ipcRenderer.invoke('yt:openLog'),
   ytDownload: (track) => ipcRenderer.invoke('yt:download', track),
   ytCancelDownload: (id) => ipcRenderer.invoke('yt:cancel', id),
   ytDeleteDownload: (id) => ipcRenderer.invoke('yt:delete', id),

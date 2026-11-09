@@ -122,6 +122,8 @@ export function createMockApi(): PipoApi {
       }));
     },
     ytPrepare: async () => ({ ok: true }),
+    ytLastError: async () => null,
+    ytOpenLog: async () => undefined,
     ytDownload: async (track) => {
       const videoId = track.videoId!;
       let p = 0;

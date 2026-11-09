@@ -141,6 +141,15 @@ export function SettingsView() {
             <Icon name="folder" size={20} /> Abrir carpeta
           </button>
         </div>
+        <div className="panel-row">
+          <div className="grow">
+            <div>Registro de errores de YouTube</div>
+            <div className="muted small">Si algo de YouTube falla, aquí queda el detalle técnico.</div>
+          </div>
+          <button type="button" className="btn outline" onClick={() => void api.ytOpenLog()}>
+            <Icon name="info" size={20} /> Ver registro
+          </button>
+        </div>
       </section>
 
       <section className="panel">

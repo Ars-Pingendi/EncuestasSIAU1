@@ -152,6 +152,8 @@ app.whenReady().then(() => {
     bundledBinDir: path.join(resourcesDir, 'bin'),
     cacheDir: path.join(app.getPath('userData'), 'ytdlp-cache'),
     downloadsDir: path.join(app.getPath('userData'), 'descargas'),
+    streamDir: path.join(app.getPath('userData'), 'cache-audio'),
+    logFile: path.join(app.getPath('userData'), 'youtube.log'),
     nodeRuntime: process.platform === 'win32' ? process.execPath : undefined,
     onDownload: (e: DownloadEvent) => send('yt:download', e),
   });
@@ -190,6 +192,12 @@ app.whenReady().then(() => {
   // YouTube
   handle('yt:search', (q: string, kind: YtSearchKind) => youtube.search(q, kind));
   handle('yt:prepare', (videoId: string) => youtube.prepare(videoId));
+  handle('yt:lastError', (videoId: string) => youtube.lastError(videoId));
+  handle('yt:openLog', async () => {
+    const log = path.join(app.getPath('userData'), 'youtube.log');
+    if (!fs.existsSync(log)) fs.writeFileSync(log, '');
+    await shell.openPath(log);
+  });
   handle('yt:download', (track: Track) => youtube.enqueueDownload(track));
   handle('yt:cancel', (videoId: string) => youtube.cancelDownload(videoId));
   handle('yt:delete', (videoId: string) => youtube.deleteDownload(videoId));

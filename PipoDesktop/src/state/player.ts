@@ -423,7 +423,15 @@ export function initPlayer() {
   });
   el.addEventListener('error', () => {
     if (!el.getAttribute('src')) return;
-    onLoadError(currentTrack(), 'formato no compatible o archivo no disponible');
+    const t = currentTrack();
+    if (t?.source === 'youtube' && t.videoId && !isDownloaded(t)) {
+      const token = loadToken;
+      void api.ytLastError(t.videoId).then((msg) => {
+        if (token === loadToken) onLoadError(t, msg ?? 'YouTube interrumpió el audio. Intenta de nuevo.');
+      });
+      return;
+    }
+    onLoadError(t, 'formato no compatible o archivo no disponible');
   });
 
   if ('mediaSession' in navigator) {

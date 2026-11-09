@@ -1,7 +1,7 @@
 {
   "name": "pipo-music-player",
   "productName": "Pipo Music Player",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pipo Music Player para Windows: tu música, ecualizador de 10 bandas, listas, favoritos y YouTube.",
   "author": "Pipo",
   "license": "GPL-3.0-or-later",

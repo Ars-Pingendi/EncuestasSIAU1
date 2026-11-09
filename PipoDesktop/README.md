@@ -15,7 +15,7 @@ Versión de escritorio de Pipo Music Player, con las mismas funciones que la app
 
 ## Instalar
 
-1. Descarga `PipoMusicPlayer-Setup-1.0.0.exe` (instalador) o `PipoMusicPlayer-Portable-1.0.0.exe` (no requiere instalación) desde los artefactos **PipoMusicPlayer-Instalador** o **PipoMusicPlayer-Portable** del flujo *Pipo Music Player - Windows* en GitHub Actions.
+1. Descarga `PipoMusicPlayer-Setup-1.0.1.exe` (instalador) o `PipoMusicPlayer-Portable-1.0.1.exe` (no requiere instalación) desde los artefactos **PipoMusicPlayer-Instalador** o **PipoMusicPlayer-Portable** del flujo *Pipo Music Player - Windows* en GitHub Actions.
 2. Ábrelo. Como la app no está firmada digitalmente, Windows SmartScreen puede mostrar «Windows protegió su PC»: elige **Más información → Ejecutar de todas formas**.
 3. Pipo encuentra sola la música de tu carpeta *Música*. Si la tienes en otra parte: *Ajustes → Agregar carpeta*.
 

@@ -116,6 +116,8 @@ export interface PipoApi {
   // YouTube
   ytSearch(query: string, kind: YtSearchKind): Promise<YtItem[]>;
   ytPrepare(videoId: string): Promise<ResolveResult>;
+  ytLastError(videoId: string): Promise<string | null>;
+  ytOpenLog(): Promise<void>;
   ytDownload(track: Track): Promise<void>;
   ytCancelDownload(videoId: string): Promise<void>;
   ytDeleteDownload(videoId: string): Promise<void>;
