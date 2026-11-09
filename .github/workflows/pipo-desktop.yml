@@ -1,0 +1,116 @@
+name: Pipo Music Player - Windows
+
+on:
+  push:
+    branches: ["ccr-87fb0d44-h5atsk"]
+    paths:
+      - "PipoDesktop/**"
+      - "!PipoDesktop/capturas/**"
+      - ".github/workflows/pipo-desktop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pipo-desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  muestras:
+    name: Música de ejemplo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: MusicPlayer/manual
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+      - run: bash MusicPlayer/manual/make_samples.sh muestras && rm muestras/*.png && ls muestras
+      - uses: actions/upload-artifact@v4
+        with:
+          name: muestras
+          path: muestras
+
+  windows:
+    name: Compilar y probar en Windows
+    needs: muestras
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: PipoDesktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: PipoDesktop/package-lock.json
+
+      - name: Dependencias
+        run: npm ci --no-audit --no-fund
+
+      - name: Componente de YouTube (yt-dlp.exe)
+        run: |
+          curl -fsSL --retry 4 -o resources/bin/yt-dlp.exe https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+          ./resources/bin/yt-dlp.exe --version
+
+      - name: Compilar
+        run: npm run build
+
+      - name: Empaquetar instalador y versión portable
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          npx electron-builder --win --x64 --publish never
+          ls -la release
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: muestras
+          path: PipoDesktop/muestras
+
+      - name: Prueba en Windows (capturas)
+        run: node scripts/smoke.mjs "release/win-unpacked/Pipo Music Player.exe" "$(cygpath -w "$PWD/muestras")" capturas-tmp
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-windows
+          path: PipoDesktop/capturas-tmp
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PipoMusicPlayer-Windows
+          path: PipoDesktop/release/*.exe
+          if-no-files-found: error
+          compression-level: 0
+
+  capturas:
+    name: Guardar capturas
+    needs: windows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: capturas-windows
+          path: capturas
+      - name: Convertir a JPG y guardar en el repositorio
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          rm -rf PipoDesktop/capturas && mkdir -p PipoDesktop/capturas
+          for f in capturas/*.png; do
+            ffmpeg -loglevel error -y -i "$f" -q:v 3 "PipoDesktop/capturas/$(basename "${f%.png}").jpg"
+          done
+          cp capturas/informe.json PipoDesktop/capturas/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A PipoDesktop/capturas
+          if git commit -m "docs(PipoDesktop): capturas de la prueba en Windows"; then
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
