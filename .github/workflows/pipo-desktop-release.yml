@@ -2,6 +2,7 @@ name: Pipo Music Player - publicar versión de Windows
 
 # Publica como Release de GitHub el instalador y la versión portable ya compilados y probados
 # por el flujo «Pipo Music Player - Windows» (sin volver a compilar).
+# Versión publicada: la de PipoDesktop/package.json (1.0.2: compartir canciones).
 on:
   push:
     branches: ["ccr-87fb0d44-h5atsk"]
