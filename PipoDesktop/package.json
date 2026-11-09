@@ -89,6 +89,12 @@
     },
     "portable": {
       "artifactName": "PipoMusicPlayer-Portable-${version}.${ext}"
-    }
+    },
+    "electronLanguages": [
+      "es",
+      "es-419",
+      "en-US"
+    ],
+    "compression": "maximum"
   }
 }

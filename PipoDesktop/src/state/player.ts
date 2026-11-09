@@ -94,6 +94,9 @@ async function load(index: number, autoplay: boolean, startMs = 0) {
   saveQueue();
 
   if (track.source === 'youtube' && !isDownloaded(track) && track.videoId) {
+    // La canción anterior se detiene mientras YouTube prepara el audio.
+    engine.pause();
+    player.set({ position: 0, loading: true });
     const r = await api.ytPrepare(track.videoId);
     if (token !== loadToken) return;
     if (!r.ok) {

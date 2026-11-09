@@ -144,14 +144,18 @@ if (ytOk) {
   await step('YouTube: reproducir solo el audio', async () => {
     await page.locator('.main-scroll .track-row').first().dblclick();
     const start = Date.now();
+    let last = -1;
     while (Date.now() - start < 75_000) {
       await page.waitForTimeout(2000);
-      const nowTitle = await page.locator('.player-bar .now-text .t1').textContent().catch(() => '');
-      const t = await timeText();
-      if (toSec(t) >= 3 && nowTitle) return `sonando «${nowTitle}» en ${t}`;
       const toast = await page.locator('.toast').allTextContents();
       const err = toast.find((x) => x.startsWith('No se pudo reproducir'));
       if (err) throw new Error(err);
+      const nowTitle = await page.locator('.player-bar .now-text .t1').textContent().catch(() => '');
+      const sec = toSec(await timeText());
+      // La posición debe avanzar entre dos lecturas y el botón debe estar en pausa (sonando).
+      const playing = (await page.locator('.player-bar .play-btn').getAttribute('title'))?.startsWith('Pausar');
+      if (playing && last >= 1 && sec > last) return `sonando «${nowTitle}» en ${await timeText()}`;
+      last = playing ? sec : -1;
     }
     throw new Error(`no empezó a sonar (posición ${await timeText()})`);
   });

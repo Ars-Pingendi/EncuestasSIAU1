@@ -84,8 +84,15 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PipoMusicPlayer-Windows
-          path: PipoDesktop/release/*.exe
+          name: PipoMusicPlayer-Instalador
+          path: PipoDesktop/release/PipoMusicPlayer-Setup-*.exe
+          if-no-files-found: error
+          compression-level: 0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PipoMusicPlayer-Portable
+          path: PipoDesktop/release/PipoMusicPlayer-Portable-*.exe
           if-no-files-found: error
           compression-level: 0
 
