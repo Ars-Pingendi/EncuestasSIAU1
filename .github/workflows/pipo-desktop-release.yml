@@ -1,0 +1,66 @@
+name: Pipo Music Player - publicar versión de Windows
+
+# Publica como Release de GitHub el instalador y la versión portable ya compilados y probados
+# por el flujo «Pipo Music Player - Windows» (sin volver a compilar).
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: "Id de la ejecución de «Pipo Music Player - Windows» con los instaladores"
+        required: true
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: PipoDesktop/package.json
+          sparse-checkout-cone-mode: false
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: PipoMusicPlayer-*
+          merge-multiple: true
+          path: instaladores
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Crear o actualizar la Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -la instaladores
+          VERSION=$(node -p "require('./PipoDesktop/package.json').version")
+          TAG="pipo-windows-v${VERSION}"
+          cat > notas.md <<NOTAS
+          Reproductor de música personal para **Windows 10 y 11** (64 bits), con las mismas funciones que la app de Android.
+
+          ## Descargas
+          - **PipoMusicPlayer-Setup-${VERSION}.exe**: instalador, con accesos directos en el escritorio y el menú Inicio.
+          - **PipoMusicPlayer-Portable-${VERSION}.exe**: versión portable; se abre sin instalar.
+
+          Como la app no tiene firma digital, Windows SmartScreen puede mostrar «Windows protegió su PC»: elige **Más información → Ejecutar de todas formas**.
+
+          ## Qué incluye
+          - Biblioteca automática desde la carpeta *Música* y las carpetas que agregues; se actualiza sola.
+          - Canciones, álbumes, artistas, géneros y carpetas; búsqueda sin importar tildes.
+          - Ecualizador de 10 bandas (31 Hz – 16 kHz) con 13 preajustes, preajustes propios, refuerzo de graves, sonido envolvente y amplificación; un ajuste distinto por cada salida de audio.
+          - Listas y favoritos reordenables, listas automáticas, cola editable, temporizador de apagado y reanudación donde lo dejaste.
+          - Teclas multimedia, panel multimedia de Windows y botones en la barra de tareas; tema claro u oscuro.
+          - YouTube sin anuncios (solo audio, con ecualizador) y descargas para escuchar sin internet. Esta función incumple los términos de uso de YouTube y puede dejar de funcionar si YouTube cambia algo; se corrige con «Ajustes → Actualizar componente de YouTube».
+
+          Licencia GPL-3.0. Código fuente en la carpeta \`PipoDesktop/\` de este repositorio.
+          NOTAS
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" instaladores/*.exe --clobber
+            gh release edit "$TAG" --notes-file notas.md
+          else
+            gh release create "$TAG" instaladores/*.exe --target "$GITHUB_SHA" \
+              --title "Pipo Music Player ${VERSION} para Windows" --notes-file notas.md
+          fi
+          gh release view "$TAG" --json url,assets --jq '.url, (.assets[] | "\(.name) \(.size)")'
