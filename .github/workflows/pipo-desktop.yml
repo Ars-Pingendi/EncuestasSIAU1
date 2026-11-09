@@ -25,7 +25,7 @@ jobs:
         with:
           sparse-checkout: MusicPlayer/manual
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
-      - run: bash MusicPlayer/manual/make_samples.sh muestras && rm muestras/*.png && ls muestras
+      - run: bash MusicPlayer/manual/make_samples.sh muestras && rm -f muestras/*.png && ls muestras
       - uses: actions/upload-artifact@v4
         with:
           name: muestras

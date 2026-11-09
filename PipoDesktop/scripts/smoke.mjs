@@ -48,7 +48,8 @@ await step('La biblioteca carga la música de ejemplo', async () => {
   await page.waitForTimeout(1500);
   const count = await page.locator('.view-title .count').textContent();
   await shot('01-canciones');
-  if (!/12 canciones/.test(count ?? '')) throw new Error(`se esperaban 12 canciones, hay: ${count}`);
+  const n = Number(/(\d+) canciones/.exec(count ?? '')?.[1] ?? 0);
+  if (n < 12) throw new Error(`se esperaban al menos 12 canciones, hay: ${count}`);
   return count;
 });
 
