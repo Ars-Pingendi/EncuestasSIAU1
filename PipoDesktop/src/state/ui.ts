@@ -72,7 +72,7 @@ export function navigate(route: Route) {
   ui.set((s) => {
     const top = s.stack[s.stack.length - 1];
     if (JSON.stringify(top) === JSON.stringify(route)) return { nowPlaying: false };
-    if (ROOTS.has(route.view)) return { stack: [route], nowPlaying: false };
+    if (ROOTS.has(route.view)) return { stack: [route], nowPlaying: false, searchText: '' };
     if (route.view === 'search' && top.view === 'search') return { stack: [...s.stack.slice(0, -1), route], nowPlaying: false };
     return { stack: [...s.stack, route].slice(-30), nowPlaying: false };
   });
