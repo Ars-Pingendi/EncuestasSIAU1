@@ -72,7 +72,7 @@ final class LibraryStore: ObservableObject {
                 let track = LibraryScanner.makeTrack(f, meta, addedAt: previous[f.relativePath]?.track.addedAt)
                 fresh[f.relativePath] = LibraryScanner.CacheEntry(size: f.size, modified: f.modified, track: track)
             }
-            let lib = useLibrary ? LibraryScanner.musicLibraryTracks() : ([], [:])
+            let lib: (tracks: [Track], urls: [UInt64: URL]) = useLibrary ? LibraryScanner.musicLibraryTracks() : (tracks: [], urls: [:])
             return (fresh, lib.tracks, lib.urls)
         }.value
         cache = result.0
