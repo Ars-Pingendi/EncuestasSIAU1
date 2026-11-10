@@ -1,0 +1,147 @@
+name: Pipo Music Player - iPhone
+
+on:
+  push:
+    branches: ["ccr-87fb0d44-h5atsk"]
+    paths:
+      - "PipoIOS/**"
+      - "!PipoIOS/capturas/**"
+      - ".github/workflows/pipo-ios.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pipo-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  muestras:
+    name: Música de ejemplo
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: MusicPlayer/manual
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+      - run: bash MusicPlayer/manual/make_samples.sh muestras && rm -f muestras/*.png && ls muestras
+      - uses: actions/upload-artifact@v4
+        with:
+          name: muestras-ios
+          path: muestras
+
+  ios:
+    name: Compilar y probar (simulador de iPhone)
+    needs: muestras
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Herramientas
+        run: |
+          xcodebuild -version
+          brew install xcodegen > /dev/null
+
+      - name: Generar el proyecto de Xcode
+        working-directory: PipoIOS
+        run: xcodegen generate
+
+      - name: Compilar para el simulador
+        run: |
+          xcodebuild -project PipoIOS/Pipo.xcodeproj -scheme Pipo -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/sim CODE_SIGNING_ALLOWED=NO -quiet build
+
+      - name: Compilar para iPhone (IPA sin firmar)
+        run: |
+          xcodebuild -project PipoIOS/Pipo.xcodeproj -scheme Pipo -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' \
+            -derivedDataPath build/dev CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" -quiet build
+          mkdir -p ipa/Payload
+          cp -R build/dev/Build/Products/Release-iphoneos/Pipo.app ipa/Payload/
+          VERSION=$(/usr/libexec/PlistBuddy -c "Print CFBundleShortVersionString" ipa/Payload/Pipo.app/Info.plist)
+          (cd ipa && zip -qry "../PipoMusicPlayer-iPhone-${VERSION}.ipa" Payload)
+          ls -la *.ipa
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: muestras-ios
+          path: muestras
+
+      - name: Capturas en el simulador
+        run: bash PipoIOS/scripts/capturas.sh build/sim/Build/Products/Debug-iphonesimulator/Pipo.app muestras capturas-tmp
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: capturas-iphone
+          path: capturas-tmp
+          if-no-files-found: ignore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PipoMusicPlayer-iPhone
+          path: "*.ipa"
+          if-no-files-found: error
+          compression-level: 0
+
+  capturas:
+    name: Guardar capturas
+    needs: ios
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: capturas-iphone
+          path: capturas
+      - name: Convertir a JPG y guardar en el repositorio
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          rm -rf PipoIOS/capturas && mkdir -p PipoIOS/capturas
+          for f in capturas/*.png; do
+            ffmpeg -loglevel error -y -i "$f" -vf scale=590:-1 -q:v 3 "PipoIOS/capturas/$(basename "${f%.png}").jpg"
+          done
+          cp capturas/prueba.json PipoIOS/capturas/ 2>/dev/null || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A PipoIOS/capturas
+          if git commit -m "docs(PipoIOS): capturas del simulador de iPhone"; then
+            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
+
+  publicar:
+    name: Publicar IPA
+    needs: ios
+    # Solo cuando el mensaje del commit lo pide de forma explícita.
+    if: contains(github.event.head_commit.message, '[publicar-ios]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: PipoMusicPlayer-iPhone
+          path: ipa
+      - name: Crear o actualizar la Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FILE=$(ls ipa/*.ipa | head -1)
+          VERSION=$(basename "$FILE" .ipa | sed 's/PipoMusicPlayer-iPhone-//')
+          TAG="pipo-iphone-v${VERSION}"
+          cat > notas.md <<NOTAS
+          Pipo Music Player ${VERSION} para **iPhone** (iOS 16 o posterior).
+
+          El archivo .ipa no está firmado: se instala con tu Apple ID gratis desde Windows o Mac con **Sideloadly** o **AltStore** (hay que renovarla cada 7 días), o se publica en TestFlight / App Store con una cuenta de desarrollador de Apple. Instrucciones en \`PipoIOS/README.md\`.
+
+          Incluye: biblioteca (archivos en Pipo y app Música sin DRM), álbumes, artistas, géneros y carpetas; ecualizador de 10 bandas con 13 preajustes, graves, sonido envolvente, amplificación y un ajuste por salida (altavoz, audífonos, Bluetooth, AirPlay); listas y favoritos; cola editable; temporizador; reproducción en segundo plano con controles en la pantalla bloqueada; y compartir por WhatsApp, AirDrop, Mensajes, Mail o Archivos.
+          NOTAS
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --clobber -R "$GITHUB_REPOSITORY"
+            gh release edit "$TAG" --notes-file notas.md -R "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$FILE" --target "$GITHUB_SHA" -R "$GITHUB_REPOSITORY" \
+              --title "Pipo Music Player ${VERSION} para iPhone" --notes-file notas.md
+          fi
