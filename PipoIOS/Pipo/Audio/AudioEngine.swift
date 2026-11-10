@@ -9,6 +9,8 @@ final class AudioEngine {
 
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
+    /// Convierte cualquier archivo (mono, 44,1 kHz, 96 kHz…) al formato fijo de la cadena de efectos.
+    private let converter = AVAudioMixerNode()
     private let eq = AVAudioUnitEQ(numberOfBands: 11)
     private let limiter: AVAudioUnitEffect
     private var file: AVAudioFile?
@@ -39,10 +41,16 @@ final class AudioEngine {
         )
         limiter = AVAudioUnitEffect(audioComponentDescription: desc)
         engine.attach(player)
+        engine.attach(converter)
         engine.attach(eq)
         engine.attach(limiter)
-        engine.connect(eq, to: limiter, format: nil)
-        engine.connect(limiter, to: engine.mainMixerNode, format: nil)
+        // Estéreo en coma flotante a la frecuencia de la salida: el ecualizador y el limitador
+        // no aceptan cambios de canales ni de frecuencia entre su entrada y su salida.
+        let outRate = engine.outputNode.outputFormat(forBus: 0).sampleRate
+        let chain = AVAudioFormat(standardFormatWithSampleRate: outRate > 0 ? outRate : 48000, channels: 2)!
+        engine.connect(converter, to: eq, format: chain)
+        engine.connect(eq, to: limiter, format: chain)
+        engine.connect(limiter, to: engine.mainMixerNode, format: chain)
         for (i, hz) in EqMath.bandsHz.enumerated() {
             let band = eq.bands[i]
             band.filterType = .parametric
@@ -70,7 +78,7 @@ final class AudioEngine {
         if connectedFormat == nil || connectedFormat! != format {
             if engine.isRunning { engine.stop() }
             engine.disconnectNodeOutput(player)
-            engine.connect(player, to: eq, format: format)
+            engine.connect(player, to: converter, format: format)
             connectedFormat = format
         }
         file = f
