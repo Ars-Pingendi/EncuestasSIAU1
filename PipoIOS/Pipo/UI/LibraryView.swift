@@ -41,11 +41,22 @@ struct LibraryView: View {
             EmptyLibraryView(importing: $importing)
         } else {
             VStack(spacing: 0) {
-                Picker("Sección", selection: $section) {
-                    ForEach(LibrarySection.allCases) { Text($0.title).tag($0) }
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(LibrarySection.allCases) { s in
+                            Button { section = s } label: {
+                                Text(s.title)
+                                    .font(.subheadline.weight(section == s ? .semibold : .regular))
+                                    .foregroundStyle(section == s ? Theme.accent : Color.primary)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 7)
+                                    .background(section == s ? Theme.accent.opacity(0.18) : Color(uiColor: .tertiarySystemFill), in: Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
                 }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
                 .padding(.vertical, 6)
                 switch section {
                 case .songs:

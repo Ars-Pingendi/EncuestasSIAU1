@@ -2,6 +2,7 @@
 name: Pipo
 options:
   bundleIdPrefix: com.personal
+  developmentLanguage: es
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
@@ -30,6 +31,8 @@ targets:
       path: Pipo/Info.plist
       properties:
         CFBundleDisplayName: Pipo
+        CFBundleDevelopmentRegion: es
+        CFBundleLocalizations: [es]
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         LSRequiresIPhoneOS: true

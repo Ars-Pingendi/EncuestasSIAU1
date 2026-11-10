@@ -11,8 +11,7 @@ struct NowPlayingView: View {
 
     var body: some View {
         let t = player.current
-        ZStack {
-            background(t)
+        VStack(spacing: 0) {
             VStack(spacing: 18) {
                 HStack {
                     Button { router.showNowPlaying = false } label: {
@@ -115,6 +114,8 @@ struct NowPlayingView: View {
             .padding(.horizontal, 24)
             .padding(.bottom, 12)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { background(t) }
         .overlay(alignment: .top) { ToastView() }
         .sheet(isPresented: $showQueue) {
             NavigationStack { QueueView() }
@@ -138,7 +139,9 @@ struct NowPlayingView: View {
         ZStack {
             Color(uiColor: .systemBackground)
             if let img = ArtCache.image(t?.artKey) {
-                Image(uiImage: img).resizable().scaledToFill().blur(radius: 60).opacity(0.45)
+                Color.clear
+                    .overlay(Image(uiImage: img).resizable().scaledToFill().blur(radius: 60).opacity(0.45))
+                    .clipped()
             } else {
                 LinearGradient(colors: [Color.seeded(t?.album ?? "Pipo").opacity(0.5), Color.clear], startPoint: .top, endPoint: .bottom)
             }
