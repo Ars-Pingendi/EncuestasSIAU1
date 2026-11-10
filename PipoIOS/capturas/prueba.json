@@ -1,13 +1,13 @@
 {
   "albumes" : 4,
   "artistas" : 4,
-  "cancion" : "Frailejones",
+  "cancion" : "Brisa de Barranquilla",
   "canciones" : 13,
   "carpetas" : 1,
   "duracion" : 45.035102040816327,
   "generos" : 4,
-  "posicion" : 0,
+  "posicion" : 5.8666666666666663,
   "preajuste" : "Plano",
   "salida" : "Altavoz del iPhone",
-  "sonando" : false
+  "sonando" : true
 }
