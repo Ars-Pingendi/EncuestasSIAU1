@@ -46,7 +46,7 @@ function totalTime(tracks: TvTrack[]) {
 
 export function songsView(): View {
   const tracks = app.library.tracks;
-  return listView('Canciones', plural(tracks.length, 'canción', 'canciones'), tracks, { empty: 'El PC no tiene canciones en su biblioteca.' });
+  return listView('Canciones', plural(tracks.length, 'canción', 'canciones'), tracks, { empty: 'No hay canciones en la biblioteca compartida.' });
 }
 
 function groupGrid(title: string, groups: Group[], kind: string, iconName: string, round = false): View {
@@ -93,7 +93,7 @@ export function playlistsView(): View {
     el: h(
       'div',
       { class: 'view scroll' },
-      h('div', { class: 'view-head small' }, h('h1', null, 'Listas'), h('div', { class: 'head-sub' }, 'Tus listas y favoritos del PC. Para crearlas o editarlas usa Pipo en el PC.')),
+      h('div', { class: 'view-head small' }, h('h1', null, 'Listas'), h('div', { class: 'head-sub' }, 'Tus listas y favoritos. Para crearlas o editarlas usa Pipo en el PC o en el teléfono.')),
       cardGrid(items, (key) => navigate({ view: 'playlist', key })),
     ),
   };
@@ -101,7 +101,7 @@ export function playlistsView(): View {
 
 export function playlistView(id: string): View {
   const lib = app.library;
-  if (id === '__fav') return listView('Favoritos', plural(lib.favorites.length, 'canción', 'canciones'), lib.favorites, { empty: 'Marca canciones con el corazón en Pipo del PC.' });
+  if (id === '__fav') return listView('Favoritos', plural(lib.favorites.length, 'canción', 'canciones'), lib.favorites, { empty: 'Marca canciones con el corazón en Pipo (PC o teléfono).' });
   const p = lib.playlists.filter((x) => x.id === id)[0];
   if (!p) return { el: h('div', { class: 'view empty' }, 'Lista no encontrada') };
   const tracks = lib.resolve(p.trackIds);

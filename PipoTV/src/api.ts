@@ -80,9 +80,9 @@ export async function pair(address: string, pin: string): Promise<Connection> {
       'El PC no respondió.',
     );
   } catch {
-    throw new Error('No se encontró Pipo en esa dirección. Revisa que el PC esté encendido, con Pipo abierto y en la misma red que la TV.');
+    throw new Error('No se encontró Pipo en esa dirección. Revisa que el PC o el teléfono esté encendido, con «Compartir mi música con la TV» activado y en la misma red que la TV.');
   }
-  if (res.status === 403) throw new Error('El código no es correcto. Mira el código en Pipo del PC › Ajustes › Pipo en la TV.');
+  if (res.status === 403) throw new Error('El código no es correcto. Míralo en Pipo › Ajustes › Pipo en la TV (en el PC o en el teléfono).');
   if (!res.ok) throw new Error(`El PC respondió con un error (${res.status}).`);
   const data = (await res.json()) as { token: string; name: string };
   const conn: Connection = { base, token: data.token, name: data.name };
@@ -101,10 +101,10 @@ export async function loadLibrary(conn: Connection): Promise<LibraryPayload> {
   try {
     res = await withTimeout(fetch(`${conn.base}/pipo/library?t=${conn.token}`), 20000, 'Tiempo agotado');
   } catch {
-    throw new Error(`No hay conexión con «${conn.name}». ¿Está el PC encendido y Pipo abierto?`);
+    throw new Error(`No hay conexión con «${conn.name}». ¿Está encendido y con «Compartir mi música con la TV» activado?`);
   }
-  if (res.status === 401) throw new Unauthorized('La TV ya no está emparejada con el PC.');
-  if (!res.ok) throw new Error(`Error del PC (${res.status}).`);
+  if (res.status === 401) throw new Unauthorized('La TV ya no está emparejada.');
+  if (!res.ok) throw new Error(`Error del equipo (${res.status}).`);
   return (await res.json()) as LibraryPayload;
 }
 

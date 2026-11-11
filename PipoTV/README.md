@@ -1,15 +1,15 @@
 # Pipo Music Player para TV LG (webOS)
 
-App para televisores LG con webOS 4.0 o posterior (2018 en adelante) que reproduce en la TV la música de **Pipo para Windows**: canciones, álbumes, artistas, géneros, listas, favoritos y descargas de YouTube, con el mismo **ecualizador de 10 bandas** (13 preajustes, graves, sonido envolvente y amplificación).
+App para televisores LG con webOS 4.0 o posterior (2018 en adelante) que reproduce en la TV la música de **Pipo para Windows** o de **Pipo para Android**: canciones, álbumes, artistas, géneros, listas, favoritos y descargas de YouTube, con el mismo **ecualizador de 10 bandas** (13 preajustes, graves, sonido envolvente y amplificación).
 
 ## Cómo funciona
 
-Una app web de webOS no puede leer de forma fiable las memorias USB del televisor, así que la música llega desde el PC por la red de la casa:
+Una app web de webOS no puede leer de forma fiable las memorias USB del televisor, así que la música llega desde el PC o el teléfono por la red de la casa:
 
-1. En el PC: **Pipo › Ajustes › Pipo en la TV** › activa **«Compartir mi música con la TV»**. Aparecen la dirección del PC y un código de 4 cifras. Si Windows pregunta, permite el acceso en **redes privadas**.
+1. En el PC o en el teléfono Android: **Pipo › Ajustes › Pipo en la TV** › activa **«Compartir mi música con la TV»**. Aparecen la dirección y un código de 4 cifras. En Windows, si pregunta, permite el acceso en **redes privadas**. En Android aparece una notificación mientras comparte; puedes bloquear la pantalla.
 2. En la TV: abre Pipo, escribe la dirección y el código y pulsa **Conectar**. La TV queda emparejada; la próxima vez entra directo.
 
-El PC debe estar encendido y con Pipo abierto mientras escuchas. La TV y el PC deben estar en la misma red (Wi-Fi o cable). La música se detiene si sales de la app (webOS no permite reproducir en segundo plano).
+El PC (con Pipo abierto) o el teléfono (con la notificación de Pipo visible) deben seguir encendidos mientras escuchas. La TV y el equipo que comparte deben estar en la misma red (Wi-Fi o cable). La música se detiene si sales de la app (webOS no permite reproducir en segundo plano).
 
 ## Control remoto
 
@@ -25,7 +25,7 @@ El PC debe estar encendido y con Pipo abierto mientras escuchas. La TV y el PC d
 
 ## Instalar en la TV
 
-El instalador es `com.personal.pipomusicplayer_1.0.0_all.ipk`.
+El instalador es `com.personal.pipomusicplayer_1.1.0_all.ipk`.
 
 ### Opción A — Modo desarrollador (sin modificar la TV)
 
@@ -43,7 +43,7 @@ Si la TV ya tiene **Homebrew Channel**, instala el `.ipk` con webOS Dev Manager 
 
 ```bash
 npx @webos-tools/cli ares-setup-device          # registrar la TV (IP, puerto 9922, frase de acceso)
-npx @webos-tools/cli ares-install --device tv com.personal.pipomusicplayer_1.0.0_all.ipk
+npx @webos-tools/cli ares-install --device tv com.personal.pipomusicplayer_1.1.0_all.ipk
 npx @webos-tools/cli ares-launch --device tv com.personal.pipomusicplayer
 ```
 

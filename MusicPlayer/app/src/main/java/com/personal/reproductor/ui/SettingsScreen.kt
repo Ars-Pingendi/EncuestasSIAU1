@@ -5,6 +5,10 @@ package com.personal.reproductor.ui
 import java.util.Locale
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -97,6 +101,70 @@ fun SettingsScreen(vm: MainViewModel) {
                 )
             }
 
+            SectionTitle("Pipo en la TV (LG webOS)")
+            val tv by vm.tvStatus.collectAsStateWithLifecycle()
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .clickable { vm.setTvSharing(!tv.enabled) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Compartir mi música con la TV", style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        "La app Pipo del televisor reproduce la música de este teléfono, tus listas y favoritos por el Wi-Fi de la casa.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+                Switch(checked = tv.enabled, onCheckedChange = { vm.setTvSharing(it) })
+            }
+            if (tv.enabled) {
+                Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
+                    if (tv.running) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text("En la TV abre Pipo y escribe", style = MaterialTheme.typography.bodySmall)
+                                val address = tv.addresses.firstOrNull()
+                                    ?.let { if (tv.port != 37373) "$it:${tv.port}" else it }
+                                    ?: "Conéctate a un Wi-Fi"
+                                Text(address, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+                                Spacer(Modifier.padding(top = 8.dp))
+                                Text("Código", style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    tv.pin,
+                                    style = MaterialTheme.typography.headlineMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    letterSpacing = 6.sp,
+                                    color = MaterialTheme.colorScheme.primary,
+                                )
+                            }
+                        }
+                    } else {
+                        Text(
+                            "No se pudo iniciar el servidor para la TV${tv.error?.let { ": $it" } ?: ""}.",
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Text(
+                        "El teléfono y la TV deben estar en el mismo Wi-Fi. Puedes bloquear la pantalla: Pipo sigue compartiendo mientras veas su notificación.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp),
+                    )
+                    Row {
+                        TextButton(onClick = { vm.tvNewPin() }) { Text("Cambiar código") }
+                        TextButton(onClick = { vm.tvUnpairAll() }, enabled = tv.paired > 0) { Text("Olvidar TV emparejadas (${tv.paired})") }
+                    }
+                }
+            }
+
             SectionTitle("Descargas de YouTube")
             val downloaded by vm.downloadedIds.collectAsStateWithLifecycle()
             var confirmDelete by remember { mutableStateOf(false) }
@@ -137,7 +205,7 @@ fun SettingsScreen(vm: MainViewModel) {
 
             SectionTitle("Acerca de")
             Text(
-                "Pipo Music Player 1.3.0\n" +
+                "Pipo Music Player 1.5.0\n" +
                     "${pluralSongs(library.tracks.size)} · ${library.albums.size} álbumes · ${library.artists.size} artistas",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

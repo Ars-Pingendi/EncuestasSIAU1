@@ -13,8 +13,8 @@ android {
         applicationId = "com.personal.reproductor"
         minSdk = 26
         targetSdk = 34
-        versionCode = 7
-        versionName = "1.4.0"
+        versionCode = 8
+        versionName = "1.5.0"
     }
 
     // Firma estable (keystore del repositorio) para poder actualizar el APK sin desinstalar.
@@ -97,6 +97,9 @@ dependencies {
     implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
+
+    // Servidor para la app Pipo de la TV LG (webOS)
+    implementation("org.nanohttpd:nanohttpd:2.3.1")
 
     // Listas de reproducción, favoritos y estadísticas
     implementation("androidx.room:room-runtime:2.6.1")

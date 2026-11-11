@@ -264,7 +264,7 @@ export function initPlayer() {
   el.addEventListener('error', () => {
     if (!el.getAttribute('src')) return;
     const t = current();
-    toast(`No se pudo reproducir «${t ? t.title : 'la canción'}». ¿Sigue encendido el PC?`);
+    toast(`No se pudo reproducir «${t ? t.title : 'la canción'}». ¿Sigue compartiendo el PC o el teléfono?`);
     errorStreak++;
     if (errorStreak < Math.min(4, player.queue.length) && player.index < player.queue.length - 1) next(true);
   });

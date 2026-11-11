@@ -1,6 +1,6 @@
 {
   "name": "pipo-tv",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Pipo Music Player para televisores LG con webOS",
   "license": "GPL-3.0-or-later",

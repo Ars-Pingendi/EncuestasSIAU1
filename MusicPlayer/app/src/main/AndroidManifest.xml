@@ -3,6 +3,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
     <uses-permission
         android:name="android.permission.READ_EXTERNAL_STORAGE"
@@ -41,6 +42,12 @@
                 <action android:name="androidx.media3.session.MediaSessionService" />
             </intent-filter>
         </service>
+
+        <!-- Pipo en la TV: comparte la música con la app del televisor LG (webOS). -->
+        <service
+            android:name=".tv.TvShareService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <!-- Compartir descargas de YouTube con otras apps (WhatsApp, Bluetooth, correo…). -->
         <provider

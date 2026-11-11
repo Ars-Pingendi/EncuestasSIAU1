@@ -1,4 +1,4 @@
-// Biblioteca recibida del PC y sus agrupaciones.
+// Biblioteca recibida del PC o del teléfono y sus agrupaciones.
 import type { LibraryPayload, TvPlaylist, TvTrack } from './api';
 
 export const UNKNOWN_ARTIST = 'Artista desconocido';

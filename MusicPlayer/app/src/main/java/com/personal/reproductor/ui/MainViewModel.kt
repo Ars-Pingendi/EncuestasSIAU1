@@ -21,6 +21,9 @@ import com.personal.reproductor.data.Library
 import com.personal.reproductor.data.SongSort
 import com.personal.reproductor.data.Track
 import com.personal.reproductor.data.TrackSharing
+import com.personal.reproductor.tv.TvShare
+import com.personal.reproductor.tv.TvShareService
+import com.personal.reproductor.tv.TvShareStatus
 import com.personal.reproductor.data.LibraryBuilder
 import com.personal.reproductor.data.YouTubeIds
 import com.personal.reproductor.data.toTrack
@@ -330,7 +333,32 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // ------------------------------------------------------------------ Pipo en la TV
+
+    val tvStatus: StateFlow<TvShareStatus> = TvShare.status
+
+    fun setTvSharing(on: Boolean) {
+        try {
+            if (on) TvShareService.start(app) else TvShareService.stop(app)
+        } catch (e: Exception) {
+            Log.w("MainViewModel", "No se pudo iniciar Pipo en la TV", e)
+            toast("No se pudo empezar a compartir con la TV")
+        }
+    }
+
+    fun tvNewPin() {
+        TvShare.newPin(app)
+        TvShareService.refreshNotification(app)
+    }
+
+    fun tvUnpairAll() {
+        TvShare.unpairAll(app)
+        toast("Se olvidaron las TV emparejadas")
+    }
+
     init {
+        TvShare.refresh(app)
+        if (TvShare.isEnabled(app)) setTvSharing(true)
         if (_permission.value) libraryRepo.start()
         connectController()
         viewModelScope.launch { app.downloads.events.collect { toast(it) } }

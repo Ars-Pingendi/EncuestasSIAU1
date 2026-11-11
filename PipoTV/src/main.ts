@@ -55,7 +55,7 @@ async function start(conn: Connection) {
   } catch (err) {
     if (err instanceof Unauthorized) {
       forgetConnection();
-      connectScreen(root, (c) => void start(c), 'La TV ya no está emparejada. Escribe de nuevo el código que muestra el PC.');
+      connectScreen(root, (c) => void start(c), 'La TV ya no está emparejada. Escribe de nuevo el código que muestra Pipo en el PC o en el teléfono.');
       return;
     }
     while (root.firstChild) root.removeChild(root.firstChild);
@@ -64,13 +64,13 @@ async function start(conn: Connection) {
         'div',
         { class: 'connect' },
         h('img', { class: 'connect-logo', src: 'largeIcon.png', alt: '' }),
-        h('h1', null, 'No hay conexión con el PC'),
+        h('h1', null, 'No hay conexión'),
         h('p', { class: 'lead' }, (err as Error).message),
         h(
           'div',
           { class: 'form', 'data-group': 'form' },
           h('button', { class: 'btn primary big', focus: true, onclick: () => void start(conn) }, 'Reintentar'),
-          h('button', { class: 'btn big', focus: true, onclick: reconnect }, 'Conectar con otro PC'),
+          h('button', { class: 'btn big', focus: true, onclick: reconnect }, 'Conectar con otro equipo'),
         ),
       ),
     );
