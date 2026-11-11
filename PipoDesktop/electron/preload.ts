@@ -38,6 +38,11 @@ const api: PipoApi = {
   exportMany: (ids) => ipcRenderer.invoke('share:exportMany', ids),
   startDrag: (id) => ipcRenderer.send('share:drag', id),
 
+  tvStatus: () => ipcRenderer.invoke('tv:status'),
+  tvSetEnabled: (on) => ipcRenderer.invoke('tv:setEnabled', on),
+  tvNewPin: () => ipcRenderer.invoke('tv:newPin'),
+  tvUnpairAll: () => ipcRenderer.invoke('tv:unpairAll'),
+
   appInfo: () => ipcRenderer.invoke('app:info'),
   setTitleBarColors: (colors) => ipcRenderer.send('win:titleBar', colors),
   sendPlayerState: (state) => ipcRenderer.send('player:state', state),

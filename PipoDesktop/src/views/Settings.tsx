@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import type { AppInfo } from '../../shared/types';
+import type { AppInfo, TvStatus } from '../../shared/types';
 import { api } from '../api';
-import { Segmented, ViewTitle } from '../components/Common';
+import { Segmented, Switch, ViewTitle } from '../components/Common';
 import { ConfirmDialog } from '../components/Dialogs';
 import { Icon } from '../components/Icon';
 import { plural } from '../lib/format';
@@ -30,10 +30,12 @@ export function SettingsView() {
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [ytVersion, setYtVersion] = useState('…');
   const [updating, setUpdating] = useState(false);
+  const [tv, setTv] = useState<TvStatus | null>(null);
 
   useEffect(() => {
     void api.appInfo().then(setInfo);
     void api.ytVersion().then(setYtVersion);
+    void api.tvStatus().then(setTv);
   }, []);
 
   return (
@@ -104,6 +106,45 @@ export function SettingsView() {
             <Icon name="equalizer" size={20} /> Abrir ecualizador
           </button>
         </div>
+      </section>
+
+      <section className="panel">
+        <h2>Pipo en la TV (LG webOS)</h2>
+        <div className="panel-row">
+          <div className="grow">
+            <div>Compartir mi música con la TV</div>
+            <div className="muted small">La app Pipo de la TV reproduce tu biblioteca, listas y favoritos desde este PC por la red de la casa (Wi-Fi o cable).</div>
+          </div>
+          <Switch checked={!!tv?.enabled} onChange={(on) => void api.tvSetEnabled(on).then(setTv)} label="Compartir mi música con la TV" />
+        </div>
+        {tv?.enabled && (
+          <>
+            {tv.running ? (
+              <div className="tv-pair">
+                <div>
+                  <div className="muted small">En la TV, abre Pipo y escribe</div>
+                  <div className="tv-big">{tv.addresses[0] ?? 'sin red'}{tv.port !== 37373 ? `:${tv.port}` : ''}</div>
+                  {tv.addresses.length > 1 && <div className="muted small">Otras direcciones de este PC: {tv.addresses.slice(1).join(' · ')}</div>}
+                </div>
+                <div>
+                  <div className="muted small">Código</div>
+                  <div className="tv-big code">{tv.pin}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="notice warn">No se pudo iniciar el servidor para la TV{tv.error ? `: ${tv.error}` : ''}.</div>
+            )}
+            <p className="muted small">El PC debe estar encendido y con Pipo abierto mientras escuchas en la TV. Si Windows pregunta, permite el acceso en <strong>redes privadas</strong>.</p>
+            <div className="row-actions">
+              <button type="button" className="btn outline" onClick={() => void api.tvNewPin().then(setTv)}>
+                <Icon name="refresh" size={20} /> Cambiar código
+              </button>
+              <button type="button" className="btn text danger" disabled={!tv.paired} onClick={() => void api.tvUnpairAll().then((s) => (setTv(s), toast('Se olvidaron las TV emparejadas')))}>
+                Olvidar TV emparejadas ({tv.paired})
+              </button>
+            </div>
+          </>
+        )}
       </section>
 
       <section className="panel">

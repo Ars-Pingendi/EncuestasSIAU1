@@ -1,0 +1,18 @@
+{
+  "id": "com.personal.pipomusicplayer",
+  "version": "1.0.0",
+  "vendor": "Pipo",
+  "type": "web",
+  "main": "index.html",
+  "title": "Pipo Music Player",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgImage": "splash.png",
+  "splashBackground": "splash.png",
+  "bgColor": "#12101a",
+  "iconColor": "#2b1f6b",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "handlesRelaunch": false,
+  "requiredACG": []
+}

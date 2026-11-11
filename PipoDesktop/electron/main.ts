@@ -11,6 +11,7 @@ import { freePath, niceFileName } from './files';
 import { Library } from './library';
 import { handleProtocol, registerScheme } from './protocol';
 import { JsonStore } from './store';
+import { TvServer } from './tvServer';
 import { YouTube } from './youtube';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -31,6 +32,7 @@ let win: BrowserWindow | null = null;
 let store: JsonStore;
 let library: Library;
 let youtube: YouTube;
+let tvServer: TvServer;
 let lastPlayer: PlayerStateMsg = { playing: false, title: '', hasTrack: false };
 
 function send(channel: string, payload: unknown) {
@@ -278,6 +280,14 @@ app.whenReady().then(() => {
     if (s) e.sender.startDrag({ file: s.file, icon: dragIcon });
   });
 
+  // Pipo en la TV (LG webOS): biblioteca compartida por la red de la casa.
+  tvServer = new TvServer({ store, library, youtube, appVersion: app.getVersion() });
+  void tvServer.startIfEnabled();
+  handle('tv:status', () => tvServer.status());
+  handle('tv:setEnabled', (on: boolean) => tvServer.setEnabled(!!on));
+  handle('tv:newPin', () => tvServer.regeneratePin());
+  handle('tv:unpairAll', () => tvServer.unpairAll());
+
   // Sistema
   handle('app:info', () => ({
     version: app.getVersion(),
@@ -322,6 +332,7 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => app.quit());
 
 app.on('before-quit', () => {
+  tvServer?.stop();
   youtube?.stopAll();
   library?.close();
   store?.flush();

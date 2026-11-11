@@ -71,6 +71,16 @@ export interface DownloadEvent {
   info?: DownloadInfo;
 }
 
+export interface TvStatus {
+  enabled: boolean;
+  running: boolean;
+  port: number;
+  addresses: string[];
+  pin: string;
+  paired: number;
+  error?: string;
+}
+
 export interface AppInfo {
   version: string;
   platform: string;
@@ -134,6 +144,12 @@ export interface PipoApi {
   exportMany(trackIds: string[]): Promise<number | null>;
   /** Arrastrar la canción fuera de la app (WhatsApp, Explorador, correo…). */
   startDrag(trackId: string): void;
+
+  // Pipo en la TV
+  tvStatus(): Promise<TvStatus>;
+  tvSetEnabled(on: boolean): Promise<TvStatus>;
+  tvNewPin(): Promise<TvStatus>;
+  tvUnpairAll(): Promise<TvStatus>;
 
   // Ventana y sistema
   appInfo(): Promise<AppInfo>;

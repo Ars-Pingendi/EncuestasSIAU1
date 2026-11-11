@@ -155,6 +155,10 @@ export function createMockApi(): PipoApi {
     saveCopy: async () => 'C:\\Users\\Pipo\\Downloads\\copia.m4a',
     exportMany: async (ids) => ids.length,
     startDrag: () => undefined,
+    tvStatus: async () => ({ enabled: true, running: true, port: 37373, addresses: ['192.168.1.20'], pin: '4821', paired: 1 }),
+    tvSetEnabled: async (on) => ({ enabled: on, running: on, port: 37373, addresses: ['192.168.1.20'], pin: '4821', paired: 1 }),
+    tvNewPin: async () => ({ enabled: true, running: true, port: 37373, addresses: ['192.168.1.20'], pin: '7305', paired: 1 }),
+    tvUnpairAll: async () => ({ enabled: true, running: true, port: 37373, addresses: ['192.168.1.20'], pin: '7305', paired: 0 }),
     appInfo: async () => ({
       version: '1.0.0',
       platform: 'win32',
