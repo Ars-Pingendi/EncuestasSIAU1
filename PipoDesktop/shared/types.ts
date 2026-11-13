@@ -145,6 +145,14 @@ export interface PipoApi {
   /** Arrastrar la canción fuera de la app (WhatsApp, Explorador, correo…). */
   startDrag(trackId: string): void;
 
+  // Películas y series para la TV
+  videoStatus(): Promise<VideoStatus>;
+  videoAddFolder(): Promise<VideoStatus | null>;
+  videoRemoveFolder(folder: string): Promise<VideoStatus>;
+  videoRescan(): Promise<VideoStatus>;
+  onVideoProgress(cb: (s: VideoStatus) => void): () => void;
+  videoOpenLog(): Promise<void>;
+
   // Pipo en la TV
   tvStatus(): Promise<TvStatus>;
   tvSetEnabled(on: boolean): Promise<TvStatus>;
@@ -157,4 +165,16 @@ export interface PipoApi {
   sendPlayerState(state: PlayerStateMsg): void;
   onPlayerCommand(cb: (cmd: PlayerCommand) => void): () => void;
   openExternal(url: string): Promise<void>;
+}
+
+export interface VideoStatus {
+  folders: string[];
+  movies: number;
+  episodes: number;
+  series: number;
+  scanning: boolean;
+  done: number;
+  total: number;
+  /** ffmpeg disponible (sin él no se puede convertir ni leer las pistas). */
+  ffmpeg: boolean;
 }

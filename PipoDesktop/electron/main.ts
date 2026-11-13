@@ -8,10 +8,13 @@ import {
 } from 'electron';
 import type { DownloadEvent, LibrarySnapshot, PlayerStateMsg, ScanProgress, TitleBarColors, Track, YtSearchKind } from '../shared/types';
 import { freePath, niceFileName } from './files';
+import { Ffmpeg } from './ffmpeg';
 import { Library } from './library';
 import { handleProtocol, registerScheme } from './protocol';
 import { JsonStore } from './store';
 import { TvServer } from './tvServer';
+import { VideoLibrary } from './videoLibrary';
+import { VideoService } from './videoService';
 import { YouTube } from './youtube';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -33,6 +36,8 @@ let store: JsonStore;
 let library: Library;
 let youtube: YouTube;
 let tvServer: TvServer;
+let videoLibrary: VideoLibrary;
+let videoService: VideoService;
 let lastPlayer: PlayerStateMsg = { playing: false, title: '', hasTrack: false };
 
 function send(channel: string, payload: unknown) {
@@ -280,11 +285,61 @@ app.whenReady().then(() => {
     if (s) e.sender.startDrag({ file: s.file, icon: dragIcon });
   });
 
+  // Películas y series: se leen con ffmpeg y se entregan a la TV (directo o convertidas al vuelo).
+  const ffmpeg = new Ffmpeg(path.join(resourcesDir, 'bin'));
+  const videoDirs = process.env.PIPO_VIDEO_DIR ? process.env.PIPO_VIDEO_DIR.split(path.delimiter) : [app.getPath('videos')];
+  videoLibrary = new VideoLibrary({
+    store,
+    ffmpeg,
+    defaultFolders: videoDirs,
+    onProgress: (s) => send('video:progress', s),
+  });
+  videoService = new VideoService({
+    library: videoLibrary,
+    ffmpeg,
+    cacheDir: path.join(app.getPath('userData'), 'video-cache'),
+    logFile: path.join(app.getPath('userData'), 'video.log'),
+  });
+  handle('video:status', () => videoLibrary.status());
+  handle('video:addFolder', async () => {
+    const r = await dialog.showOpenDialog(win!, {
+      title: 'Agregar carpeta de películas o series',
+      buttonLabel: 'Agregar carpeta',
+      properties: ['openDirectory', 'multiSelections'],
+    });
+    if (r.canceled || !r.filePaths.length) return null;
+    for (const f of r.filePaths) videoLibrary.addFolder(f);
+    return videoLibrary.status();
+  });
+  handle('video:removeFolder', (folder: string) => videoLibrary.removeFolder(folder));
+  handle('video:rescan', () => {
+    void videoLibrary.scan();
+    return videoLibrary.status();
+  });
+  handle('video:openLog', async () => {
+    const log = path.join(app.getPath('userData'), 'video.log');
+    if (!fs.existsSync(log)) fs.writeFileSync(log, '');
+    await shell.openPath(log);
+  });
+
   // Pipo en la TV (LG webOS): biblioteca compartida por la red de la casa.
-  tvServer = new TvServer({ store, library, youtube, appVersion: app.getVersion() });
-  void tvServer.startIfEnabled();
+  tvServer = new TvServer({ store, library, youtube, appVersion: app.getVersion(), video: videoService });
+  void tvServer.startIfEnabled().then(() => {
+    // Los videos solo se leen si se comparte con la TV (la primera vez tarda por el análisis de cada archivo).
+    if (tvServer.status().enabled) {
+      videoLibrary.watch();
+      void videoLibrary.scan();
+    }
+  });
   handle('tv:status', () => tvServer.status());
-  handle('tv:setEnabled', (on: boolean) => tvServer.setEnabled(!!on));
+  handle('tv:setEnabled', async (on: boolean) => {
+    const status = await tvServer.setEnabled(!!on);
+    if (on && !videoLibrary.scannedRecently()) {
+      videoLibrary.watch();
+      void videoLibrary.scan();
+    }
+    return status;
+  });
   handle('tv:newPin', () => tvServer.regeneratePin());
   handle('tv:unpairAll', () => tvServer.unpairAll());
 
@@ -333,6 +388,8 @@ app.on('window-all-closed', () => app.quit());
 
 app.on('before-quit', () => {
   tvServer?.stop();
+  videoService?.stopAll();
+  videoLibrary?.close();
   youtube?.stopAll();
   library?.close();
   store?.flush();

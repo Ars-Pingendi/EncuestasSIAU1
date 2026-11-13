@@ -38,6 +38,13 @@ const api: PipoApi = {
   exportMany: (ids) => ipcRenderer.invoke('share:exportMany', ids),
   startDrag: (id) => ipcRenderer.send('share:drag', id),
 
+  videoStatus: () => ipcRenderer.invoke('video:status'),
+  videoAddFolder: () => ipcRenderer.invoke('video:addFolder'),
+  videoRemoveFolder: (folder) => ipcRenderer.invoke('video:removeFolder', folder),
+  videoRescan: () => ipcRenderer.invoke('video:rescan'),
+  onVideoProgress: (cb) => on('video:progress', cb),
+  videoOpenLog: () => ipcRenderer.invoke('video:openLog'),
+
   tvStatus: () => ipcRenderer.invoke('tv:status'),
   tvSetEnabled: (on) => ipcRenderer.invoke('tv:setEnabled', on),
   tvNewPin: () => ipcRenderer.invoke('tv:newPin'),

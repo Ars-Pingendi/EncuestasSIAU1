@@ -57,6 +57,23 @@ jobs:
           curl -fsSL --retry 4 -o resources/bin/yt-dlp.exe https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
           ./resources/bin/yt-dlp.exe --version
 
+      - name: Componente de video (ffmpeg.exe)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Compilación oficial «essentials» de Gyan.dev (GPL v3, con libx264); si no, la de BtbN.
+          mkdir -p ffmpeg-tmp
+          if ! gh release download --repo GyanD/codexffmpeg --pattern '*essentials_build.zip' --dir ffmpeg-tmp --clobber; then
+            curl -fsSL --retry 4 -o ffmpeg-tmp/ffmpeg.zip https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip
+          fi
+          ls -la ffmpeg-tmp
+          for z in ffmpeg-tmp/*.zip; do
+            powershell -NoProfile -Command "Expand-Archive -Force -Path '$z' -DestinationPath 'ffmpeg-tmp/extraido'"
+          done
+          cp "$(find ffmpeg-tmp/extraido -name ffmpeg.exe | head -1)" resources/bin/ffmpeg.exe
+          ./resources/bin/ffmpeg.exe -hide_banner -version | head -2
+          ./resources/bin/ffmpeg.exe -hide_banner -encoders | grep -E " (libx264|aac) "
+
       - name: Compilar
         run: npm run build
 

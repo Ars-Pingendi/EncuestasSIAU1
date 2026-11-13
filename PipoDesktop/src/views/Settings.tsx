@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { AppInfo, TvStatus } from '../../shared/types';
+import type { AppInfo, TvStatus, VideoStatus } from '../../shared/types';
 import { api } from '../api';
 import { Segmented, Switch, ViewTitle } from '../components/Common';
 import { ConfirmDialog } from '../components/Dialogs';
@@ -31,11 +31,14 @@ export function SettingsView() {
   const [ytVersion, setYtVersion] = useState('…');
   const [updating, setUpdating] = useState(false);
   const [tv, setTv] = useState<TvStatus | null>(null);
+  const [video, setVideo] = useState<VideoStatus | null>(null);
 
   useEffect(() => {
     void api.appInfo().then(setInfo);
     void api.ytVersion().then(setYtVersion);
     void api.tvStatus().then(setTv);
+    void api.videoStatus().then(setVideo);
+    return api.onVideoProgress(setVideo);
   }, []);
 
   return (
@@ -145,6 +148,53 @@ export function SettingsView() {
             </div>
           </>
         )}
+      </section>
+
+      <section className="panel">
+        <h2>Películas y series (para la TV)</h2>
+        <p className="muted small">
+          La app Pipo de la TV muestra los videos de estas carpetas (y sus subcarpetas) como películas y series, con sus subtítulos, pistas de audio y carátulas.
+          Reconoce nombres como «Película (2021).mkv» y «Serie S01E02.mkv» o carpetas «Serie/Temporada 1». Para verlas, activa «Compartir mi música con la TV».
+        </p>
+        <div className="folder-settings">
+          {(video?.folders ?? []).map((f) => (
+            <div key={f} className="folder-setting">
+              <Icon name="folder" size={22} />
+              <span className="grow ellipsis" title={f}>{f}</span>
+              <button type="button" className="btn text danger" onClick={() => void api.videoRemoveFolder(f).then(setVideo)}>
+                Quitar
+              </button>
+            </div>
+          ))}
+          {video && !video.folders.length && <div className="muted">No hay carpetas de video. Agrega la que contiene tus películas y series.</div>}
+        </div>
+        <div className="panel-row">
+          <div className="grow">
+            {video?.scanning ? (
+              <span className="muted">Analizando videos… {video.total ? `${video.done} de ${video.total}` : ''}</span>
+            ) : (
+              <span>
+                {video ? `${plural(video.movies, 'película', 'películas')} · ${plural(video.series, 'serie', 'series')} (${plural(video.episodes, 'episodio', 'episodios')})` : ''}
+              </span>
+            )}
+            {video && !video.ffmpeg && (
+              <div className="notice warn">
+                <Icon name="info" size={20} /> Falta ffmpeg: sin él Pipo no puede leer las pistas ni convertir videos que la TV no reproduce directamente.
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="row-actions">
+          <button type="button" className="btn filled" onClick={() => void api.videoAddFolder().then((s) => s && setVideo(s))}>
+            <Icon name="add" size={20} /> Agregar carpeta de video
+          </button>
+          <button type="button" className="btn outline" disabled={video?.scanning} onClick={() => void api.videoRescan().then(setVideo)}>
+            <Icon name="refresh" size={20} /> Buscar videos de nuevo
+          </button>
+          <button type="button" className="btn text" onClick={() => void api.videoOpenLog()}>
+            <Icon name="info" size={20} /> Ver registro de video
+          </button>
+        </div>
       </section>
 
       <section className="panel">

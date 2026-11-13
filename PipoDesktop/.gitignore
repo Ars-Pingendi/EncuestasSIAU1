@@ -4,3 +4,4 @@ dist-electron/
 release/
 resources/bin/*.exe
 capturas-tmp/
+ffmpeg-tmp/

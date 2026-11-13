@@ -10,6 +10,7 @@ Versión de escritorio de Pipo Music Player, con las mismas funciones que la app
 - **Listas de reproducción y favoritos** (canciones y álbumes), reordenables arrastrando. Listas automáticas: agregadas recientemente, más reproducidas, reproducidas recientemente y descargadas de YouTube.
 - **Compartir**: clic derecho → «Compartir» abre el archivo con nombre legible («Artista - Título») en el Explorador para enviarlo por WhatsApp, Uso compartido en proximidad, correo o Bluetooth; también se puede **arrastrar** una canción desde Pipo a WhatsApp o a cualquier carpeta, guardar una copia o guardar varias de una vez en una carpeta o memoria USB, y copiar el enlace de YouTube.
 - **Pipo en la TV (LG webOS)**: *Ajustes › Pipo en la TV* comparte tu biblioteca, listas y favoritos con la app Pipo del televisor por la red de la casa, con un código de emparejamiento (ver `PipoTV/README.md`).
+- **Películas y series para la TV**: *Ajustes › Películas y series* indica las carpetas de video; Pipo reconoce películas y series (por el nombre o la carpeta), y la app de la TV las reproduce directamente o convertidas al vuelo con ffmpeg cuando el televisor no soporta el códec (por ejemplo audio DTS), con pistas de audio, subtítulos y carátulas.
 - **Cola editable** (arrastrar para reordenar, guardar como lista), aleatorio, repetir y **temporizador de apagado** con desvanecimiento.
 - **Retoma donde lo dejaste**: cola, canción y posición se conservan al cerrar.
 - **Integración con Windows**: teclas multimedia, panel multimedia del sistema, botones en la miniatura de la barra de tareas, tema claro u oscuro según Windows y atajos de teclado.
@@ -17,7 +18,7 @@ Versión de escritorio de Pipo Music Player, con las mismas funciones que la app
 
 ## Instalar
 
-1. Descarga `PipoMusicPlayer-Setup-1.1.0.exe` (instalador) o `PipoMusicPlayer-Portable-1.1.0.exe` (no requiere instalación) desde los artefactos **PipoMusicPlayer-Instalador** o **PipoMusicPlayer-Portable** del flujo *Pipo Music Player - Windows* en GitHub Actions.
+1. Descarga `PipoMusicPlayer-Setup-1.2.0.exe` (instalador) o `PipoMusicPlayer-Portable-1.2.0.exe` (no requiere instalación) desde los artefactos **PipoMusicPlayer-Instalador** o **PipoMusicPlayer-Portable** del flujo *Pipo Music Player - Windows* en GitHub Actions.
 2. Ábrelo. Como la app no está firmada digitalmente, Windows SmartScreen puede mostrar «Windows protegió su PC»: elige **Más información → Ejecutar de todas formas**.
 3. Pipo encuentra sola la música de tu carpeta *Música*. Si la tienes en otra parte: *Ajustes → Agregar carpeta*.
 
@@ -41,6 +42,11 @@ Para YouTube, coloca `yt-dlp.exe` en `resources/bin/` antes de empaquetar (el fl
 - `electron/`: proceso principal — biblioteca (`library.ts`), YouTube (`youtube.ts`), protocolo `pipo://` con soporte de rangos (`protocol.ts`), almacenamiento (`store.ts`).
 - `src/`: interfaz en React — motor de audio Web Audio (`audio/engine.ts`), estado (`state/`), vistas y componentes.
 - `scripts/smoke.mjs`: prueba automática del ejecutable de Windows con capturas (`capturas/`).
+
+## Componentes de terceros
+
+- [yt-dlp](https://github.com/yt-dlp/yt-dlp) (Unlicense): búsqueda y descarga de YouTube.
+- [FFmpeg](https://ffmpeg.org) (compilación «essentials» de [Gyan.dev](https://www.gyan.dev/ffmpeg/builds/), GPL v3): lectura y conversión de videos. El código fuente de FFmpeg está en el sitio oficial.
 
 ## Licencia
 

@@ -1,12 +1,12 @@
 // Servidor para Pipo en la TV (LG webOS): comparte la biblioteca por la red de la casa.
 // Solo lectura, con emparejamiento por código. No depende de Electron para poder probarse con Node.
 import crypto from 'node:crypto';
-import fs from 'node:fs';
 import http from 'node:http';
 import os from 'node:os';
 import type { Track } from '../shared/types';
-import { mimeFor } from './files';
+import { cors, sendJson, serveFile } from './httpUtil';
 import type { Library } from './library';
+import type { VideoService } from './videoService';
 import type { JsonStore } from './store';
 import type { YouTube } from './youtube';
 
@@ -34,6 +34,8 @@ export interface TvServerOptions {
   youtube: YouTube;
   appVersion: string;
   hostName?: string;
+  /** Películas y series (opcional). */
+  video?: VideoService;
 }
 
 function newPin(): string {
@@ -127,7 +129,7 @@ export class TvServer {
     return new Promise<void>((resolve, reject) => {
       const server = http.createServer((req, res) => {
         this.handle(req, res).catch((err) => {
-          if (!res.headersSent) this.json(res, 500, { error: String((err as Error).message ?? err) });
+          if (!res.headersSent) sendJson(res, 500, { error: String((err as Error).message ?? err) });
           else res.destroy();
         });
       });
@@ -146,18 +148,6 @@ export class TvServer {
   }
 
   // ───────────────────────────── Peticiones ─────────────────────────────
-
-  private cors(res: http.ServerResponse) {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Range, X-Pipo-Token');
-    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges');
-  }
-
-  private json(res: http.ServerResponse, status: number, body: unknown) {
-    const data = Buffer.from(JSON.stringify(body));
-    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': data.length, 'Cache-Control': 'no-store' });
-    res.end(data);
-  }
 
   private authorized(req: http.IncomingMessage, url: URL): boolean {
     const token = url.searchParams.get('t') ?? String(req.headers['x-pipo-token'] ?? '');
@@ -181,7 +171,7 @@ export class TvServer {
   }
 
   private async handle(req: http.IncomingMessage, res: http.ServerResponse) {
-    this.cors(res);
+    cors(res);
     if (req.method === 'OPTIONS') {
       res.writeHead(204);
       res.end();
@@ -189,11 +179,16 @@ export class TvServer {
     }
     const url = new URL(req.url ?? '/', 'http://pipo.local');
     const parts = url.pathname.split('/').filter(Boolean).map(decodeURIComponent);
-    if (parts[0] !== 'pipo') return this.json(res, 404, { error: 'No encontrado' });
+    if (parts[0] !== 'pipo') return sendJson(res, 404, { error: 'No encontrado' });
     const route = parts[1] ?? '';
 
     if (route === 'info') {
-      return this.json(res, 200, { app: 'pipo', name: this.o.hostName ?? os.hostname(), version: this.o.appVersion });
+      return sendJson(res, 200, {
+        app: 'pipo',
+        name: this.o.hostName ?? os.hostname(),
+        version: this.o.appVersion,
+        features: { music: true, video: !!this.o.video },
+      });
     }
 
     if (route === 'pair' && req.method === 'POST') {
@@ -209,32 +204,41 @@ export class TvServer {
         this.saved.tokens = [...this.saved.tokens.slice(-9), token];
         this.failures = 0;
         this.persist();
-        return this.json(res, 200, { token, name: this.o.hostName ?? os.hostname() });
+        return sendJson(res, 200, { token, name: this.o.hostName ?? os.hostname() });
       }
       // Tras varios intentos fallidos el código cambia (evita adivinarlo).
       if (++this.failures >= 8) this.regeneratePin();
       await new Promise((r) => setTimeout(r, 800));
-      return this.json(res, 403, { error: 'Código incorrecto' });
+      return sendJson(res, 403, { error: 'Código incorrecto' });
     }
 
-    if (!this.authorized(req, url)) return this.json(res, 401, { error: 'Empareja la TV de nuevo' });
+    if (!this.authorized(req, url)) return sendJson(res, 401, { error: 'Empareja la TV de nuevo' });
 
-    if (route === 'library') return this.json(res, 200, this.libraryPayload());
+    if (route === 'library') return sendJson(res, 200, this.libraryPayload());
+
+    // Películas y series
+    if (route === 'videos') {
+      return this.o.video ? sendJson(res, 200, this.o.video.payload()) : sendJson(res, 404, { error: 'Este equipo no comparte videos' });
+    }
+    if (route === 'video') {
+      if (!this.o.video) return sendJson(res, 404, { error: 'Este equipo no comparte videos' });
+      return this.o.video.handle(req, res, url, parts, url.searchParams.get('t') ?? '');
+    }
 
     if (route === 'media') {
       const id = parts.slice(2).join('/');
       const file = id.startsWith('yt:') ? this.o.youtube.downloadFile(id.slice(3)) : this.o.library.pathForId(id);
-      return file ? this.serveFile(req, res, file, false) : this.json(res, 404, { error: 'Canción no disponible' });
+      return file ? serveFile(req, res, file) : sendJson(res, 404, { error: 'Canción no disponible' });
     }
     if (route === 'art') {
       const file = this.o.library.artPath(parts[2] ?? '');
-      return file ? this.serveFile(req, res, file, true) : this.json(res, 404, { error: 'Sin carátula' });
+      return file ? serveFile(req, res, file, { cache: true }) : sendJson(res, 404, { error: 'Sin carátula' });
     }
     if (route === 'dlart') {
       const file = this.o.youtube.downloadArt(parts[2] ?? '');
-      return file ? this.serveFile(req, res, file, true) : this.json(res, 404, { error: 'Sin carátula' });
+      return file ? serveFile(req, res, file, { cache: true }) : sendJson(res, 404, { error: 'Sin carátula' });
     }
-    return this.json(res, 404, { error: 'No encontrado' });
+    return sendJson(res, 404, { error: 'No encontrado' });
   }
 
   private libraryPayload() {
@@ -266,38 +270,9 @@ export class TvServer {
       name: this.o.hostName ?? os.hostname(),
       version: this.o.appVersion,
       tracks,
+      features: { music: true, video: !!this.o.video },
       playlists: (user.playlists ?? []).map((p) => ({ id: p.id, name: p.name, trackIds: p.trackIds })),
       favTracks: user.favTracks ?? [],
     };
-  }
-
-  private serveFile(req: http.IncomingMessage, res: http.ServerResponse, file: string, cache: boolean) {
-    let size: number;
-    try {
-      size = fs.statSync(file).size;
-    } catch {
-      return this.json(res, 404, { error: 'Archivo no disponible' });
-    }
-    const headers: Record<string, string | number> = { 'Content-Type': mimeFor(file), 'Accept-Ranges': 'bytes' };
-    if (cache) headers['Cache-Control'] = 'max-age=86400';
-    const m = /bytes=(\d*)-(\d*)/.exec(String(req.headers.range ?? ''));
-    if (m && (m[1] || m[2])) {
-      let start = m[1] ? Number(m[1]) : Math.max(0, size - Number(m[2]));
-      let end = m[1] && m[2] ? Math.min(Number(m[2]), size - 1) : size - 1;
-      if (start >= size || start > end) {
-        res.writeHead(416, { 'Content-Range': `bytes */${size}` });
-        res.end();
-        return;
-      }
-      start = Math.max(0, start);
-      end = Math.max(start, end);
-      res.writeHead(206, { ...headers, 'Content-Range': `bytes ${start}-${end}/${size}`, 'Content-Length': end - start + 1 });
-      if (req.method === 'HEAD') return res.end();
-      fs.createReadStream(file, { start, end }).pipe(res);
-      return;
-    }
-    res.writeHead(200, { ...headers, 'Content-Length': size });
-    if (req.method === 'HEAD') return res.end();
-    fs.createReadStream(file).pipe(res);
   }
 }

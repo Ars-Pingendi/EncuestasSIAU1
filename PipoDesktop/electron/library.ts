@@ -345,7 +345,7 @@ function norm(p: string): string {
   return process.platform === 'win32' ? r.toLowerCase() : r;
 }
 
-function samePath(a: string, b: string): boolean {
+export function samePath(a: string, b: string): boolean {
   return norm(a) === norm(b);
 }
 
