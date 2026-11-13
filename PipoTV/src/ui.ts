@@ -4,13 +4,15 @@ import { lazyImage } from './components/images';
 import { clear, formatTime, h, icon } from './dom';
 import { artistOf } from './library';
 import { focus, focusables } from './nav';
-import { addToQueue, app, art, current, next, player, playNext, previous, togglePlay } from './state';
+import { addToQueue, app, art, current, next, player, playNext, previous, togglePlay, setMode } from './state';
 
 export interface View {
   el: HTMLElement;
   focus?(): void;
   update?(): void;
   destroy?(): void;
+  /** Al cerrar esta capa se vuelve a dibujar la pantalla de debajo (el reproductor cambia el progreso). */
+  refreshOnClose?: boolean;
 }
 
 export interface Route {
@@ -23,15 +25,22 @@ let factory: ViewFactory;
 const stack: { route: Route; focusKey: string | null }[] = [];
 let currentView: View | null = null;
 
+// Atrás: un componente (el reproductor) puede quedarse con la tecla antes que la navegación.
+let backHook: (() => boolean) | null = null;
+export function setBackHook(fn: (() => boolean) | null) {
+  backHook = fn;
+}
+
 let root: HTMLElement;
 let content: HTMLElement;
 let sidebar: HTMLElement;
 let barTitle: HTMLElement, barArtist: HTMLElement, barArt: HTMLElement, barPlay: HTMLElement, barTime: HTMLElement, barFill: HTMLElement;
 let barArtKey = '';
 let toastEl: HTMLElement;
+let barEl: HTMLElement;
 let overlay: HTMLElement;
 
-const NAV: { view: string; label: string; icon: string }[] = [
+const NAV_MUSIC: { view: string; label: string; icon: string }[] = [
   { view: 'songs', label: 'Canciones', icon: 'note' },
   { view: 'albums', label: 'Álbumes', icon: 'album' },
   { view: 'artists', label: 'Artistas', icon: 'person' },
@@ -43,17 +52,53 @@ const NAV: { view: string; label: string; icon: string }[] = [
   { view: 'settings', label: 'Ajustes', icon: 'settings' },
 ];
 
+const NAV_VIDEO: { view: string; label: string; icon: string }[] = [
+  { view: 'vhome', label: 'Inicio', icon: 'play' },
+  { view: 'movies', label: 'Películas', icon: 'album' },
+  { view: 'shows', label: 'Series', icon: 'queue' },
+  { view: 'settings', label: 'Ajustes', icon: 'settings' },
+];
+
+/** Pantalla con la que empieza cada modo. */
+export function homeView(): string {
+  return app.mode === 'video' ? 'vhome' : 'songs';
+}
+
+function renderSidebar() {
+  clear(sidebar);
+  sidebar.appendChild(h('div', { class: 'brand' }, h('img', { src: 'largeIcon.png', alt: '' }), h('span', null, 'Pipo')));
+  if (app.hasVideo) {
+    sidebar.appendChild(
+      h(
+        'div',
+        { class: 'mode-switch', 'data-group': 'mode' },
+        h('div', { class: `mode-tab${app.mode === 'music' ? ' on' : ''}`, focus: true, 'data-key': 'mode-music', onclick: () => switchMode('music') }, icon('note', 30), 'Música'),
+        h('div', { class: `mode-tab${app.mode === 'video' ? ' on' : ''}`, focus: true, 'data-key': 'mode-video', onclick: () => switchMode('video') }, icon('play', 30), 'Video'),
+      ),
+    );
+  }
+  for (const n of app.mode === 'video' ? NAV_VIDEO : NAV_MUSIC) {
+    sidebar.appendChild(
+      h('div', { class: 'nav-item', focus: true, 'data-key': `nav-${n.view}`, 'data-view': n.view, onclick: () => navigate({ view: n.view }, true) }, icon(n.icon, 38), h('span', null, n.label)),
+    );
+  }
+}
+
+function switchMode(mode: 'music' | 'video') {
+  if (app.mode === mode) return;
+  setMode(mode);
+  renderSidebar();
+  navigate({ view: homeView() }, true);
+  update();
+  setTimeout(() => focus(sidebar.querySelector<HTMLElement>(`[data-key="mode-${mode}"]`)), 40);
+}
+
 export function mountShell(container: HTMLElement, make: ViewFactory) {
   factory = make;
+  barArtKey = '';
   clear(container);
-  sidebar = h(
-    'nav',
-    { class: 'sidebar', 'data-group': 'nav' },
-    h('div', { class: 'brand' }, h('img', { src: 'largeIcon.png', alt: '' }), h('span', null, 'Pipo')),
-    NAV.map((n) =>
-      h('div', { class: 'nav-item', focus: true, 'data-key': `nav-${n.view}`, 'data-view': n.view, onclick: () => navigate({ view: n.view }, true) }, icon(n.icon, 38), h('span', null, n.label)),
-    ),
-  );
+  sidebar = h('nav', { class: 'sidebar', 'data-group': 'nav' });
+  renderSidebar();
   content = h('main', { class: 'content', 'data-group': 'content' });
   barArt = h('div', { class: 'bar-art' });
   barTitle = h('div', { class: 'bar-title' }, 'Elige una canción');
@@ -61,7 +106,7 @@ export function mountShell(container: HTMLElement, make: ViewFactory) {
   barTime = h('div', { class: 'bar-time' }, '');
   barFill = h('div', { class: 'bar-fill' });
   barPlay = h('button', { class: 'bar-btn play', focus: true, 'data-key': 'bar-play', onclick: () => togglePlay() }, icon('play', 48));
-  const bar = h(
+  barEl = h(
     'footer',
     { class: 'bar', 'data-group': 'bar' },
     h('div', { class: 'bar-now', focus: true, 'data-key': 'bar-now', onclick: () => current() && openNowPlaying() }, barArt, h('div', { class: 'bar-text' }, barTitle, barArtist)),
@@ -72,7 +117,7 @@ export function mountShell(container: HTMLElement, make: ViewFactory) {
   );
   toastEl = h('div', { class: 'toast' });
   overlay = h('div', { class: 'overlay' });
-  root = h('div', { class: 'shell' }, h('div', { class: 'body' }, sidebar, content), bar, overlay, toastEl);
+  root = h('div', { class: 'shell' }, h('div', { class: 'body' }, sidebar, content), barEl, overlay, toastEl);
   container.appendChild(root);
 }
 
@@ -106,6 +151,7 @@ function show(route: Route, focusContent: boolean, focusKey: string | null = nul
 
 /** Atrás: cierra el menú, «Reproduciendo» o vuelve a la pantalla anterior. Devuelve false en la raíz. */
 export function back(): boolean {
+  if (backHook && backHook()) return true;
   if (overlay.firstChild) {
     closeOverlay();
     return true;
@@ -127,6 +173,8 @@ export function back(): boolean {
 
 export function update() {
   const t = current();
+  // En el modo Video la barra de música solo aparece si hay una canción cargada.
+  barEl.style.display = app.mode === 'video' && !t ? 'none' : '';
   barTitle.textContent = t ? t.title : 'Elige una canción';
   barArtist.textContent = t ? artistOf(t) : 'Pulsa OK en cualquier canción';
   const key = t ? t.id : '';
@@ -161,10 +209,16 @@ export function openOverlay(view: View, modal = true) {
 }
 
 export function closeOverlay(restore = true) {
+  const refresh = restore && !!overlayView && !!overlayView.refreshOnClose;
+  const focusKey = returnFocus ? returnFocus.getAttribute('data-key') : null;
   if (overlayView?.destroy) overlayView.destroy();
   overlayView = null;
   clear(overlay);
   root.classList.remove('overlay-open');
+  if (refresh && stack.length) {
+    show(stack[stack.length - 1].route, false, focusKey);
+    return;
+  }
   if (restore && returnFocus && document.body.contains(returnFocus)) focus(returnFocus);
 }
 

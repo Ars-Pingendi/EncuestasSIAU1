@@ -212,7 +212,7 @@ await step('Películas y series: servidor de video para la TV', async () => {
   if (!videosOk) throw new Error('no se pudo generar video de prueba (¿ffmpeg incluido?)');
   await nav('Ajustes');
   const panel = page.locator('.panel', { hasText: 'Pipo en la TV (LG webOS)' }).first();
-  await panel.locator('input[role=switch]').check();
+  await panel.locator('label.switch').click();
   await page.waitForSelector('.tv-big.code', { timeout: 20_000 });
   const addr = ((await page.locator('.tv-big').first().textContent()) ?? '').trim();
   const pin = ((await page.locator('.tv-big.code').textContent()) ?? '').trim();

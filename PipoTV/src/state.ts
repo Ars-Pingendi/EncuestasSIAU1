@@ -3,6 +3,7 @@ import { artUrl, mediaUrl, type Connection, type TvTrack } from './api';
 import { engine } from './audio';
 import { BUILT_IN_PRESETS, type EqParams } from './presets';
 import { Library } from './library';
+import { VideoLibrary } from './videolibrary';
 
 type Listener = () => void;
 const listeners: Listener[] = [];
@@ -29,9 +30,15 @@ function save(key: string, value: unknown) {
   }
 }
 
+export type Mode = 'music' | 'video';
+
 export const app = {
   conn: null as Connection | null,
   library: new Library(),
+  videos: new VideoLibrary(),
+  /** El equipo conectado comparte películas y series (Pipo para Windows). */
+  hasVideo: false,
+  mode: (load<Mode>('pipo:modo', 'music') as Mode),
   toast: '',
 };
 
@@ -320,4 +327,9 @@ export function saveCustomPreset() {
   eq.preset = name;
   applyEq();
   toast(`Preajuste «${name}» guardado`);
+}
+
+export function setMode(mode: Mode) {
+  app.mode = mode;
+  save('pipo:modo', mode);
 }

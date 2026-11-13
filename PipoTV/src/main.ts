@@ -1,16 +1,17 @@
 import './polyfills';
 import './styles.css';
-import { forgetConnection, loadLibrary, savedConnection, Unauthorized, type Connection } from './api';
+import { forgetConnection, loadLibrary, loadVideos, savedConnection, Unauthorized, type Connection } from './api';
 import { engine } from './audio';
 import { h } from './dom';
 import { installKeys } from './nav';
-import { app, applyEq, emit, eq, initPlayer, next, onChange, previous, restoreQueue, seekBy, togglePlay } from './state';
-import { back, confirmExit, mountShell, navigate, openNowPlaying, setNowPlayingFactory, update, type Route, type View } from './ui';
+import { app, applyEq, emit, eq, initPlayer, next, onChange, previous, restoreQueue, seekBy, setMode, togglePlay } from './state';
+import { back, confirmExit, homeView, mountShell, navigate, openNowPlaying, setNowPlayingFactory, update, type Route, type View } from './ui';
 import { connectScreen } from './views/connect';
 import { equalizerView } from './views/eq';
 import { albumsView, artistsView, genresView, groupView, playlistsView, playlistView, recentView, songsView } from './views/library';
 import { nowPlayingView, queueView } from './views/now';
 import { settingsView } from './views/settings';
+import { movieDetailView, moviesView, showDetailView, showsView, videoHomeView } from './views/video';
 
 const root = document.getElementById('app')!;
 let shellReady = false;
@@ -29,6 +30,11 @@ function makeView(route: Route): View {
     case 'recent': return recentView();
     case 'queue': return queueView();
     case 'equalizer': return equalizerView();
+    case 'vhome': return videoHomeView();
+    case 'movies': return moviesView();
+    case 'shows': return showsView();
+    case 'movie': return movieDetailView(route.key || '');
+    case 'show': return showDetailView(route.key || '');
     case 'settings': return settingsView({ reload: () => void start(app.conn!), forget: reconnect });
     default: return songsView();
   }
@@ -52,6 +58,20 @@ async function start(conn: Connection) {
   try {
     const payload = await loadLibrary(conn);
     app.library.load(payload);
+    // Pipo para Windows comparte además películas y series; Pipo para Android solo música.
+    app.hasVideo = false;
+    if (payload.features && payload.features.video) {
+      try {
+        const videos = await loadVideos(conn);
+        if (videos) {
+          app.videos.load(videos);
+          app.hasVideo = true;
+        }
+      } catch (err) {
+        if (err instanceof Unauthorized) throw err;
+      }
+    }
+    if (!app.hasVideo && app.mode === 'video') setMode('music');
   } catch (err) {
     if (err instanceof Unauthorized) {
       forgetConnection();
@@ -82,9 +102,10 @@ async function start(conn: Connection) {
     mountShell(root, makeView);
     shellReady = true;
     restoreQueue();
-    navigate({ view: 'songs' }, true);
+    navigate({ view: homeView() }, true);
     setTimeout(() => (root.querySelector('.nav-item') as HTMLElement | null)?.focus(), 60);
   } else {
+    mountShell(root, makeView);
     navigate({ view: 'settings' }, true);
   }
   emit();

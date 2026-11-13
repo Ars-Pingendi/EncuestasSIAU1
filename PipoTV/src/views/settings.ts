@@ -12,7 +12,7 @@ export function settingsView(actions: { reload(): void; forget(): void }): View 
       'div',
       { class: 'panel' },
       h('h2', null, 'Biblioteca'),
-      h('p', null, `Conectado a «${app.library.name}» (${conn ? conn.base.replace(/^http:\/\//, '') : ''}) · ${plural(app.library.tracks.length, 'canción', 'canciones')}.`),
+      h('p', null, `Conectado a «${app.library.name}» (${conn ? conn.base.replace(/^http:\/\//, '') : ''}) · ${plural(app.library.tracks.length, 'canción', 'canciones')}${app.hasVideo ? ` · ${plural(app.videos.movies.length, 'película', 'películas')} · ${plural(app.videos.series.length, 'serie', 'series')}` : ''}.`),
       h(
         'div',
         { class: 'actions', 'data-group': 'settings' },
@@ -39,7 +39,7 @@ export function settingsView(actions: { reload(): void; forget(): void }): View 
       'div',
       { class: 'panel' },
       h('h2', null, 'Acerca de'),
-      h('p', null, 'Pipo Music Player 1.1.0 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
+      h('p', null, 'Pipo Music Player 1.2.0 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
     ),
   );
   return { el };
