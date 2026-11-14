@@ -1,5 +1,5 @@
 // Estado de la app de TV: conexión, biblioteca, reproductor y ecualizador.
-import { artUrl, mediaUrl, type Connection, type TvTrack } from './api';
+import { artUrl, fetchText, mediaUrl, type Connection, type TvTrack } from './api';
 import { engine } from './audio';
 import { BUILT_IN_PRESETS, type EqParams } from './presets';
 import { Library } from './library';
@@ -75,6 +75,8 @@ export const player = {
 };
 let original: string[] | null = null;
 let errorStreak = 0;
+let recoverRun = 0;
+let recoverBusy = false;
 
 export function current(): TvTrack | null {
   return player.index >= 0 ? app.library.byId[player.queue[player.index]] || null : null;
@@ -94,6 +96,8 @@ function shuffled<T>(a: T[]): T[] {
 function loadIndex(i: number, autoplay = true) {
   const t = app.library.byId[player.queue[i]];
   if (!t || !app.conn) return;
+  recoverRun++;
+  recoverBusy = false;
   player.index = i;
   player.position = 0;
   player.duration = t.durationMs;
@@ -145,6 +149,11 @@ export function togglePlay() {
     return;
   }
   if (engine.el.paused) {
+    // Tras una caída de red el audio queda en error: se vuelve a pedir desde donde iba.
+    if (engine.el.error && engine.el.getAttribute('src')) {
+      resumeAt(player.position);
+      return;
+    }
     if (!engine.el.getAttribute('src')) {
       const pos = player.position;
       loadIndex(player.index);
@@ -237,6 +246,114 @@ export function restoreQueue() {
   player.duration = t ? t.durationMs : 0;
 }
 
+// ───────────────────────────── Cortes de red ─────────────────────────────
+// Con el teléfono bloqueado el Wi-Fi puede dormirse unos segundos. En vez de saltar a la
+// siguiente canción (o detenerse), la TV espera a que el teléfono vuelva a responder y
+// retoma la misma canción desde donde iba.
+
+const RETRY_DELAYS = [1000, 2000, 3000, 5000, 8000, 10000, 10000, 10000];
+const STALL_MS = 12000;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function serverReachable(): Promise<boolean> {
+  if (!app.conn) return false;
+  try {
+    await fetchText(`${app.conn.base}/pipo/info`, 4000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Espera a que el audio suene (true) o falle / se agote el tiempo (false). */
+function waitForPlaying(ms: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const el = engine.el;
+    const done = (ok: boolean) => {
+      clearTimeout(timer);
+      el.removeEventListener('playing', onPlaying);
+      el.removeEventListener('error', onError);
+      resolve(ok);
+    };
+    const onPlaying = () => done(true);
+    const onError = () => done(false);
+    const timer = setTimeout(() => done(false), ms);
+    el.addEventListener('playing', onPlaying);
+    el.addEventListener('error', onError);
+  });
+}
+
+function resumeAt(posMs: number) {
+  const t = current();
+  if (!t || !app.conn) return;
+  const el = engine.el;
+  engine.load(mediaUrl(app.conn, t.id));
+  el.addEventListener('loadedmetadata', function once() {
+    el.removeEventListener('loadedmetadata', once);
+    if (posMs > 1000) {
+      try {
+        el.currentTime = posMs / 1000;
+      } catch {
+        // el audio aún no permite buscar
+      }
+    }
+  });
+  engine.play().catch(() => undefined);
+}
+
+/** Salta una canción que de verdad no se puede reproducir (formato o archivo), no una caída de red. */
+function skipBroken(track: TvTrack) {
+  toast(`No se pudo reproducir «${track.title}».`);
+  errorStreak++;
+  if (errorStreak < Math.min(4, player.queue.length) && player.index < player.queue.length - 1) next(true);
+}
+
+async function recover() {
+  if (recoverBusy) return;
+  const track = current();
+  if (!track || !app.conn) return;
+  recoverBusy = true;
+  const run = ++recoverRun;
+  const pos = player.position;
+  const stale = () => run !== recoverRun || current() !== track || !app.conn;
+  let fileFailures = 0;
+  let notified = false;
+  try {
+    for (let i = 0; i < RETRY_DELAYS.length; i++) {
+      await sleep(RETRY_DELAYS[i]);
+      if (stale()) return;
+      if (!(await serverReachable())) {
+        if (!notified) {
+          notified = true;
+          toast('Sin conexión con el teléfono o el PC. Reintentando…');
+        }
+        continue;
+      }
+      if (stale()) return;
+      resumeAt(pos);
+      if (await waitForPlaying(10000)) {
+        if (notified) toast('Conexión recuperada');
+        return;
+      }
+      if (stale()) return;
+      // El servidor responde pero la canción no suena: el problema es el archivo.
+      if (++fileFailures >= 2) {
+        skipBroken(track);
+        return;
+      }
+    }
+    if (!stale()) {
+      engine.pause();
+      toast('No se pudo reconectar. Revisa que el teléfono o el PC sigan compartiendo y pulsa Reproducir.');
+    }
+  } finally {
+    if (run === recoverRun) recoverBusy = false;
+  }
+}
+
 export function initPlayer() {
   const el = engine.el;
   engine.setVolume(1);
@@ -269,12 +386,28 @@ export function initPlayer() {
     } else next(true);
   });
   el.addEventListener('error', () => {
-    if (!el.getAttribute('src')) return;
-    const t = current();
-    toast(`No se pudo reproducir «${t ? t.title : 'la canción'}». ¿Sigue compartiendo el PC o el teléfono?`);
-    errorStreak++;
-    if (errorStreak < Math.min(4, player.queue.length) && player.index < player.queue.length - 1) next(true);
+    if (!el.getAttribute('src') || !current()) return;
+    void recover();
   });
+  // Si el audio se queda sin datos y no avanza (el teléfono dejó de responder), se reintenta.
+  let lastPos = -1;
+  let lastMove = Date.now();
+  setInterval(() => {
+    const now = Date.now();
+    if (el.paused || el.ended || !el.getAttribute('src') || recoverBusy || !current()) {
+      lastMove = now;
+      return;
+    }
+    if (el.currentTime !== lastPos) {
+      lastPos = el.currentTime;
+      lastMove = now;
+      return;
+    }
+    if (el.readyState < 3 && now - lastMove > STALL_MS) {
+      lastMove = now;
+      void recover();
+    }
+  }, 3000);
   setInterval(saveQueue, 10000);
 }
 

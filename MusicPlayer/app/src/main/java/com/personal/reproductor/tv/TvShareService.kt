@@ -10,7 +10,9 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import android.util.Log
 import androidx.core.app.NotificationCompat
@@ -26,8 +28,31 @@ import com.personal.reproductor.R
 class TvShareService : Service() {
 
     private var server: TvShareServer? = null
-    private var wifiLock: WifiManager.WifiLock? = null
+    private val wifiLocks = mutableListOf<WifiManager.WifiLock>()
     private var wakeLock: PowerManager.WakeLock? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var lastAddresses: List<String> = emptyList()
+
+    /** Cada 20 s: si el servidor se cayó lo levanta de nuevo y avisa si cambió la dirección Wi-Fi. */
+    private val watchdog = object : Runnable {
+        override fun run() {
+            if (server?.isAlive != true) {
+                Log.w(TAG, "El servidor para la TV no estaba activo; se reinicia")
+                server?.stop()
+                server = null
+                startServer()
+            }
+            val now = TvShare.lanAddresses()
+            if (now != lastAddresses) {
+                lastAddresses = now
+                TvShare.refresh(this@TvShareService)
+                updateNotification()
+            }
+            // Algunos teléfonos sueltan los bloqueos al bloquear la pantalla: se vuelven a tomar.
+            acquireLocks()
+            handler.postDelayed(this, WATCHDOG_MS)
+        }
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -38,6 +63,8 @@ class TvShareService : Service() {
         ServiceCompat.startForeground(this, NOTIFICATION_ID, buildNotification(), type)
         startServer()
         acquireLocks()
+        lastAddresses = TvShare.lanAddresses()
+        handler.postDelayed(watchdog, WATCHDOG_MS)
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -68,30 +95,47 @@ class TvShareService : Service() {
         TvShare.setRunning(this, false, TvShare.PORT, lastError ?: "No se pudo abrir el puerto")
     }
 
+    /**
+     * Wi-Fi y CPU despiertos con la pantalla apagada. Cada bloqueo se toma por separado: si uno
+     * falla en un teléfono concreto, los demás siguen funcionando. Es seguro repetirlo.
+     */
     @Suppress("DEPRECATION")
     private fun acquireLocks() {
         try {
             val wm = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-            wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "pipo:tv").apply {
-                setReferenceCounted(false)
-                acquire()
+            if (wifiLocks.isEmpty()) {
+                // Alto rendimiento: mantiene el Wi-Fi activo con la pantalla apagada (Android 13 y anteriores).
+                wifiLocks += wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "pipo:tv")
+                // Baja latencia: la que Android 10+ respeta mientras la pantalla está encendida.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    wifiLocks += wm.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, "pipo:tv-low-latency")
+                }
+                wifiLocks.forEach { it.setReferenceCounted(false) }
             }
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "pipo:tv").apply {
-                setReferenceCounted(false)
-                acquire()
-            }
+            wifiLocks.forEach { if (!it.isHeld) it.acquire() }
         } catch (e: Exception) {
             Log.w(TAG, "Sin bloqueo de Wi-Fi", e)
+        }
+        try {
+            if (wakeLock == null) {
+                val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+                wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "pipo:tv").apply { setReferenceCounted(false) }
+            }
+            wakeLock?.let { if (!it.isHeld) it.acquire() }
+        } catch (e: Exception) {
+            Log.w(TAG, "Sin bloqueo de CPU", e)
         }
     }
 
     override fun onDestroy() {
+        handler.removeCallbacks(watchdog)
         server?.stop()
         server = null
         try {
-            wifiLock?.release()
-            wakeLock?.release()
+            wifiLocks.forEach { if (it.isHeld) it.release() }
+            wifiLocks.clear()
+            wakeLock?.let { if (it.isHeld) it.release() }
+            wakeLock = null
         } catch (_: Exception) {
         }
         TvShare.setRunning(this, false, TvShare.status.value.port)
@@ -142,6 +186,7 @@ class TvShareService : Service() {
         private const val NOTIFICATION_ID = 4821
         private const val ACTION_STOP = "com.personal.reproductor.tv.STOP"
         private const val SOCKET_TIMEOUT_MS = 60_000
+        private const val WATCHDOG_MS = 20_000L
 
         fun start(context: Context) {
             TvShare.setEnabled(context, true)

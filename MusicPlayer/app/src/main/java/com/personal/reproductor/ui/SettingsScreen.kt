@@ -31,9 +31,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.personal.reproductor.data.ThemeMode
+import com.personal.reproductor.tv.TvShare
 
 @Composable
 fun SettingsScreen(vm: MainViewModel) {
@@ -158,6 +162,52 @@ fun SettingsScreen(vm: MainViewModel) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 8.dp),
                     )
+                    val context = LocalContext.current
+                    var unrestricted by remember { mutableStateOf(TvShare.ignoresBatteryOptimizations(context)) }
+                    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+                        unrestricted = TvShare.ignoresBatteryOptimizations(context)
+                    }
+                    if (!unrestricted) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer),
+                            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+                        ) {
+                            Column(Modifier.padding(16.dp)) {
+                                Text(
+                                    "Evita que la TV se corte al bloquear el teléfono",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Text(
+                                    "Con la pantalla bloqueada, Android puede dormir la conexión de Pipo y la música de la TV se detiene. " +
+                                        "Permite que Pipo funcione sin restricciones de batería.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    modifier = Modifier.padding(top = 4.dp),
+                                )
+                                FilledTonalButton(
+                                    onClick = {
+                                        try {
+                                            context.startActivity(TvShare.batteryExemptionIntent(context))
+                                        } catch (_: Exception) {
+                                            try {
+                                                context.startActivity(TvShare.batterySettingsIntent())
+                                            } catch (_: Exception) {
+                                            }
+                                        }
+                                    },
+                                    modifier = Modifier.padding(top = 8.dp),
+                                ) { Text("Permitir sin restricciones") }
+                            }
+                        }
+                    } else {
+                        Text(
+                            "Pipo está autorizado a seguir en segundo plano. En Xiaomi, Huawei, Oppo o Samsung, además fija Pipo " +
+                                "en las apps recientes (candado) y quítalo del ahorro de batería si la TV aún se corta.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
                     Row {
                         TextButton(onClick = { vm.tvNewPin() }) { Text("Cambiar código") }
                         TextButton(onClick = { vm.tvUnpairAll() }, enabled = tv.paired > 0) { Text("Olvidar TV emparejadas (${tv.paired})") }

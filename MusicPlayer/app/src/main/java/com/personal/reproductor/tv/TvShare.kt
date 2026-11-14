@@ -1,6 +1,11 @@
 package com.personal.reproductor.tv
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
+import android.os.PowerManager
+import android.provider.Settings
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -85,6 +90,28 @@ object TvShare {
             addresses = lanAddresses(),
         )
     }
+
+    /**
+     * ¿Android deja a Pipo funcionar sin restricciones de batería? Sin esto, muchos teléfonos
+     * duermen la conexión (o cierran el servicio) al bloquear la pantalla y la TV se corta.
+     */
+    fun ignoresBatteryOptimizations(context: Context): Boolean =
+        try {
+            (context.getSystemService(Context.POWER_SERVICE) as PowerManager)
+                .isIgnoringBatteryOptimizations(context.packageName)
+        } catch (_: Exception) {
+            true
+        }
+
+    /** Pantalla de Android para permitir a Pipo ignorar la optimización de batería. */
+    @SuppressLint("BatteryLife")
+    fun batteryExemptionIntent(context: Context): Intent =
+        Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:${context.packageName}"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    /** Alternativa si el sistema no abre el diálogo directo: la lista de ajustes de batería. */
+    fun batterySettingsIntent(): Intent =
+        Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     /** Direcciones IPv4 de la red local (primero el Wi-Fi). */
     fun lanAddresses(): List<String> {
