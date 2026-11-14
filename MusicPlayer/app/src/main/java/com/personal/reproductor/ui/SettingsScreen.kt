@@ -31,7 +31,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
+import android.widget.Toast
+import com.personal.reproductor.tv.TvVideos
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -206,6 +213,46 @@ fun SettingsScreen(vm: MainViewModel) {
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                    // Videos del teléfono (opcional): hace falta permiso para leerlos.
+                    val videoPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+                        if (granted) vm.setTvVideos(true)
+                        else Toast.makeText(context, "Sin permiso para leer los videos no se pueden compartir.", Toast.LENGTH_LONG).show()
+                    }
+                    var videoCount by remember { mutableStateOf<Int?>(null) }
+                    LaunchedEffect(tv.videos) {
+                        videoCount = if (tv.videos) withContext(Dispatchers.IO) { TvVideos.list(context, force = true).size } else null
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                if (tv.videos) vm.setTvVideos(false)
+                                else if (TvVideos.hasPermission(context)) vm.setTvVideos(true)
+                                else videoPermission.launch(TvVideos.permission())
+                            }
+                            .padding(top = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Compartir también mis videos", style = MaterialTheme.typography.bodyLarge)
+                            Text(
+                                if (tv.videos) "La TV verá ${videoCount?.let { "$it videos" } ?: "tus videos"} del teléfono (cámara, descargas, películas) en «Video». " +
+                                    "Se envían sin convertir: si la TV no admite el formato, no se verán."
+                                else "La TV podrá reproducir los videos de este teléfono. Se envían tal cual, sin convertir.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        Spacer(Modifier.width(12.dp))
+                        Switch(
+                            checked = tv.videos,
+                            onCheckedChange = {
+                                if (!it) vm.setTvVideos(false)
+                                else if (TvVideos.hasPermission(context)) vm.setTvVideos(true)
+                                else videoPermission.launch(TvVideos.permission())
+                            },
                         )
                     }
                     Row {

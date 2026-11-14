@@ -76,7 +76,7 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
         val route = parts.getOrNull(1).orEmpty()
 
         if (route == "info") {
-            return json(Response.Status.OK, JSONObject().put("app", "pipo").put("name", deviceName()).put("version", versionName()))
+            return json(Response.Status.OK, JSONObject().put("app", "pipo").put("name", deviceName()).put("version", versionName()).put("features", features()))
         }
 
         if (route == "pair" && session.method == Method.POST) {
@@ -113,6 +113,8 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             "library" -> json(Response.Status.OK, libraryPayload())
             "media" -> media(parts.drop(2).joinToString("/"), session.headers["range"])
             "art" -> artwork(parts.getOrNull(2).orEmpty())
+            "videos" -> videos()
+            "video" -> video(parts, session)
             else -> error(Response.Status.NOT_FOUND, "No encontrado")
         }
     }
@@ -190,7 +192,12 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             .put("tracks", tracks)
             .put("playlists", playlists)
             .put("favTracks", favs)
+            .put("features", features())
     }
+
+    /** Qué ofrece este equipo a la TV. El teléfono no convierte videos («convert»: false). */
+    private fun features(): JSONObject =
+        JSONObject().put("music", true).put("video", TvShare.sharesVideos(context)).put("convert", false)
 
     // ───────────────────────────── Audio ─────────────────────────────
 
@@ -229,6 +236,49 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
         input.channel.position(baseOffset)
         val r = newFixedLengthResponse(Response.Status.OK, mime, input, size)
         r.addHeader("Accept-Ranges", "bytes")
+        return cors(r)
+    }
+
+    // ───────────────────────────── Videos ─────────────────────────────
+
+    private fun videos(): Response {
+        if (!TvShare.sharesVideos(context)) return error(Response.Status.NOT_FOUND, "Este teléfono no comparte videos")
+        return json(Response.Status.OK, TvVideos.payload(context))
+    }
+
+    /** /pipo/video/<id>/{play,file,thumb,poster,sub,stream} */
+    private fun video(parts: List<String>, session: IHTTPSession): Response {
+        if (!TvShare.sharesVideos(context)) return error(Response.Status.NOT_FOUND, "Este teléfono no comparte videos")
+        val id = TvVideos.idOf(parts.getOrNull(2).orEmpty()) ?: return error(Response.Status.NOT_FOUND, "Video no encontrado")
+        val video = TvVideos.find(context, id) ?: return error(Response.Status.NOT_FOUND, "El video ya no está en el teléfono")
+        return when (parts.getOrNull(3)) {
+            "play" -> {
+                val force = session.parms["force"]
+                if (force == "remux" || force == "transcode") {
+                    error(Response.Status.NOT_IMPLEMENTED, "El teléfono no puede convertir videos. Reproduce este archivo desde Pipo del PC.")
+                } else {
+                    val token = session.parms["t"] ?: session.headers["x-pipo-token"].orEmpty()
+                    json(Response.Status.OK, TvVideos.plan(context, video, session.parms["caps"].orEmpty(), token))
+                }
+            }
+            "file" -> videoFile(video, session.headers["range"])
+            "thumb", "poster" -> videoImage(video)
+            "sub" -> error(Response.Status.NOT_FOUND, "Sin subtítulos")
+            else -> error(Response.Status.NOT_IMPLEMENTED, "El teléfono no puede convertir videos. Reproduce este archivo desde Pipo del PC.")
+        }
+    }
+
+    private fun videoFile(video: PhoneVideo, range: String?): Response {
+        val afd = context.contentResolver.openAssetFileDescriptor(TvVideos.uriFor(video.id), "r")
+            ?: return error(Response.Status.NOT_FOUND, "El video ya no está en el teléfono")
+        val size = if (afd.length >= 0) afd.length else afd.parcelFileDescriptor.statSize
+        return ranged(afd.createInputStream(), afd.startOffset, size, TvVideos.mimeFor(video), range)
+    }
+
+    private fun videoImage(video: PhoneVideo): Response {
+        val bytes = TvVideos.thumbnail(context, video.id) ?: return error(Response.Status.NOT_FOUND, "Sin imagen")
+        val r = newFixedLengthResponse(Response.Status.OK, "image/jpeg", ByteArrayInputStream(bytes), bytes.size.toLong())
+        r.addHeader("Cache-Control", "max-age=86400")
         return cors(r)
     }
 

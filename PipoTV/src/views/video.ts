@@ -76,9 +76,11 @@ function section(title: string, cards: HTMLElement[]): HTMLElement {
 }
 
 function emptyHelp(): HTMLElement {
-  const msg = app.videos.scanning
-    ? 'Pipo del PC está analizando tus videos. Vuelve en un momento y pulsa «Actualizar biblioteca» en Ajustes.'
-    : 'En el PC abre Pipo › Ajustes › Películas y series y agrega la carpeta donde guardas tus videos. Luego pulsa «Actualizar biblioteca» en los Ajustes de la TV.';
+  const msg = !app.canConvert
+    ? 'El teléfono no tiene videos para compartir (o son más cortos de 1 segundo). Activa «Compartir también mis videos» en Pipo del teléfono y pulsa «Actualizar biblioteca» en los Ajustes de la TV.'
+    : app.videos.scanning
+      ? 'Pipo del PC está analizando tus videos. Vuelve en un momento y pulsa «Actualizar biblioteca» en Ajustes.'
+      : 'En el PC abre Pipo › Ajustes › Películas y series y agrega la carpeta donde guardas tus videos. Luego pulsa «Actualizar biblioteca» en los Ajustes de la TV.';
   return h('div', { class: 'empty-help' }, icon('play', 64), h('h2', null, 'Todavía no hay videos'), h('p', null, msg));
 }
 

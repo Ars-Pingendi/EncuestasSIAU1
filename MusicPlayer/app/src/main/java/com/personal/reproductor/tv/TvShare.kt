@@ -21,6 +21,8 @@ data class TvShareStatus(
     val addresses: List<String> = emptyList(),
     val pin: String = "",
     val paired: Int = 0,
+    /** El usuario eligió compartir también los videos del teléfono. */
+    val videos: Boolean = false,
     val error: String? = null,
 )
 
@@ -32,6 +34,7 @@ object TvShare {
     const val PORT = 37373
     private const val PREFS = "pipo_tv"
     private const val K_ENABLED = "enabled"
+    private const val K_VIDEOS = "videos"
     private const val K_PIN = "pin"
     private const val K_TOKENS = "tokens"
     private val random = SecureRandom()
@@ -47,6 +50,16 @@ object TvShare {
         prefs(context).edit().putBoolean(K_ENABLED, on).apply()
         refresh(context)
     }
+
+    fun videosEnabled(context: Context) = prefs(context).getBoolean(K_VIDEOS, false)
+
+    fun setVideosEnabled(context: Context, on: Boolean) {
+        prefs(context).edit().putBoolean(K_VIDEOS, on).apply()
+        refresh(context)
+    }
+
+    /** ¿Se ofrecen videos a la TV? Hace falta elegirlo y tener permiso para leerlos. */
+    fun sharesVideos(context: Context) = videosEnabled(context) && TvVideos.hasPermission(context)
 
     fun pin(context: Context): String {
         val p = prefs(context)
@@ -87,6 +100,7 @@ object TvShare {
             enabled = isEnabled(context),
             pin = pin(context),
             paired = tokens(context).size,
+            videos = sharesVideos(context),
             addresses = lanAddresses(),
         )
     }

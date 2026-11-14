@@ -3,6 +3,7 @@
 App para televisores LG con webOS 4.0 o posterior (2018 en adelante) que reproduce en la TV:
 
 - **Música** de **Pipo para Windows** o de **Pipo para Android**: canciones, álbumes, artistas, géneros, listas, favoritos y descargas de YouTube, con el mismo **ecualizador de 10 bandas** (13 preajustes, graves, sonido envolvente y amplificación).
+- **Videos del teléfono Android** (con **Pipo para Android 1.6.0** o posterior): cámara, descargas y películas del teléfono aparecen en «Video». Se envían tal cual, sin convertir: si la TV no admite el formato (por ejemplo HEVC en TV antiguas), la app lo avisa. Sin subtítulos ni cambio de pista de audio.
 - **Películas y series** guardadas en tu PC (solo con **Pipo para Windows 1.2.0** o posterior): carátulas, temporadas y episodios, **continuar donde lo dejaste**, pistas de audio, subtítulos, y siguiente episodio automático.
 
 ## Cómo funciona
@@ -12,7 +13,7 @@ Una app web de webOS no puede leer de forma fiable las memorias USB del televiso
 1. En el PC o en el teléfono Android: **Pipo › Ajustes › Pipo en la TV** › activa **«Compartir mi música con la TV»**. Aparecen la dirección y un código de 4 cifras. En Windows, si pregunta, permite el acceso en **redes privadas**. En Android aparece una notificación mientras comparte; puedes bloquear la pantalla.
 2. En la TV: abre Pipo, escribe la dirección y el código y pulsa **Conectar**. La TV queda emparejada; la próxima vez entra directo.
 
-El PC (con Pipo abierto) o el teléfono (con la notificación de Pipo visible) deben seguir encendidos mientras escuchas o ves algo. Las películas y series solo vienen del PC con Windows. La TV y el equipo que comparte deben estar en la misma red (Wi-Fi o cable). La música y el video se detienen si sales de la app (webOS no permite reproducir en segundo plano).
+El PC (con Pipo abierto) o el teléfono (con la notificación de Pipo visible) deben seguir encendidos mientras escuchas o ves algo. Las películas y series con conversión (audio DTS, MKV, AVI…) y los subtítulos solo vienen del PC con Windows; el teléfono envía sus videos sin convertir. La TV y el equipo que comparte deben estar en la misma red (Wi-Fi o cable). La música y el video se detienen si sales de la app (webOS no permite reproducir en segundo plano).
 
 **Si bloqueas el teléfono Android** el Wi-Fi puede dormirse unos segundos. Desde la versión 1.2.1 la TV lo tolera: espera, reintenta la misma canción y la retoma donde iba (solo se rinde tras unos 50 s sin respuesta). Para que el teléfono no la corte desde su lado, en **Pipo para Android 1.5.1 › Ajustes › Pipo en la TV** pulsa **«Permitir sin restricciones»** (exclusión de la optimización de batería). En Xiaomi, Huawei, Oppo o Samsung, además fija Pipo en las apps recientes (candado) y quítalo del ahorro de batería. Convertir un video recodificándolo exige un PC razonablemente moderno; con H.264/AAC o MKV compatibles el PC casi no trabaja.
 
@@ -52,7 +53,7 @@ Si la TV no logra reproducir algo, **reintenta sola** con la siguiente forma (di
 
 ## Instalar en la TV
 
-El instalador es `com.personal.pipomusicplayer_1.2.1_all.ipk`.
+El instalador es `com.personal.pipomusicplayer_1.3.0_all.ipk`.
 
 ### Opción A — Modo desarrollador (sin modificar la TV)
 
@@ -70,7 +71,7 @@ Si la TV ya tiene **Homebrew Channel**, instala el `.ipk` con webOS Dev Manager 
 
 ```bash
 npx @webos-tools/cli ares-setup-device          # registrar la TV (IP, puerto 9922, frase de acceso)
-npx @webos-tools/cli ares-install --device tv com.personal.pipomusicplayer_1.2.1_all.ipk
+npx @webos-tools/cli ares-install --device tv com.personal.pipomusicplayer_1.3.0_all.ipk
 npx @webos-tools/cli ares-launch --device tv com.personal.pipomusicplayer
 ```
 

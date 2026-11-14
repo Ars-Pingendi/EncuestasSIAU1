@@ -71,6 +71,8 @@ interface Attempt {
 
 function buildAttempts(first: PlayMode): Attempt[] {
   const pref = getPrefs().container;
+  // El teléfono no convierte: solo existe la reproducción directa.
+  if (!app.canConvert) return [{ mode: 'direct', c: pref }];
   const other = pref === 'mp4' ? 'ts' : 'mp4';
   if (first === 'direct') return [{ mode: 'direct', c: pref }, { mode: 'remux', c: pref }, { mode: 'remux', c: other }, { mode: 'transcode', c: pref }, { mode: 'transcode', c: other }];
   if (first === 'remux') return [{ mode: 'remux', c: pref }, { mode: 'remux', c: other }, { mode: 'transcode', c: pref }, { mode: 'transcode', c: other }];
@@ -171,8 +173,9 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     return plan && plan.mode !== 'direct' ? origin + t : t;
   };
 
-  const setBusy = (text: string | null) => {
-    spinner.classList.toggle('hidden', text === null);
+  /** Mensaje en el centro; con `spin` en falso es un error definitivo y no se muestra el círculo de carga. */
+  const setBusy = (text: string | null, spin = true) => {
+    spinner.classList.toggle('hidden', text === null || !spin);
     centerMsg.textContent = text || '';
   };
 
@@ -209,7 +212,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
         closeOverlay();
         return;
       }
-      setBusy((err as Error).message);
+      setBusy((err as Error).message, false);
       return;
     }
     if (destroyed || token !== loadToken) return;
@@ -221,6 +224,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
       attemptIdx = 0;
     }
     title.textContent = p.title;
+    if (!app.canConvert && !o.fallback && p.reason && p.reason !== 'Reproducción directa') toast(`Puede que la TV no reproduzca este video: ${p.reason}.`);
     badge.textContent = `${MODE_LABEL[p.mode] || ''}${p.info ? ` · ${p.info}` : ''}`;
     video.src = absoluteUrl(conn, p.url);
     video.load();
@@ -252,7 +256,12 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     attemptIdx++;
     if (attemptIdx >= attempts.length) {
       video.pause();
-      setBusy(`No se pudo reproducir este video en la TV (${reason}). Prueba otro archivo o revisa «Ver registro de video» en Pipo del PC.`);
+      setBusy(
+        app.canConvert
+          ? `No se pudo reproducir este video en la TV (${reason}). Prueba otro archivo o revisa «Ver registro de video» en Pipo del PC.`
+          : `No se pudo reproducir este video en la TV (${reason}).${plan && plan.reason !== 'Reproducción directa' ? ` ${plan.reason}.` : ''} El teléfono no convierte videos: prueba con otro archivo o reproduce este desde Pipo del PC.`,
+        false,
+      );
       return;
     }
     const a = attempts[attemptIdx];
@@ -351,6 +360,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     nextBtn.style.display = hasNext ? '' : 'none';
     audioBtn.style.display = plan && plan.audio.length > 1 ? '' : 'none';
     subsBtn.style.display = plan && plan.subs.length ? '' : 'none';
+    formatBtn.style.display = app.canConvert ? '' : 'none';
   }
 
   function renderProgress() {

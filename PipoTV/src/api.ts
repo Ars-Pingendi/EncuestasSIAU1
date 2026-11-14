@@ -29,7 +29,7 @@ export interface LibraryPayload {
   playlists: TvPlaylist[];
   favTracks: string[];
   /** Pipo para Windows anuncia si comparte películas y series; Android no. */
-  features?: { music: boolean; video: boolean };
+  features?: { music: boolean; video: boolean; /** false: el equipo envía los videos tal cual (teléfono). */ convert?: boolean };
 }
 
 export interface TvVideo {

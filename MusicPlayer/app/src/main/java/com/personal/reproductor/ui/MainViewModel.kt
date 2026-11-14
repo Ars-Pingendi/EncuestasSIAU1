@@ -346,6 +346,12 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    /** Compartir (o no) los videos del teléfono con la TV. El permiso se pide antes, desde Ajustes. */
+    fun setTvVideos(on: Boolean) {
+        TvShare.setVideosEnabled(app, on)
+        if (on) toast("Videos listos. En la TV, pulsa «Actualizar biblioteca» en Ajustes.")
+    }
+
     fun tvNewPin() {
         TvShare.newPin(app)
         TvShareService.refreshNotification(app)

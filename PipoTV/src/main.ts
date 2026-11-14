@@ -60,6 +60,7 @@ async function start(conn: Connection) {
     app.library.load(payload);
     // Pipo para Windows comparte además películas y series; Pipo para Android solo música.
     app.hasVideo = false;
+    app.canConvert = !(payload.features && payload.features.convert === false);
     if (payload.features && payload.features.video) {
       try {
         const videos = await loadVideos(conn);
