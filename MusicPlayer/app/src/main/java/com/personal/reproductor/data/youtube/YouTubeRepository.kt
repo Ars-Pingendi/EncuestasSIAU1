@@ -31,6 +31,7 @@ import org.schabi.newpipe.extractor.stream.StreamType
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.io.InputStream
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -57,7 +58,7 @@ class YouTubeRepository {
     private class CachedStream(val url: String, val formatName: String?, val expiresAt: Long)
 
     /** Audio listo para descargar. [contentLength] es -1 si YouTube no lo indica. */
-    class DownloadSource(val url: String, val extension: String, val contentLength: Long)
+    class DownloadSource(val url: String, val extension: String, val contentLength: Long, val videoId: String? = null)
 
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
@@ -166,6 +167,7 @@ class YouTubeRepository {
     /** Olvida la URL guardada (p. ej. si caducó y dio error). */
     fun invalidate(videoId: String) {
         urlCache.remove(videoId)
+        urlCache.remove(videoId + TV_SUFFIX)
     }
 
     /** Cabeceras que espera el servidor de audio de YouTube según el cliente que generó la URL. */
@@ -190,8 +192,14 @@ class YouTubeRepository {
     // ------------------------------------------------------------------ descarga
 
     /** Elige el mejor audio del video para descargarlo (bloqueante: llamar fuera del hilo principal). */
-    fun resolveForDownload(videoId: String): DownloadSource {
-        val stream = bestStream(videoId)
+    fun resolveForDownload(videoId: String): DownloadSource = sourceOf(videoId, bestStream(videoId))
+
+    /**
+     * Audio para la TV: se prefiere M4A (AAC), que cualquier televisor reproduce. Bloqueante.
+     */
+    fun resolveForTv(videoId: String): DownloadSource = sourceOf(videoId, bestStream(videoId, preferM4a = true))
+
+    private fun sourceOf(videoId: String, stream: CachedStream): DownloadSource {
         val clen = Uri.parse(stream.url).getQueryParameter("clen")?.toLongOrNull() ?: -1L
         val extension = when (stream.formatName) {
             "M4A" -> "m4a"
@@ -199,7 +207,7 @@ class YouTubeRepository {
             "MP3" -> "mp3"
             else -> "audio"
         }
-        return DownloadSource(stream.url, extension, clen)
+        return DownloadSource(stream.url, extension, clen, videoId)
     }
 
     /**
@@ -230,11 +238,64 @@ class YouTubeRepository {
         }
     }
 
+    /**
+     * Lee los bytes [start]..[endInclusive] del audio como un flujo, pidiendo a YouTube fragmentos de 1 MB
+     * (igual que la descarga) a medida que se consumen. Lo usa el servidor de la TV. Si YouTube rechaza
+     * la dirección (caducó), se olvida y el error llega a quien lee para que reintente.
+     */
+    fun openRange(source: DownloadSource, start: Long, endInclusive: Long): InputStream = object : InputStream() {
+        private var position = start
+        private var buffer = ByteArray(0)
+        private var offset = 0
+        private var finished = false
+
+        override fun read(): Int {
+            val one = ByteArray(1)
+            return if (read(one, 0, 1) == -1) -1 else one[0].toInt() and 0xff
+        }
+
+        override fun read(b: ByteArray, off: Int, len: Int): Int {
+            if (len == 0) return 0
+            while (offset >= buffer.size) {
+                if (finished || position > endInclusive) return -1
+                fetch()
+                if (buffer.isEmpty()) {
+                    finished = true
+                    return -1
+                }
+            }
+            val n = minOf(len, buffer.size - offset)
+            System.arraycopy(buffer, offset, b, off, n)
+            offset += n
+            return n
+        }
+
+        private fun fetch() {
+            val last = minOf(position + CHUNK_BYTES - 1, endInclusive)
+            val wanted = last - position + 1
+            val url = source.url + "&range=" + position + "-" + last + "&rn=" + requestNumber.getAndIncrement()
+            val builder = okhttp3.Request.Builder().url(url).post(POST_BODY.toRequestBody())
+            streamingHeaders(url).forEach { (name, value) -> builder.header(name, value) }
+            val bytes = client.newCall(builder.build()).execute().use { response ->
+                if (!response.isSuccessful) {
+                    source.videoId?.let { invalidate(it) }
+                    throw IOException("YouTube respondió ${response.code}")
+                }
+                response.body?.bytes() ?: ByteArray(0)
+            }
+            buffer = bytes
+            offset = 0
+            position += bytes.size
+            if (bytes.size < wanted) finished = true
+        }
+    }
+
     private fun resolveStreamUrl(videoId: String): String = bestStream(videoId).url
 
-    private fun bestStream(videoId: String): CachedStream {
+    private fun bestStream(videoId: String, preferM4a: Boolean = false): CachedStream {
         val now = SystemClock.elapsedRealtime()
-        urlCache[videoId]?.let { if (it.expiresAt > now) return it }
+        val key = if (preferM4a) videoId + TV_SUFFIX else videoId
+        urlCache[key]?.let { if (it.expiresAt > now) return it }
         ensureInit()
         val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId")
         val candidates = info.audioStreams.filter {
@@ -243,12 +304,14 @@ class YouTubeRepository {
         // Preferir la pista de audio original (no dobladas) si el video tiene varias.
         val originals = candidates.filter { s -> s.audioTrackType?.name.let { it == null || it == "ORIGINAL" } }
             .ifEmpty { candidates }
-        val best = originals.maxWithOrNull(
+        // Para la TV: M4A (AAC) si existe; si no, el mejor disponible.
+        val pool = if (preferM4a) originals.filter { it.format == MediaFormat.M4A }.ifEmpty { originals } else originals
+        val best = pool.maxWithOrNull(
             compareBy<AudioStream>({ bitrateOf(it) }, { if (it.format == MediaFormat.M4A) 1 else 0 }),
         ) ?: throw IOException("YouTube no ofreció audio para este video")
         Log.i(TAG, "Audio $videoId: ${best.format} ${bitrateOf(best)} bps")
         val cached = CachedStream(best.content, best.format?.name, now + URL_TTL_MS)
-        urlCache[videoId] = cached
+        urlCache[key] = cached
         return cached
     }
 
@@ -262,7 +325,16 @@ class YouTubeRepository {
             "puede que YouTube haya cambiado algo y la app necesite una actualización."
     }
 
-    private companion object {
+    companion object {
+        /** Tipo MIME según la extensión elegida por [resolveForDownload] / [resolveForTv]. */
+        fun mimeFor(extension: String): String = when (extension) {
+            "m4a" -> "audio/mp4"
+            "webm" -> "audio/webm"
+            "mp3" -> "audio/mpeg"
+            else -> "audio/mp4"
+        }
+
+        private const val TV_SUFFIX = "#tv"
         const val TAG = "YouTube"
         const val YOUTUBE_BASE_URL = "https://www.youtube.com"
         const val URL_TTL_MS = 90L * 60L * 1000L

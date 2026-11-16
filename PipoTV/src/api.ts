@@ -29,7 +29,7 @@ export interface LibraryPayload {
   playlists: TvPlaylist[];
   favTracks: string[];
   /** Pipo para Windows anuncia si comparte películas y series; Android no. */
-  features?: { music: boolean; video: boolean; /** false: el equipo envía los videos tal cual (teléfono). */ convert?: boolean };
+  features?: { music: boolean; video: boolean; /** false: el equipo envía los videos tal cual (teléfono). */ convert?: boolean; /** El teléfono puede mandar órdenes «Reproducir en la TV». */ remote?: boolean };
 }
 
 export interface TvVideo {
@@ -230,6 +230,31 @@ export async function fetchPlan(conn: Connection, id: string, req: PlanRequest):
     throw new Error(msg);
   }
   return (await res.json()) as VideoPlan;
+}
+
+// ───────────────────────────── Órdenes del teléfono ─────────────────────────────
+
+export interface RemoteCommand {
+  seq: number;
+  type: 'play' | 'playNext' | 'enqueue';
+  tracks: TvTrack[];
+  start: number;
+}
+
+export interface RemotePoll {
+  seq: number;
+  commands: RemoteCommand[];
+}
+
+/**
+ * Petición larga al teléfono: responde en cuanto hay una orden nueva o, como mucho, a los ~20 s.
+ * Con `since` = -1 solo devuelve la posición actual (para no repetir órdenes viejas).
+ */
+export async function pollRemote(conn: Connection, since: number): Promise<RemotePoll> {
+  const res = await withTimeout(fetch(`${conn.base}/pipo/remote?since=${since}&t=${conn.token}`), 35000, 'Tiempo agotado');
+  if (res.status === 401) throw new Unauthorized('La TV ya no está emparejada.');
+  if (!res.ok) throw new Error(`Error del equipo (${res.status}).`);
+  return (await res.json()) as RemotePoll;
 }
 
 export function absoluteUrl(conn: Connection, path: string): string {

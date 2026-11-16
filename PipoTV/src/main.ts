@@ -7,6 +7,7 @@ import { installKeys } from './nav';
 import { app, applyEq, emit, eq, initPlayer, next, onChange, previous, restoreQueue, seekBy, setMode, togglePlay } from './state';
 import { back, confirmExit, homeView, mountShell, navigate, openNowPlaying, setNowPlayingFactory, update, type Route, type View } from './ui';
 import { connectScreen } from './views/connect';
+import { startRemote, stopRemote } from './remote';
 import { equalizerView } from './views/eq';
 import { albumsView, artistsView, genresView, groupView, playlistsView, playlistView, recentView, songsView } from './views/library';
 import { nowPlayingView, queueView } from './views/now';
@@ -42,6 +43,7 @@ function makeView(route: Route): View {
 
 function reconnect() {
   engine.stop();
+  stopRemote();
   forgetConnection();
   shellReady = false;
   connectScreen(root, (c) => void start(c));
@@ -61,6 +63,8 @@ async function start(conn: Connection) {
     // Pipo para Windows comparte además películas y series; Pipo para Android solo música.
     app.hasVideo = false;
     app.canConvert = !(payload.features && payload.features.convert === false);
+    stopRemote();
+    if (payload.features && payload.features.remote) startRemote(conn);
     if (payload.features && payload.features.video) {
       try {
         const videos = await loadVideos(conn);

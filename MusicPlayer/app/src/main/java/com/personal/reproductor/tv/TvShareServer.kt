@@ -10,6 +10,7 @@ import com.personal.reproductor.ReproductorApp
 import com.personal.reproductor.data.Track
 import com.personal.reproductor.data.TrackSharing
 import com.personal.reproductor.data.YouTubeIds
+import com.personal.reproductor.data.youtube.YouTubeRepository
 import com.personal.reproductor.ui.ArtworkLoader
 import fi.iki.elonen.NanoHTTPD
 import kotlinx.coroutines.flow.first
@@ -35,6 +36,10 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
     private val app = context.applicationContext as ReproductorApp
     private var failures = 0
+
+    private companion object {
+        const val REMOTE_WAIT_MS = 20_000L
+    }
 
     private fun deviceName(): String =
         Settings.Global.getString(context.contentResolver, Settings.Global.DEVICE_NAME)?.takeIf { it.isNotBlank() }
@@ -115,6 +120,7 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             "art" -> artwork(parts.getOrNull(2).orEmpty())
             "videos" -> videos()
             "video" -> video(parts, session)
+            "remote" -> remote(session)
             else -> error(Response.Status.NOT_FOUND, "No encontrado")
         }
     }
@@ -197,13 +203,14 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
     /** Qué ofrece este equipo a la TV. El teléfono no convierte videos («convert»: false). */
     private fun features(): JSONObject =
-        JSONObject().put("music", true).put("video", TvShare.sharesVideos(context)).put("convert", false)
+        JSONObject().put("music", true).put("video", TvShare.sharesVideos(context)).put("convert", false).put("remote", true)
 
     // ───────────────────────────── Audio ─────────────────────────────
 
     private fun media(id: String, range: String?): Response {
         if (id.startsWith("yt:")) {
-            val file = app.downloads.fileFor(id.removePrefix("yt:")) ?: return error(Response.Status.NOT_FOUND, "Canción no disponible")
+            val videoId = id.removePrefix("yt:")
+            val file = app.downloads.fileFor(videoId) ?: return youtubeStream(videoId, range)
             return ranged(FileInputStream(file), 0L, file.length(), TrackSharing.mimeFor(file.extension), range)
         }
         val trackId = id.removePrefix("a:").toLongOrNull() ?: return error(Response.Status.NOT_FOUND, "Canción no disponible")
@@ -213,6 +220,56 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
         val track = app.library.state.value.tracksById[trackId]
         val mime = context.contentResolver.getType(uri) ?: TrackSharing.mimeFor(File(track?.path.orEmpty()).extension)
         return ranged(afd.createInputStream(), afd.startOffset, size, mime, range)
+    }
+
+    /**
+     * Canción de YouTube que no está descargada: el teléfono la pide a YouTube y se la pasa a la TV.
+     * (La TV no puede pedirla directamente: YouTube liga la dirección al equipo y no permite CORS.)
+     */
+    private fun youtubeStream(videoId: String, range: String?): Response {
+        val source = try {
+            app.youtube.resolveForTv(videoId)
+        } catch (e: Exception) {
+            app.youtube.invalidate(videoId)
+            return error(Response.Status.INTERNAL_ERROR, app.youtube.describeError(e))
+        }
+        val mime = YouTubeRepository.mimeFor(source.extension)
+        val total = source.contentLength
+        if (total <= 0) {
+            // YouTube no dijo el tamaño: se envía entero y sin poder adelantar.
+            return cors(newChunkedResponse(Response.Status.OK, mime, app.youtube.openRange(source, 0L, Long.MAX_VALUE)))
+        }
+        val m = range?.let { Regex("bytes=(\\d*)-(\\d*)").find(it) }
+        if (m != null && (m.groupValues[1].isNotEmpty() || m.groupValues[2].isNotEmpty())) {
+            val start = if (m.groupValues[1].isNotEmpty()) m.groupValues[1].toLong() else maxOf(0L, total - m.groupValues[2].toLong())
+            val end = if (m.groupValues[1].isNotEmpty() && m.groupValues[2].isNotEmpty()) minOf(m.groupValues[2].toLong(), total - 1) else total - 1
+            if (start >= total || start > end) {
+                return cors(newFixedLengthResponse(Response.Status.RANGE_NOT_SATISFIABLE, "text/plain", "").apply {
+                    addHeader("Content-Range", "bytes */$total")
+                })
+            }
+            val r = newFixedLengthResponse(Response.Status.PARTIAL_CONTENT, mime, app.youtube.openRange(source, start, end), end - start + 1)
+            r.addHeader("Content-Range", "bytes $start-$end/$total")
+            r.addHeader("Accept-Ranges", "bytes")
+            return cors(r)
+        }
+        val r = newFixedLengthResponse(Response.Status.OK, mime, app.youtube.openRange(source, 0L, total - 1), total)
+        r.addHeader("Accept-Ranges", "bytes")
+        return cors(r)
+    }
+
+    // ───────────────────────────── Órdenes del teléfono ─────────────────────────────
+
+    /**
+     * GET /pipo/remote?since=N&t=…  Petición larga de la TV: devuelve las órdenes posteriores a N
+     * (o espera hasta ~20 s). Con since=-1 solo informa de la posición actual.
+     */
+    private fun remote(session: IHTTPSession): Response {
+        val since = session.parms["since"]?.toLongOrNull() ?: -1L
+        val poll = TvRemote.await(since, REMOTE_WAIT_MS)
+        val commands = JSONArray()
+        poll.commands.forEach { commands.put(it) }
+        return json(Response.Status.OK, JSONObject().put("seq", poll.seq).put("commands", commands))
     }
 
     /** Respuesta completa o parcial (206) según la cabecera Range. */

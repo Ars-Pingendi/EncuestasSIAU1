@@ -84,7 +84,7 @@ function renderSidebar() {
   }
 }
 
-function switchMode(mode: 'music' | 'video') {
+export function switchMode(mode: 'music' | 'video') {
   if (app.mode === mode) return;
   setMode(mode);
   renderSidebar();

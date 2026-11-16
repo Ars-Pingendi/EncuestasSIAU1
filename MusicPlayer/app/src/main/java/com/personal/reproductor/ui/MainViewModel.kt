@@ -21,6 +21,7 @@ import com.personal.reproductor.data.Library
 import com.personal.reproductor.data.SongSort
 import com.personal.reproductor.data.Track
 import com.personal.reproductor.data.TrackSharing
+import com.personal.reproductor.tv.TvRemote
 import com.personal.reproductor.tv.TvShare
 import com.personal.reproductor.tv.TvShareService
 import com.personal.reproductor.tv.TvShareStatus
@@ -350,6 +351,49 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun setTvVideos(on: Boolean) {
         TvShare.setVideosEnabled(app, on)
         if (on) toast("Videos listos. En la TV, pulsa «Actualizar biblioteca» en Ajustes.")
+    }
+
+    // ----------------------------------------------------- «Reproducir en la TV»
+
+    /** Con esto activado, tocar una canción de la lista la reproduce en la TV en vez de en el teléfono. */
+    private val _tvTarget = MutableStateFlow(false)
+    val tvTarget: StateFlow<Boolean> = _tvTarget.asStateFlow()
+
+    fun setTvTarget(on: Boolean) {
+        if (on && !TvShare.status.value.running) {
+            toast("Primero activa «Compartir mi música con la TV» en Ajustes.")
+            return
+        }
+        _tvTarget.value = on
+        if (on && !TvRemote.tvConnected()) toast("Abre Pipo en la TV y conéctala para escuchar ahí.")
+    }
+
+    /** Empieza a sonar en la TV: [tracks] desde la posición [index]. */
+    fun tvPlay(tracks: List<Track>, index: Int = 0, shuffle: Boolean = false) {
+        if (tracks.isEmpty()) return
+        val list = if (shuffle) tracks.shuffled() else tracks
+        tvSend("play", list, if (shuffle) 0 else index.coerceIn(0, list.lastIndex))
+    }
+
+    fun tvPlayNext(tracks: List<Track>) = tvSend("playNext", tracks, 0)
+
+    fun tvEnqueue(tracks: List<Track>) = tvSend("enqueue", tracks, 0)
+
+    private fun tvSend(type: String, tracks: List<Track>, start: Int) {
+        if (tracks.isEmpty()) return
+        if (!TvShare.status.value.running) {
+            toast("Activa «Compartir mi música con la TV» en Ajustes para usar la TV.")
+            return
+        }
+        val delivered = TvRemote.send(type, tracks, start)
+        toast(
+            when {
+                !delivered -> "La TV no está conectada. Abre Pipo en la TV, conéctala y vuelve a intentarlo."
+                type == "play" -> "Sonando en la TV"
+                type == "playNext" -> "Sonará a continuación en la TV"
+                else -> "Añadida a la cola de la TV"
+            },
+        )
     }
 
     fun tvNewPin() {

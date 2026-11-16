@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -298,6 +299,7 @@ fun TrackRow(
     var menu by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val dl = rememberDownloadUi(vm, track.remoteId)
+    val tvOn = vm.tvStatus.collectAsStateWithLifecycle().value.running
     val dragged = reorder != null && reorder.draggedKey == track.id
     val reorderModifier = if (reorder != null) {
         Modifier
@@ -367,6 +369,18 @@ fun TrackRow(
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 val close = { menu = false }
+                if (tvOn) {
+                    DropdownMenuItem(
+                        text = { Text("Reproducir en la TV") },
+                        leadingIcon = { Icon(Icons.Filled.Tv, null) },
+                        onClick = { close(); vm.tvPlay(listOf(track)) },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Añadir a la cola de la TV") },
+                        leadingIcon = { Icon(Icons.Filled.Tv, null) },
+                        onClick = { close(); vm.tvEnqueue(listOf(track)) },
+                    )
+                }
                 DropdownMenuItem(
                     text = { Text("Reproducir a continuación") },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, null) },

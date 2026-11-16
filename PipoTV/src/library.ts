@@ -22,7 +22,23 @@ function byDiscTrack(a: TvTrack, b: TvTrack) {
   return a.discNo - b.discNo || a.trackNo - b.trackNo || byText(a.title, b.title);
 }
 
+const EXTRA_KEY = 'pipo:extra';
+const EXTRA_MAX = 300;
+
+function loadExtra(): TvTrack[] {
+  try {
+    const raw = localStorage.getItem(EXTRA_KEY);
+    const list = raw ? (JSON.parse(raw) as TvTrack[]) : [];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
 export class Library {
+  /** Canciones enviadas desde el teléfono (p. ej. de YouTube): suenan pero no forman parte de la biblioteca. */
+  extra: TvTrack[] = loadExtra();
+
   tracks: TvTrack[] = [];
   byId: { [id: string]: TvTrack } = {};
   albums: Group[] = [];
@@ -32,11 +48,30 @@ export class Library {
   favorites: TvTrack[] = [];
   name = '';
 
+  /** Guarda canciones enviadas desde el teléfono para poder reproducirlas y recordarlas tras reiniciar la app. */
+  addExtra(tracks: TvTrack[]) {
+    const ids: { [id: string]: boolean } = {};
+    const merged: TvTrack[] = [];
+    for (const t of tracks.concat(this.extra)) {
+      if (ids[t.id]) continue;
+      ids[t.id] = true;
+      merged.push(t);
+    }
+    this.extra = merged.slice(0, EXTRA_MAX);
+    for (const t of tracks) if (!this.byId[t.id]) this.byId[t.id] = t;
+    try {
+      localStorage.setItem(EXTRA_KEY, JSON.stringify(this.extra));
+    } catch {
+      // sin almacenamiento
+    }
+  }
+
   load(p: LibraryPayload) {
     this.name = p.name;
     this.tracks = p.tracks.slice().sort((a, b) => byText(a.title, b.title));
     this.byId = {};
     for (const t of this.tracks) this.byId[t.id] = t;
+    for (const t of this.extra) if (!this.byId[t.id]) this.byId[t.id] = t;
     this.albums = this.group(
       (t) => (t.albumArtist ? `aa:${t.albumArtist}|${t.album}` : `f:${t.folder}|${t.album}`).toLowerCase(),
       (list) => list[0].album || 'Sin álbum',

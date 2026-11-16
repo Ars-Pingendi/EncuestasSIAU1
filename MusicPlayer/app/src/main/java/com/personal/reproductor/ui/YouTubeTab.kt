@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
@@ -17,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -43,6 +45,10 @@ fun YouTubeTab(vm: MainViewModel) {
     val ui by vm.youtube.collectAsStateWithLifecycle()
     val currentId by vm.currentTrackId.collectAsStateWithLifecycle()
     val favs by vm.favoriteTrackIds.collectAsStateWithLifecycle()
+    val tv by vm.tvStatus.collectAsStateWithLifecycle()
+    val tvTarget by vm.tvTarget.collectAsStateWithLifecycle()
+    // Con «Escuchar en la TV» activado, tocar un resultado lo reproduce en el televisor.
+    val toTv = tv.running && tvTarget
     var text by rememberSaveable { mutableStateOf(ui.query) }
     val focus = LocalFocusManager.current
 
@@ -80,6 +86,14 @@ fun YouTubeTab(vm: MainViewModel) {
                     label = { Text(mode.label) },
                 )
             }
+            if (tv.running) {
+                FilterChip(
+                    selected = toTv,
+                    onClick = { vm.setTvTarget(!tvTarget) },
+                    label = { Text("Escuchar en la TV") },
+                    leadingIcon = { Icon(Icons.Filled.Tv, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                )
+            }
         }
 
         val error = ui.error
@@ -96,7 +110,8 @@ fun YouTubeTab(vm: MainViewModel) {
                 icon = Icons.Filled.Search,
                 title = "Escucha desde YouTube",
                 message = "Busca canciones o videos: suenan sin anuncios, en segundo plano y con tu ecualizador. " +
-                    "Puedes guardarlas en tus listas y favoritos con el menú ⋮.",
+                    "Puedes guardarlas en tus listas y favoritos con el menú ⋮. " +
+                    "Con la TV conectada, activa «Escuchar en la TV» para que suenen en el televisor.",
             )
             ui.results.isEmpty() -> EmptyState(
                 icon = Icons.Filled.Search,
@@ -107,8 +122,8 @@ fun YouTubeTab(vm: MainViewModel) {
                 item {
                     PlayShuffleRow(
                         count = ui.results.size,
-                        onPlay = { vm.play(ui.results, 0, shuffle = false) },
-                        onShuffle = { vm.playShuffled(ui.results) },
+                        onPlay = { if (toTv) vm.tvPlay(ui.results, 0) else vm.play(ui.results, 0, shuffle = false) },
+                        onShuffle = { if (toTv) vm.tvPlay(ui.results, 0, shuffle = true) else vm.playShuffled(ui.results) },
                     )
                 }
                 itemsIndexed(ui.results, key = { _, t -> t.id }) { index, track ->
@@ -117,7 +132,7 @@ fun YouTubeTab(vm: MainViewModel) {
                         vm = vm,
                         currentId = currentId,
                         favorites = favs,
-                        onClick = { vm.play(ui.results, index) },
+                        onClick = { if (toTv) vm.tvPlay(ui.results, index) else vm.play(ui.results, index) },
                     )
                 }
                 if (ui.hasMore) {
