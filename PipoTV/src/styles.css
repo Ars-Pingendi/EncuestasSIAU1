@@ -280,3 +280,4 @@ svg { flex: none; }
 .yt-input { width: 900px; margin: 0 24px 0 0; }
 .yt-status { margin: 0 12px 18px; font-size: 30px; color: var(--muted); }
 .vcard.more .more-art { display: flex; align-items: center; justify-content: center; color: var(--muted); }
+.log-box { margin: 14px 0 0; font-family: monospace; font-size: 22px; line-height: 1.35; white-space: pre-wrap; word-break: break-all; color: var(--muted); max-height: 640px; overflow: hidden; }

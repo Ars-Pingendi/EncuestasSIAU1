@@ -1,6 +1,30 @@
+import { fetchText } from '../api';
 import { h, icon, plural } from '../dom';
 import { app } from '../state';
 import type { View } from '../ui';
+
+/** YouTube: qué pasó entre la TV, el teléfono y YouTube (para saber por qué un video no carga). */
+function logPanel(): HTMLElement {
+  const conn = app.conn!;
+  const box = h('pre', { class: 'log-box' }, 'Pulsa «Ver registro» para leerlo.');
+  const load = async () => {
+    box.textContent = 'Cargando…';
+    try {
+      const text = (await fetchText(`${conn.base}/pipo/log?t=${conn.token}`, 10000)).trim();
+      box.textContent = text ? text.split('\n').slice(0, 22).join('\n') : '(todavía no hay nada registrado)';
+    } catch (err) {
+      box.textContent = `No se pudo leer el registro: ${(err as Error).message}`;
+    }
+  };
+  return h(
+    'div',
+    { class: 'panel' },
+    h('h2', null, 'Registro del teléfono'),
+    h('p', null, 'Lo último que pasó entre la TV, el teléfono y YouTube (lo más reciente arriba). Ayuda a saber por qué un video no carga.'),
+    h('div', { class: 'actions', 'data-group': 'log' }, h('button', { class: 'btn', focus: true, onclick: () => void load() }, icon('refresh', 34), 'Ver registro')),
+    box,
+  );
+}
 
 export function settingsView(actions: { reload(): void; forget(): void }): View {
   const conn = app.conn;
@@ -20,6 +44,7 @@ export function settingsView(actions: { reload(): void; forget(): void }): View 
         h('button', { class: 'btn', focus: true, onclick: actions.forget }, icon('computer', 34), 'Conectar con otro equipo'),
       ),
     ),
+    app.hasYoutube ? logPanel() : null,
     h(
       'div',
       { class: 'panel' },
@@ -39,7 +64,7 @@ export function settingsView(actions: { reload(): void; forget(): void }): View 
       'div',
       { class: 'panel' },
       h('h2', null, 'Acerca de'),
-      h('p', null, 'Pipo Music Player 1.5.0 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
+      h('p', null, 'Pipo Music Player 1.5.1 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
     ),
   );
   return { el };

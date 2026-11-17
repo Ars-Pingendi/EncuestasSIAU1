@@ -10,6 +10,7 @@ import com.personal.reproductor.ReproductorApp
 import com.personal.reproductor.data.Track
 import com.personal.reproductor.data.TrackSharing
 import com.personal.reproductor.data.YouTubeIds
+import com.personal.reproductor.data.youtube.YouTubeLog
 import com.personal.reproductor.data.youtube.YouTubeRepository
 import com.personal.reproductor.ui.ArtworkLoader
 import fi.iki.elonen.NanoHTTPD
@@ -122,6 +123,7 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             "videos" -> videos()
             "video" -> video(parts, session)
             "remote" -> remote(session)
+            "log" -> cors(newFixedLengthResponse(Response.Status.OK, "text/plain; charset=utf-8", YouTubeLog.dump()))
             "yt" -> yt(parts, session)
             else -> error(Response.Status.NOT_FOUND, "No encontrado")
         }
@@ -228,40 +230,73 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
      * Canción de YouTube que no está descargada: el teléfono la pide a YouTube y se la pasa a la TV.
      * (La TV no puede pedirla directamente: YouTube liga la dirección al equipo y no permite CORS.)
      */
-    private fun youtubeStream(videoId: String, range: String?): Response {
-        val source = try {
-            app.youtube.resolveForTv(videoId)
-        } catch (e: Exception) {
-            app.youtube.invalidate(videoId)
-            return error(Response.Status.INTERNAL_ERROR, app.youtube.describeError(e))
-        }
-        return proxyStream(source, YouTubeRepository.mimeFor(source.extension), range)
-    }
+    private fun youtubeStream(videoId: String, range: String?): Response =
+        proxyStream("audio $videoId", { app.youtube.resolveForTv(videoId) }, null, range)
 
-    /** Entrega un archivo de YouTube a la TV (con soporte de rangos para adelantar). */
-    private fun proxyStream(source: YouTubeRepository.DownloadSource, mime: String, range: String?): Response {
-        val total = source.contentLength
-        if (total <= 0) {
-            // YouTube no dijo el tamaño: se envía entero y sin poder adelantar.
-            return cors(newChunkedResponse(Response.Status.OK, mime, app.youtube.openRange(source, 0L, Long.MAX_VALUE)))
+    /**
+     * Entrega un archivo de YouTube a la TV (con soporte de rangos para adelantar). [provider] da el
+     * origen del archivo; si YouTube lo rechaza al primer intento se pide una dirección nueva y se
+     * reintenta una vez. Así un fallo llega a la TV como un mensaje claro y no como una conexión cortada.
+     */
+    private fun proxyStream(label: String, provider: () -> YouTubeRepository.DownloadSource?, mimeOverride: String?, range: String?): Response {
+        val firstSource: YouTubeRepository.DownloadSource? = try {
+            provider()
+        } catch (e: Exception) {
+            return ytError(label, e)
         }
-        val m = range?.let { Regex("bytes=(\\d*)-(\\d*)").find(it) }
-        if (m != null && (m.groupValues[1].isNotEmpty() || m.groupValues[2].isNotEmpty())) {
-            val start = if (m.groupValues[1].isNotEmpty()) m.groupValues[1].toLong() else maxOf(0L, total - m.groupValues[2].toLong())
-            val end = if (m.groupValues[1].isNotEmpty() && m.groupValues[2].isNotEmpty()) minOf(m.groupValues[2].toLong(), total - 1) else total - 1
+        var source: YouTubeRepository.DownloadSource = firstSource ?: return error(Response.Status.NOT_FOUND, "Esa calidad no está disponible")
+        val mime = mimeOverride ?: YouTubeRepository.mimeFor(source.extension)
+        val total = source.contentLength
+        val m = if (total > 0) range?.let { Regex("bytes=(\\d*)-(\\d*)").find(it) } else null
+        val ranged = m != null && (m.groupValues[1].isNotEmpty() || m.groupValues[2].isNotEmpty())
+        var start = 0L
+        var end = if (total > 0) total - 1 else Long.MAX_VALUE
+        if (ranged) {
+            start = if (m!!.groupValues[1].isNotEmpty()) m.groupValues[1].toLong() else maxOf(0L, total - m.groupValues[2].toLong())
+            end = if (m.groupValues[1].isNotEmpty() && m.groupValues[2].isNotEmpty()) minOf(m.groupValues[2].toLong(), total - 1) else total - 1
             if (start >= total || start > end) {
                 return cors(newFixedLengthResponse(Response.Status.RANGE_NOT_SATISFIABLE, "text/plain", "").apply {
                     addHeader("Content-Range", "bytes */$total")
                 })
             }
-            val r = newFixedLengthResponse(Response.Status.PARTIAL_CONTENT, mime, app.youtube.openRange(source, start, end), end - start + 1)
+        }
+        var stream = app.youtube.openRange(source, start, end)
+        try {
+            stream.prefetch()
+        } catch (first: Exception) {
+            YouTubeLog.add("TV", "$label: primer intento falló (${first.message}); se pide una dirección nueva")
+            source.videoId?.let { app.youtube.invalidate(it) }
+            try {
+                val renewed: YouTubeRepository.DownloadSource = provider() ?: return error(Response.Status.NOT_FOUND, "Esa calidad no está disponible")
+                source = renewed
+                stream = app.youtube.openRange(renewed, start, end)
+                stream.prefetch()
+            } catch (second: Exception) {
+                return ytError(label, second)
+            }
+        }
+        if (start == 0L) YouTubeLog.add("TV", "$label: empieza a enviarse (${if (total > 0) "${total / 1024} KB" else "tamaño desconocido"})")
+        if (total <= 0) {
+            // YouTube no dijo el tamaño: se envía entero y sin poder adelantar.
+            return cors(newChunkedResponse(Response.Status.OK, mime, stream))
+        }
+        if (ranged) {
+            val r = newFixedLengthResponse(Response.Status.PARTIAL_CONTENT, mime, stream, end - start + 1)
             r.addHeader("Content-Range", "bytes $start-$end/$total")
             r.addHeader("Accept-Ranges", "bytes")
             return cors(r)
         }
-        val r = newFixedLengthResponse(Response.Status.OK, mime, app.youtube.openRange(source, 0L, total - 1), total)
+        val r = newFixedLengthResponse(Response.Status.OK, mime, stream, total)
         r.addHeader("Accept-Ranges", "bytes")
         return cors(r)
+    }
+
+    /** Falla con un mensaje que la TV puede mostrar (y queda en el registro). */
+    private fun ytError(label: String, e: Exception): Response {
+        val own = if (e.javaClass == IOException::class.java) e.message else null
+        val text = if (!own.isNullOrBlank()) own else app.youtube.describeError(e)
+        YouTubeLog.add("TV", "$label: ERROR ${e.javaClass.simpleName}: ${e.message}")
+        return error(Response.Status.INTERNAL_ERROR, text)
     }
 
     /**
@@ -276,27 +311,37 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             if (first == "search") {
                 val q = session.parms["q"].orEmpty().trim()
                 if (q.isEmpty()) return error(Response.Status.BAD_REQUEST, "Escribe qué buscar")
-                return json(Response.Status.OK, TvYouTube.search(app, q, session.parms["mode"].orEmpty(), session.parms["page"]))
+                val t0 = System.currentTimeMillis()
+                val result = TvYouTube.search(app, q, session.parms["mode"].orEmpty(), session.parms["page"])
+                YouTubeLog.add("TV", "búsqueda «$q»: ${result.getJSONArray("items").length()} resultados en ${System.currentTimeMillis() - t0} ms")
+                return json(Response.Status.OK, result)
             }
             val videoId = first
             if (!Regex("[A-Za-z0-9_-]{6,20}").matches(videoId)) return error(Response.Status.NOT_FOUND, "Video no encontrado")
             when (val kind = parts.getOrNull(3)) {
                 "play" -> {
                     val token = session.parms["t"] ?: session.headers["x-pipo-token"].orEmpty()
-                    json(Response.Status.OK, TvYouTube.plan(app, videoId, token, session.parms["h"]?.toIntOrNull() ?: 0, session.parms["force"] == "direct"))
+                    val forceDirect = session.parms["force"] == "direct"
+                    val t0 = System.currentTimeMillis()
+                    val plan = TvYouTube.plan(app, videoId, token, session.parms["h"]?.toIntOrNull() ?: 0, forceDirect)
+                    YouTubeLog.add("TV", "plan $videoId${if (forceDirect) " (con audio incluido)" else ""}: ${plan.getString("mode")} ${plan.getString("info")} en ${System.currentTimeMillis() - t0} ms")
+                    json(Response.Status.OK, plan)
                 }
                 "v", "m", "a" -> {
-                    val source = TvYouTube.source(app, videoId, kind, parts.getOrNull(4)?.toIntOrNull() ?: 0)
-                        ?: return error(Response.Status.NOT_FOUND, "Esa calidad no está disponible")
-                    proxyStream(source, if (kind == "a") "audio/mp4" else "video/mp4", session.headers["range"])
+                    val height = parts.getOrNull(4)?.toIntOrNull() ?: 0
+                    proxyStream(
+                        "$videoId/$kind${if (height > 0) height else ""}",
+                        { TvYouTube.source(app, videoId, kind, height) },
+                        if (kind == "a") "audio/mp4" else "video/mp4",
+                        session.headers["range"],
+                    )
                 }
+                "log" -> cors(newFixedLengthResponse(Response.Status.OK, "text/plain; charset=utf-8", YouTubeLog.dump()))
                 else -> error(Response.Status.NOT_FOUND, "No encontrado")
             }
         } catch (e: Exception) {
             app.youtube.invalidate(first)
-            // Los avisos propios (p. ej. «YouTube no ofreció video…») se muestran tal cual.
-            val own = if (e.javaClass == IOException::class.java) e.message else null
-            error(Response.Status.INTERNAL_ERROR, if (!own.isNullOrBlank()) own else app.youtube.describeError(e))
+            ytError("yt/$first", e)
         }
     }
 

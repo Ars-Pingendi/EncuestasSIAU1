@@ -267,15 +267,28 @@ class YouTubeRepository {
     }
 
     /**
-     * Lee los bytes [start]..[endInclusive] del audio como un flujo, pidiendo a YouTube fragmentos de 1 MB
-     * (igual que la descarga) a medida que se consumen. Lo usa el servidor de la TV. Si YouTube rechaza
-     * la dirección (caducó), se olvida y el error llega a quien lee para que reintente.
+     * Lee los bytes [start]..[endInclusive] del archivo como un flujo, pidiendo a YouTube fragmentos de 1 MB
+     * (igual que la descarga) a medida que se consumen. Lo usan el servidor de la TV y el visor de video.
+     * Si YouTube rechaza la dirección se prueban otras formas de identificarse y, si nada sirve, se
+     * olvida y el error llega a quien lee.
      */
-    fun openRange(source: DownloadSource, start: Long, endInclusive: Long): InputStream = object : InputStream() {
+    fun openRange(source: DownloadSource, start: Long, endInclusive: Long): RangeStream =
+        RangeStream(source, start, endInclusive)
+
+    inner class RangeStream(
+        private val source: DownloadSource,
+        start: Long,
+        private val endInclusive: Long,
+    ) : InputStream() {
         private var position = start
         private var buffer = ByteArray(0)
         private var offset = 0
         private var finished = false
+
+        /** Pide ya el primer fragmento: así un rechazo de YouTube se detecta antes de contestarle a la TV. */
+        fun prefetch() {
+            if (offset >= buffer.size && !finished && position <= endInclusive) fetch()
+        }
 
         override fun read(): Int {
             val one = ByteArray(1)
@@ -301,21 +314,59 @@ class YouTubeRepository {
         private fun fetch() {
             val last = minOf(position + CHUNK_BYTES - 1, endInclusive)
             val wanted = last - position + 1
-            val url = source.url + "&range=" + position + "-" + last + "&rn=" + requestNumber.getAndIncrement()
-            val builder = okhttp3.Request.Builder().url(url).post(POST_BODY.toRequestBody())
-            streamingHeaders(url).forEach { (name, value) -> builder.header(name, value) }
-            val bytes = client.newCall(builder.build()).execute().use { response ->
-                if (!response.isSuccessful) {
-                    source.videoId?.let { invalidate(it) }
-                    throw IOException("YouTube respondió ${response.code}")
-                }
-                response.body?.bytes() ?: ByteArray(0)
-            }
+            val bytes = fetchChunk(source, position, last)
             buffer = bytes
             offset = 0
             position += bytes.size
             if (bytes.size < wanted) finished = true
         }
+    }
+
+    /** Qué forma de identificarse funcionó con cada dirección (0 = la de siempre). */
+    private val workingProfile = ConcurrentHashMap<String, Int>()
+
+    private fun profileRequest(url: String, profile: Int): okhttp3.Request.Builder {
+        val builder = okhttp3.Request.Builder().url(url)
+        when (profile) {
+            0 -> {
+                builder.post(POST_BODY.toRequestBody())
+                streamingHeaders(url).forEach { (name, value) -> builder.header(name, value) }
+            }
+            1 -> builder.get().header("User-Agent", IOS_USER_AGENT)
+            else -> builder.get().header("User-Agent", ANDROID_USER_AGENT)
+        }
+        return builder
+    }
+
+    /**
+     * Pide los bytes [from]..[to]. Cada tipo de dirección de YouTube espera que quien la pide se
+     * identifique de una forma distinta (navegador, iPhone, Android): si responde con rechazo
+     * (400/401/403/404/410) se prueba con las otras y se recuerda la que funcionó.
+     */
+    private fun fetchChunk(source: DownloadSource, from: Long, to: Long): ByteArray {
+        val first = workingProfile[source.url] ?: 0
+        var code = 0
+        for (k in 0 until PROFILES) {
+            val profile = (first + k) % PROFILES
+            val url = source.url + "&range=" + from + "-" + to + "&rn=" + requestNumber.getAndIncrement()
+            val bytes = client.newCall(profileRequest(url, profile).build()).execute().use { response ->
+                if (response.isSuccessful) {
+                    response.body?.bytes() ?: ByteArray(0)
+                } else {
+                    code = response.code
+                    null
+                }
+            }
+            if (bytes != null) {
+                val previous = workingProfile.put(source.url, profile)
+                if (profile != 0 && previous != profile) YouTubeLog.add("YouTube", "modo $profile aceptado por YouTube")
+                return bytes
+            }
+            YouTubeLog.add("YouTube", "rechazó con $code (modo $profile, bytes $from-$to)")
+            if (code !in RETRY_CODES) break
+        }
+        source.videoId?.let { invalidate(it) }
+        throw IOException("YouTube respondió $code")
     }
 
     // ------------------------------------------------------------------ video
@@ -351,8 +402,19 @@ class YouTubeRepository {
                 .sortedBy { it.height }
                 .map { rendition(it) }
 
-        val adaptive = best(info.videoOnlyStreams.orEmpty(), h264Only = true).filter { it.height <= MAX_VIDEO_HEIGHT && it.source.contentLength > 0 }
-        val muxed = best(info.videoStreams.orEmpty(), h264Only = false)
+        val onlyVideo = info.videoOnlyStreams.orEmpty()
+        val withAudio = info.videoStreams.orEmpty()
+        val adaptive = best(onlyVideo, h264Only = true).filter { it.height <= MAX_VIDEO_HEIGHT && it.source.contentLength > 0 }
+        val muxed = best(withAudio, h264Only = false)
+        fun kinds(list: List<VideoStream>) = list.groupingBy { it.deliveryMethod.name + "/" + (it.format?.name ?: "?") }.eachCount().toString()
+        YouTubeLog.add(
+            "YouTube",
+            "$videoId: solo imagen ${onlyVideo.size} ${kinds(onlyVideo)}, con audio ${withAudio.size} ${kinds(withAudio)}; " +
+                "usables: adaptativo ${adaptive.size}, con audio ${muxed.size}",
+        )
+        if (adaptive.isEmpty() && muxed.isEmpty()) {
+            throw IOException("YouTube no ofreció video MP4/H.264 para este contenido (solo imagen ${onlyVideo.size}, con audio ${withAudio.size}).")
+        }
         val audio = try {
             sourceOf(videoId, pickAudio(videoId, info, preferM4a = true, now = now))
         } catch (_: Exception) {
@@ -426,6 +488,10 @@ class YouTubeRepository {
         const val URL_TTL_MS = 90L * 60L * 1000L
         const val CHUNK_BYTES = 1_048_576L
         const val MAX_VIDEO_HEIGHT = 1080
+        private const val PROFILES = 3
+        private val RETRY_CODES = setOf(400, 401, 403, 404, 410)
+        private const val IOS_USER_AGENT = "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_3_2 like Mac OS X;)"
+        private const val ANDROID_USER_AGENT = "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip"
         val POST_BODY = byteArrayOf(0x78, 0)
     }
 }

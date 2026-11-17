@@ -111,6 +111,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   let attemptIdx = 0;
   let force: PlayMode | undefined;
   let adaptive: AdaptivePlayer | null = null;
+  let failLog: string[] = [];
   let container: 'mp4' | 'ts' = getPrefs().container;
   let loadToken = 0;
   let started = false;
@@ -212,7 +213,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   async function start(startSec: number, o: { audio?: number; fallback?: boolean } = {}) {
     const token = ++loadToken;
     started = false;
-    setBusy('Preparando el video…');
+    setBusy(isYoutubeId(item.id) ? 'Consultando a YouTube desde el teléfono…' : 'Preparando el video…');
     if (watchdog) clearTimeout(watchdog);
     let p: VideoPlan;
     try {
@@ -224,7 +225,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
         closeOverlay();
         return;
       }
-      setBusy((err as Error).message, false);
+      setBusy(isYoutubeId(item.id) ? `YouTube: ${(err as Error).message} (Ajustes › Registro del teléfono tiene el detalle)` : (err as Error).message, false);
       return;
     }
     if (destroyed || token !== loadToken) return;
@@ -234,6 +235,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     if (!o.fallback) {
       attempts = buildAttempts(p.mode);
       attemptIdx = 0;
+      failLog = [];
     }
     title.textContent = p.title;
     if (!app.canConvert && !o.fallback && p.reason && p.reason !== 'Reproducción directa') toast(`Puede que la TV no reproduzca este video: ${p.reason}.`);
@@ -243,6 +245,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
       adaptive = null;
     }
     if (p.mode === 'adaptive' && p.adaptive) {
+      setBusy('Cargando imagen y audio desde el teléfono…');
       adaptive = new AdaptivePlayer(video, (path) => absoluteUrl(conn, path), p.adaptive, p.durationMs / 1000, startSec, (msg) => {
         if (!destroyed && token === loadToken) fail(msg);
       });
@@ -275,6 +278,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   /** Pasa al siguiente intento: directo → convertido (mp4 / ts) → recodificado. */
   function fail(reason: string) {
     if (destroyed) return;
+    failLog.push(`${plan ? MODE_LABEL[plan.mode] || plan.mode : 'plan'}: ${reason}`);
     const t = position();
     attemptIdx++;
     if (attemptIdx >= attempts.length) {
@@ -283,7 +287,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
         app.canConvert
           ? `No se pudo reproducir este video en la TV (${reason}). Prueba otro archivo o revisa «Ver registro de video» en Pipo del PC.`
           : isYoutubeId(item.id)
-            ? `No se pudo reproducir este video de YouTube en la TV (${reason}). Revisa que el teléfono tenga Internet y prueba con otro video.`
+            ? `No se pudo reproducir este video de YouTube en la TV. Detalle: ${failLog.join(' → ')}. Más información en Ajustes › Registro del teléfono.`
             : `No se pudo reproducir este video en la TV (${reason}).${plan && plan.reason !== 'Reproducción directa' ? ` ${plan.reason}.` : ''} El teléfono no convierte videos: prueba con otro archivo o reproduce este desde Pipo del PC.`,
         false,
       );
@@ -298,7 +302,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
 
   video.addEventListener('error', () => {
     if (destroyed || !video.getAttribute('src')) return;
-    fail('error de reproducción');
+    fail(`error de reproducción (código ${video.error ? video.error.code : '?'})`);
   });
   video.addEventListener('playing', () => {
     started = true;

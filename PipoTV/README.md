@@ -4,6 +4,7 @@ App para televisores LG con webOS 4.0 o posterior (2018 en adelante) que reprodu
 
 - **Música** de **Pipo para Windows** o de **Pipo para Android**: canciones, álbumes, artistas, géneros, listas, favoritos y descargas de YouTube, con el mismo **ecualizador de 10 bandas** (13 preajustes, graves, sonido envolvente y amplificación).
 - **Videos de YouTube en la TV** (con **Pipo para Android 1.8.0** o posterior): en el modo **Video** aparece **YouTube**. Escribe la búsqueda con el teclado de la TV (o dicta con el control mágico) y elige un video; o, en Pipo del teléfono, abre un video y pulsa **«Ver en la TV»**. Se ve **hasta en 1080p** (imagen y audio por separado, que la TV une) con selector de **Calidad**, sin anuncios; si algo falla, usa el video con audio incluido (360p). El teléfono hace de puente: debe seguir encendido, con Internet y en el mismo Wi-Fi.
+Si un video de YouTube no carga, la TV muestra el paso que falló y en **Ajustes › Registro del teléfono** (botón *Ver registro*) puedes leer lo último que pasó entre la TV, el teléfono y YouTube.
 - **YouTube (solo audio) desde el teléfono Android** (con **Pipo para Android 1.7.0** o posterior): busca en la pestaña YouTube del teléfono, activa **«Escuchar en la TV»** y toca una canción (o usa ⋮ › *Reproducir en la TV* / *Añadir a la cola de la TV*): suena en el televisor, sin anuncios y con el ecualizador de la TV. El teléfono hace de puente: tiene que seguir encendido, con Internet y en el mismo Wi-Fi.
 - **Videos del teléfono Android** (con **Pipo para Android 1.6.0** o posterior): cámara, descargas y películas del teléfono aparecen en «Video». Se envían tal cual, sin convertir: si la TV no admite el formato (por ejemplo HEVC en TV antiguas), la app lo avisa. Sin subtítulos ni cambio de pista de audio.
 - **Películas y series** guardadas en tu PC (solo con **Pipo para Windows 1.2.0** o posterior): carátulas, temporadas y episodios, **continuar donde lo dejaste**, pistas de audio, subtítulos, y siguiente episodio automático.
@@ -55,7 +56,7 @@ Si la TV no logra reproducir algo, **reintenta sola** con la siguiente forma (di
 
 ## Instalar en la TV
 
-El instalador es `com.personal.pipomusicplayer_1.5.0_all.ipk`.
+El instalador es `com.personal.pipomusicplayer_1.5.1_all.ipk`.
 
 ### Opción A — Modo desarrollador (sin modificar la TV)
 

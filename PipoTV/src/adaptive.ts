@@ -48,9 +48,24 @@ function u64(dv: DataView, off: number): number {
 /** Pide los bytes [from, to] de un archivo. Si el servidor ignora el rango (200) se recorta aquí. */
 export function getRange(url: string, from: number, to: number): Promise<ArrayBuffer> {
   return fetch(url, { headers: { Range: `bytes=${from}-${to}` } }).then((res) => {
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // El teléfono explica el motivo en un JSON {"error": "…"}.
+      return res.text().then((body) => {
+        let why = '';
+        try {
+          why = (JSON.parse(body) as { error?: string }).error || '';
+        } catch {
+          why = body.slice(0, 120);
+        }
+        throw new Error(`HTTP ${res.status}${why ? `: ${why}` : ''}`);
+      });
+    }
     return res.arrayBuffer().then((buf) => (res.status === 200 && from > 0 ? buf.slice(from, to + 1) : buf));
   });
+}
+
+function why(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 export interface ParsedHead {
@@ -260,8 +275,12 @@ export class AdaptivePlayer {
     try {
       const chosen = this.spec.videos[this.quality];
       const [vrep, arep] = await Promise.all([
-        loadRep(this.resolve(chosen.url), chosen.mime, chosen.bytes),
-        loadRep(this.resolve(this.spec.audio.url), this.spec.audio.mime, this.spec.audio.bytes),
+        loadRep(this.resolve(chosen.url), chosen.mime, chosen.bytes).catch((e) => {
+          throw new Error(`imagen ${chosen.label}: ${why(e)}`);
+        }),
+        loadRep(this.resolve(this.spec.audio.url), this.spec.audio.mime, this.spec.audio.bytes).catch((e) => {
+          throw new Error(`audio: ${why(e)}`);
+        }),
       ]);
       if (this.dead) return;
       const total = Math.max(vrep.segs.length ? vrep.segs[vrep.segs.length - 1].t1 : 0, arep.segs.length ? arep.segs[arep.segs.length - 1].t1 : 0);
@@ -280,7 +299,7 @@ export class AdaptivePlayer {
       }
       this.pump();
     } catch (err) {
-      this.fatal(err instanceof Error ? err.message : 'No se pudo preparar el video');
+      this.fatal(`al preparar el video (${why(err)})`);
     }
   }
 
@@ -332,7 +351,7 @@ export class AdaptivePlayer {
         f.failures++;
         // Reintento con espera creciente; si el teléfono no vuelve, se avisa.
         f.retryAt = Date.now() + Math.min(8000, 1000 * f.failures);
-        if (f.failures >= MAX_FAILURES) this.fatal(err instanceof Error ? err.message : 'Se perdió la conexión con el teléfono');
+        if (f.failures >= MAX_FAILURES) this.fatal(`${f.name}, fragmento ${f.next + 1}: ${why(err)}`);
       });
   }
 
@@ -411,7 +430,7 @@ export class AdaptivePlayer {
       this.pump();
     } catch (err) {
       f.busy = false;
-      this.fatal(err instanceof Error ? err.message : 'No se pudo cambiar la calidad');
+      this.fatal(`al cambiar la calidad (${why(err)})`);
     }
   }
 }
