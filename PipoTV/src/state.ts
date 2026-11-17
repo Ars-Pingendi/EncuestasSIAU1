@@ -38,6 +38,10 @@ export const app = {
   videos: new VideoLibrary(),
   /** El equipo conectado comparte películas y series (Pipo para Windows). */
   hasVideo: false,
+  /** El equipo comparte películas y series propias (PC o videos del teléfono). */
+  hasLocalVideos: false,
+  /** El teléfono busca y entrega videos de YouTube. */
+  hasYoutube: false,
   /** El equipo conectado puede convertir videos que la TV no entiende (el PC sí; el teléfono no). */
   canConvert: true,
   mode: (load<Mode>('pipo:modo', 'music') as Mode),

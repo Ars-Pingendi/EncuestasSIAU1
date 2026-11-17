@@ -39,7 +39,7 @@ export function settingsView(actions: { reload(): void; forget(): void }): View 
       'div',
       { class: 'panel' },
       h('h2', null, 'Acerca de'),
-      h('p', null, 'Pipo Music Player 1.4.0 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
+      h('p', null, 'Pipo Music Player 1.5.0 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
     ),
   );
   return { el };

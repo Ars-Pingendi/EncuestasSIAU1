@@ -20,6 +20,7 @@ import org.json.JSONObject
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.io.FileInputStream
 
 /**
@@ -121,6 +122,7 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             "videos" -> videos()
             "video" -> video(parts, session)
             "remote" -> remote(session)
+            "yt" -> yt(parts, session)
             else -> error(Response.Status.NOT_FOUND, "No encontrado")
         }
     }
@@ -203,7 +205,7 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
 
     /** Qué ofrece este equipo a la TV. El teléfono no convierte videos («convert»: false). */
     private fun features(): JSONObject =
-        JSONObject().put("music", true).put("video", TvShare.sharesVideos(context)).put("convert", false).put("remote", true)
+        JSONObject().put("music", true).put("video", TvShare.sharesVideos(context)).put("convert", false).put("remote", true).put("youtube", true)
 
     // ───────────────────────────── Audio ─────────────────────────────
 
@@ -233,7 +235,11 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
             app.youtube.invalidate(videoId)
             return error(Response.Status.INTERNAL_ERROR, app.youtube.describeError(e))
         }
-        val mime = YouTubeRepository.mimeFor(source.extension)
+        return proxyStream(source, YouTubeRepository.mimeFor(source.extension), range)
+    }
+
+    /** Entrega un archivo de YouTube a la TV (con soporte de rangos para adelantar). */
+    private fun proxyStream(source: YouTubeRepository.DownloadSource, mime: String, range: String?): Response {
         val total = source.contentLength
         if (total <= 0) {
             // YouTube no dijo el tamaño: se envía entero y sin poder adelantar.
@@ -256,6 +262,42 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
         val r = newFixedLengthResponse(Response.Status.OK, mime, app.youtube.openRange(source, 0L, total - 1), total)
         r.addHeader("Accept-Ranges", "bytes")
         return cors(r)
+    }
+
+    /**
+     * YouTube para la TV:
+     *  GET /pipo/yt/search?q=…&mode=videos|songs[&page=…]   resultados
+     *  GET /pipo/yt/<id>/play?h=<altura máx.>                cómo ver el video (calidades)
+     *  GET /pipo/yt/<id>/v/<altura> · /m/<altura> · /a       archivo de imagen, de video con audio, de audio
+     */
+    private fun yt(parts: List<String>, session: IHTTPSession): Response {
+        val first = parts.getOrNull(2).orEmpty()
+        return try {
+            if (first == "search") {
+                val q = session.parms["q"].orEmpty().trim()
+                if (q.isEmpty()) return error(Response.Status.BAD_REQUEST, "Escribe qué buscar")
+                return json(Response.Status.OK, TvYouTube.search(app, q, session.parms["mode"].orEmpty(), session.parms["page"]))
+            }
+            val videoId = first
+            if (!Regex("[A-Za-z0-9_-]{6,20}").matches(videoId)) return error(Response.Status.NOT_FOUND, "Video no encontrado")
+            when (val kind = parts.getOrNull(3)) {
+                "play" -> {
+                    val token = session.parms["t"] ?: session.headers["x-pipo-token"].orEmpty()
+                    json(Response.Status.OK, TvYouTube.plan(app, videoId, token, session.parms["h"]?.toIntOrNull() ?: 0, session.parms["force"] == "direct"))
+                }
+                "v", "m", "a" -> {
+                    val source = TvYouTube.source(app, videoId, kind, parts.getOrNull(4)?.toIntOrNull() ?: 0)
+                        ?: return error(Response.Status.NOT_FOUND, "Esa calidad no está disponible")
+                    proxyStream(source, if (kind == "a") "audio/mp4" else "video/mp4", session.headers["range"])
+                }
+                else -> error(Response.Status.NOT_FOUND, "No encontrado")
+            }
+        } catch (e: Exception) {
+            app.youtube.invalidate(first)
+            // Los avisos propios (p. ej. «YouTube no ofreció video…») se muestran tal cual.
+            val own = if (e.javaClass == IOException::class.java) e.message else null
+            error(Response.Status.INTERNAL_ERROR, if (!own.isNullOrBlank()) own else app.youtube.describeError(e))
+        }
     }
 
     // ───────────────────────────── Órdenes del teléfono ─────────────────────────────

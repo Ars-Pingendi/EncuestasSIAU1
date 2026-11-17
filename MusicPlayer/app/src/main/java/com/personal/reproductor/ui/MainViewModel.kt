@@ -353,6 +353,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         if (on) toast("Videos listos. En la TV, pulsa «Actualizar biblioteca» en Ajustes.")
     }
 
+    // ----------------------------------------------------- Ver videos de YouTube
+
+    /** Abre el visor de video de YouTube para [track] (debe venir de YouTube). */
+    fun openVideo(track: Track) {
+        val videoId = track.remoteId ?: return
+        navigate(Route.VideoRoute(videoId, track.title, track.artist, track.durationMs, track.artworkUrl))
+    }
+
+    /** La música se pausa al empezar a ver un video. */
+    fun pauseForVideo() {
+        controller?.pause()
+    }
+
     // ----------------------------------------------------- «Reproducir en la TV»
 
     /** Con esto activado, tocar una canción de la lista la reproduce en la TV en vez de en el teléfono. */
@@ -375,6 +388,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         tvSend("play", list, if (shuffle) 0 else index.coerceIn(0, list.lastIndex))
     }
 
+    /** Abre el video de YouTube [track] en la TV. */
+    fun tvWatch(track: Track) = tvSend("video", listOf(track), 0)
+
     fun tvPlayNext(tracks: List<Track>) = tvSend("playNext", tracks, 0)
 
     fun tvEnqueue(tracks: List<Track>) = tvSend("enqueue", tracks, 0)
@@ -390,6 +406,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             when {
                 !delivered -> "La TV no está conectada. Abre Pipo en la TV, conéctala y vuelve a intentarlo."
                 type == "play" -> "Sonando en la TV"
+                type == "video" -> "Abriendo el video en la TV"
                 type == "playNext" -> "Sonará a continuación en la TV"
                 else -> "Añadida a la cola de la TV"
             },

@@ -1,8 +1,11 @@
 // «Reproducir en la TV»: el teléfono Android manda órdenes (reproducir, a continuación, a la cola)
 // y la TV las recibe preguntándole cada pocos segundos con una petición larga.
 import { pollRemote, Unauthorized, type Connection, type RemoteCommand } from './api';
+import { engine } from './audio';
 import { addToQueue, app, playNext, playTracks, toast } from './state';
 import { closeOverlay, openNowPlaying, switchMode } from './ui';
+import { playVideo } from './views/player';
+import { ytVideo } from './views/youtube';
 
 let run = 0;
 
@@ -13,6 +16,16 @@ function sleep(ms: number): Promise<void> {
 function apply(c: RemoteCommand) {
   const tracks = c.tracks || [];
   if (!tracks.length) return;
+  if (c.type === 'video') {
+    // «Ver en la TV» desde el teléfono: se deja lo que hubiera y se abre el video de YouTube.
+    const t = tracks[0];
+    engine.pause();
+    closeOverlay(false);
+    if (app.hasYoutube && app.mode !== 'video') switchMode('video');
+    toast(`Desde el teléfono: «${t.title}»`);
+    playVideo(ytVideo({ id: t.id, title: t.title, durationMs: t.durationMs }), { resume: false });
+    return;
+  }
   app.library.addExtra(tracks);
   if (c.type === 'play') {
     // Lo que se manda desde el teléfono tiene prioridad: se deja el video (si lo había) y se pasa a Música.

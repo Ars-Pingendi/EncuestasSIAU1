@@ -52,16 +52,19 @@ const NAV_MUSIC: { view: string; label: string; icon: string }[] = [
   { view: 'settings', label: 'Ajustes', icon: 'settings' },
 ];
 
-const NAV_VIDEO: { view: string; label: string; icon: string }[] = [
-  { view: 'vhome', label: 'Inicio', icon: 'play' },
-  { view: 'movies', label: 'Películas', icon: 'album' },
-  { view: 'shows', label: 'Series', icon: 'queue' },
-  { view: 'settings', label: 'Ajustes', icon: 'settings' },
-];
+function navVideo(): { view: string; label: string; icon: string }[] {
+  const out: { view: string; label: string; icon: string }[] = [];
+  if (app.hasLocalVideos) {
+    out.push({ view: 'vhome', label: 'Inicio', icon: 'play' }, { view: 'movies', label: 'Películas', icon: 'album' }, { view: 'shows', label: 'Series', icon: 'queue' });
+  }
+  if (app.hasYoutube) out.push({ view: 'youtube', label: 'YouTube', icon: 'search' });
+  out.push({ view: 'settings', label: 'Ajustes', icon: 'settings' });
+  return out;
+}
 
 /** Pantalla con la que empieza cada modo. */
 export function homeView(): string {
-  return app.mode === 'video' ? 'vhome' : 'songs';
+  return app.mode === 'video' ? (app.hasLocalVideos ? 'vhome' : 'youtube') : 'songs';
 }
 
 function renderSidebar() {
@@ -77,7 +80,7 @@ function renderSidebar() {
       ),
     );
   }
-  for (const n of app.mode === 'video' ? NAV_VIDEO : NAV_MUSIC) {
+  for (const n of app.mode === 'video' ? navVideo() : NAV_MUSIC) {
     sidebar.appendChild(
       h('div', { class: 'nav-item', focus: true, 'data-key': `nav-${n.view}`, 'data-view': n.view, onclick: () => navigate({ view: n.view }, true) }, icon(n.icon, 38), h('span', null, n.label)),
     );

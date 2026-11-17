@@ -90,7 +90,7 @@ fun YouTubeTab(vm: MainViewModel) {
                 FilterChip(
                     selected = toTv,
                     onClick = { vm.setTvTarget(!tvTarget) },
-                    label = { Text("Escuchar en la TV") },
+                    label = { Text(if (ui.mode == YtMode.VIDEOS) "Ver en la TV" else "Escuchar en la TV") },
                     leadingIcon = { Icon(Icons.Filled.Tv, contentDescription = null, modifier = Modifier.size(18.dp)) },
                 )
             }
@@ -111,7 +111,7 @@ fun YouTubeTab(vm: MainViewModel) {
                 title = "Escucha desde YouTube",
                 message = "Busca canciones o videos: suenan sin anuncios, en segundo plano y con tu ecualizador. " +
                     "Puedes guardarlas en tus listas y favoritos con el menú ⋮. " +
-                    "Con la TV conectada, activa «Escuchar en la TV» para que suenen en el televisor.",
+                    "En «Videos» puedes ver el video (hasta 1080p) en el teléfono o, con «Escuchar en la TV», en el televisor.",
             )
             ui.results.isEmpty() -> EmptyState(
                 icon = Icons.Filled.Search,
@@ -132,7 +132,15 @@ fun YouTubeTab(vm: MainViewModel) {
                         vm = vm,
                         currentId = currentId,
                         favorites = favs,
-                        onClick = { if (toTv) vm.tvPlay(ui.results, index) else vm.play(ui.results, index) },
+                        onClick = {
+                            when {
+                                // En «Videos», tocar un resultado lo muestra (en la TV si está activada).
+                                ui.mode == YtMode.VIDEOS && toTv -> vm.tvWatch(track)
+                                ui.mode == YtMode.VIDEOS -> vm.openVideo(track)
+                                toTv -> vm.tvPlay(ui.results, index)
+                                else -> vm.play(ui.results, index)
+                            }
+                        },
                     )
                 }
                 if (ui.hasMore) {

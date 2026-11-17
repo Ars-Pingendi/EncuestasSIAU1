@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Tv
+import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -369,6 +370,20 @@ fun TrackRow(
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 val close = { menu = false }
+                if (track.isRemote) {
+                    DropdownMenuItem(
+                        text = { Text("Ver video") },
+                        leadingIcon = { Icon(Icons.Filled.Videocam, null) },
+                        onClick = { close(); vm.openVideo(track) },
+                    )
+                    if (tvOn) {
+                        DropdownMenuItem(
+                            text = { Text("Ver video en la TV") },
+                            leadingIcon = { Icon(Icons.Filled.Tv, null) },
+                            onClick = { close(); vm.tvWatch(track) },
+                        )
+                    }
+                }
                 if (tvOn) {
                     DropdownMenuItem(
                         text = { Text("Reproducir en la TV") },

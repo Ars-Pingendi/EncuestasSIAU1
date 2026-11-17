@@ -21,6 +21,8 @@ sealed interface Route {
     data object SearchRoute : Route
     data object EqualizerRoute : Route
     data object SettingsRoute : Route
+    /** Ver un video de YouTube dentro de la app. */
+    data class VideoRoute(val videoId: String, val title: String, val channel: String, val durationMs: Long, val thumb: String?) : Route
 }
 
 sealed interface DialogState {

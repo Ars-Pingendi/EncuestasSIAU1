@@ -1,5 +1,6 @@
 // Reproductor de video a pantalla completa para la TV.
-import { absoluteUrl, fetchPlan, fetchText, subtitleUrl, Unauthorized, type PlanSub, type PlayMode, type TvVideo, type VideoPlan } from '../api';
+import { AdaptivePlayer } from '../adaptive';
+import { absoluteUrl, fetchPlan, fetchText, isYoutubeId, subtitleUrl, Unauthorized, type PlanSub, type PlayMode, type TvVideo, type VideoPlan } from '../api';
 import { engine } from '../audio';
 import { detectCaps } from '../caps';
 import { clear, formatTime, h, icon } from '../dom';
@@ -69,8 +70,15 @@ interface Attempt {
   c: 'mp4' | 'ts';
 }
 
+/** Modos en los que el navegador lee el video tal cual (adelantar y retroceder los hace él). */
+function isNative(mode: PlayMode): boolean {
+  return mode === 'direct' || mode === 'adaptive';
+}
+
 function buildAttempts(first: PlayMode): Attempt[] {
   const pref = getPrefs().container;
+  // YouTube: imagen y audio por separado (hasta 1080p) y, si falla, el video con audio incluido.
+  if (first === 'adaptive') return [{ mode: 'adaptive', c: pref }, { mode: 'direct', c: pref }];
   // El teléfono no convierte: solo existe la reproducción directa.
   if (!app.canConvert) return [{ mode: 'direct', c: pref }];
   const other = pref === 'mp4' ? 'ts' : 'mp4';
@@ -81,6 +89,7 @@ function buildAttempts(first: PlayMode): Attempt[] {
 
 const MODE_LABEL: { [m: string]: string } = {
   direct: 'Reproducción directa',
+  adaptive: 'YouTube',
   remux: 'Audio convertido en el PC',
   transcode: 'Convertido en el PC',
 };
@@ -101,6 +110,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   let attempts: Attempt[] = [];
   let attemptIdx = 0;
   let force: PlayMode | undefined;
+  let adaptive: AdaptivePlayer | null = null;
   let container: 'mp4' | 'ts' = getPrefs().container;
   let loadToken = 0;
   let started = false;
@@ -132,6 +142,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   const audioBtn = h('button', { class: 'vp-btn text', focus: true, 'data-key': 'vp-audio', onclick: () => openAudioMenu() }, icon('equalizer', 34), 'Audio');
   const subsBtn = h('button', { class: 'vp-btn text', focus: true, 'data-key': 'vp-subs', onclick: () => openSubsMenu() }, icon('note', 34), 'Subtítulos');
   const nextBtn = h('button', { class: 'vp-btn text', focus: true, 'data-key': 'vp-next', onclick: () => goNext() }, icon('next', 34), 'Siguiente');
+  const qualityBtn = h('button', { class: 'vp-btn text', focus: true, 'data-key': 'vp-quality', onclick: () => openQualityMenu() }, icon('settings', 34), 'Calidad');
   const formatBtn = h('button', { class: 'vp-btn text', focus: true, 'data-key': 'vp-format', onclick: () => openFormatMenu() }, icon('settings', 34), 'Formato');
   const controls = h(
     'div',
@@ -147,6 +158,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
       h('div', { class: 'grow' }),
       audioBtn,
       subsBtn,
+      qualityBtn,
       formatBtn,
       nextBtn,
     ),
@@ -170,7 +182,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   const position = (): number => {
     if (pending !== null) return pending;
     const t = video.currentTime || 0;
-    return plan && plan.mode !== 'direct' ? origin + t : t;
+    return plan && !isNative(plan.mode) ? origin + t : t;
   };
 
   /** Mensaje en el centro; con `spin` en falso es un error definitivo y no se muestra el círculo de carga. */
@@ -226,9 +238,20 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     title.textContent = p.title;
     if (!app.canConvert && !o.fallback && p.reason && p.reason !== 'Reproducción directa') toast(`Puede que la TV no reproduzca este video: ${p.reason}.`);
     badge.textContent = `${MODE_LABEL[p.mode] || ''}${p.info ? ` · ${p.info}` : ''}`;
-    video.src = absoluteUrl(conn, p.url);
-    video.load();
-    if (p.mode === 'direct' && startSec > 0) {
+    if (adaptive) {
+      adaptive.destroy();
+      adaptive = null;
+    }
+    if (p.mode === 'adaptive' && p.adaptive) {
+      adaptive = new AdaptivePlayer(video, (path) => absoluteUrl(conn, path), p.adaptive, p.durationMs / 1000, startSec, (msg) => {
+        if (!destroyed && token === loadToken) fail(msg);
+      });
+      adaptive.attach();
+    } else {
+      video.src = absoluteUrl(conn, p.url);
+      video.load();
+    }
+    if (isNative(p.mode) && startSec > 0) {
       const seek = () => {
         video.removeEventListener('loadedmetadata', seek);
         try {
@@ -244,7 +267,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     // Si no empieza a sonar a tiempo, se prueba otra forma de reproducir.
     watchdog = setTimeout(() => {
       if (!started && !destroyed && token === loadToken) fail('no empezó a reproducirse');
-    }, p.mode === 'direct' ? 30000 : 40000);
+    }, isNative(p.mode) ? 30000 : 40000);
     if (!o.fallback && !subId) autoSubtitles(p);
     renderPlayState();
   }
@@ -259,13 +282,15 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
       setBusy(
         app.canConvert
           ? `No se pudo reproducir este video en la TV (${reason}). Prueba otro archivo o revisa «Ver registro de video» en Pipo del PC.`
-          : `No se pudo reproducir este video en la TV (${reason}).${plan && plan.reason !== 'Reproducción directa' ? ` ${plan.reason}.` : ''} El teléfono no convierte videos: prueba con otro archivo o reproduce este desde Pipo del PC.`,
+          : isYoutubeId(item.id)
+            ? `No se pudo reproducir este video de YouTube en la TV (${reason}). Revisa que el teléfono tenga Internet y prueba con otro video.`
+            : `No se pudo reproducir este video en la TV (${reason}).${plan && plan.reason !== 'Reproducción directa' ? ` ${plan.reason}.` : ''} El teléfono no convierte videos: prueba con otro archivo o reproduce este desde Pipo del PC.`,
         false,
       );
       return;
     }
     const a = attempts[attemptIdx];
-    force = a.mode === 'direct' ? undefined : a.mode;
+    force = a.mode === 'direct' && !isYoutubeId(item.id) ? undefined : a.mode;
     container = a.c;
     toast(a.mode === 'remux' ? 'Convirtiendo el audio en el PC…' : a.mode === 'transcode' ? 'Convirtiendo el video en el PC…' : 'Probando otro formato…');
     void start(t, { fallback: true });
@@ -300,7 +325,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     if (destroyed) return;
     const d = duration();
     // Una conversión que se corta antes de tiempo no es el final: se reintenta donde quedó.
-    if (d > 0 && position() < d - 20 && plan && plan.mode !== 'direct') {
+    if (d > 0 && position() < d - 20 && plan && !isNative(plan.mode)) {
       void start(position(), { fallback: true });
       return;
     }
@@ -330,7 +355,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     const d = duration();
     sec = Math.max(0, d > 0 ? Math.min(sec, d - 1) : sec);
     if (!plan) return;
-    if (plan.mode === 'direct') {
+    if (isNative(plan.mode)) {
       video.currentTime = sec;
       return;
     }
@@ -360,7 +385,8 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     nextBtn.style.display = hasNext ? '' : 'none';
     audioBtn.style.display = plan && plan.audio.length > 1 ? '' : 'none';
     subsBtn.style.display = plan && plan.subs.length ? '' : 'none';
-    formatBtn.style.display = app.canConvert ? '' : 'none';
+    formatBtn.style.display = app.canConvert && !isYoutubeId(item.id) ? '' : 'none';
+    qualityBtn.style.display = plan && plan.mode === 'adaptive' && plan.adaptive && plan.adaptive.videos.length > 1 ? '' : 'none';
   }
 
   function renderProgress() {
@@ -372,7 +398,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     let buf = 0;
     if (plan && video.buffered.length && d > 0) {
       const end = video.buffered.end(video.buffered.length - 1);
-      buf = Math.min(100, (((plan.mode === 'direct' ? 0 : origin) + end) / d) * 100);
+      buf = Math.min(100, (((isNative(plan.mode) ? 0 : origin) + end) / d) * 100);
     }
     buffered.style.width = `${buf}%`;
     times.textContent = `${formatTime(p * 1000)}  /  ${formatTime(d * 1000)}${d > 0 ? `   ·   quedan ${formatTime(Math.max(0, d - p) * 1000)}` : ''}`;
@@ -490,6 +516,16 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
       items.push({ label: s.label, checked: subId === s.id, run: () => { setPrefs({ sub: s.lang }); void loadSub(s); } });
     }
     openPopup('Subtítulos', items);
+  }
+
+  /** YouTube: elegir la calidad de la imagen (el audio no se interrumpe). */
+  function openQualityMenu() {
+    if (!plan || !plan.adaptive || !adaptive) return;
+    const player = adaptive;
+    const items = plan.adaptive.videos
+      .map((v, i) => ({ label: v.label + (v.fps > 30 ? ` ${v.fps} fps` : ''), checked: i === player.currentQuality, run: () => void player.setQuality(i) }))
+      .reverse();
+    openPopup('Calidad de imagen', items);
   }
 
   /** Salida de emergencia: elegir a mano cómo se reproduce (si la imagen no se ve o falla el audio). */
@@ -663,6 +699,8 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
       setBackHook(null);
       // Soltar el video corta la conexión y el PC detiene la conversión.
       video.pause();
+      if (adaptive) adaptive.destroy();
+      adaptive = null;
       video.removeAttribute('src');
       video.load();
     },

@@ -274,3 +274,9 @@ svg { flex: none; }
 .vp-next { position: absolute; right: 70px; bottom: 260px; width: 760px; background: var(--surface-2); border-radius: 28px; padding: 34px 40px; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.7); }
 .vp-next-title { font-size: 40px; font-weight: 700; margin-top: 6px; }
 .vp-next-sub { color: var(--muted); margin-top: 6px; }
+
+/* YouTube */
+.yt-bar { display: flex; align-items: center; margin: 4px 12px 14px; }
+.yt-input { width: 900px; margin: 0 24px 0 0; }
+.yt-status { margin: 0 12px 18px; font-size: 30px; color: var(--muted); }
+.vcard.more .more-art { display: flex; align-items: center; justify-content: center; color: var(--muted); }

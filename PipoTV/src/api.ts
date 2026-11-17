@@ -29,7 +29,7 @@ export interface LibraryPayload {
   playlists: TvPlaylist[];
   favTracks: string[];
   /** Pipo para Windows anuncia si comparte películas y series; Android no. */
-  features?: { music: boolean; video: boolean; /** false: el equipo envía los videos tal cual (teléfono). */ convert?: boolean; /** El teléfono puede mandar órdenes «Reproducir en la TV». */ remote?: boolean };
+  features?: { music: boolean; video: boolean; /** El teléfono puede buscar y entregar videos de YouTube. */ youtube?: boolean; /** false: el equipo envía los videos tal cual (teléfono). */ convert?: boolean; /** El teléfono puede mandar órdenes «Reproducir en la TV». */ remote?: boolean };
 }
 
 export interface TvVideo {
@@ -59,7 +59,7 @@ export interface VideosPayload {
   items: TvVideo[];
 }
 
-export type PlayMode = 'direct' | 'remux' | 'transcode';
+export type PlayMode = 'direct' | 'remux' | 'transcode' | 'adaptive';
 
 export interface PlanAudio {
   index: number;
@@ -93,6 +93,23 @@ export interface VideoPlan {
   audio: PlanAudio[];
   subs: PlanSub[];
   info: string;
+  /** YouTube: imagen y audio por separado que la TV une (modo «adaptive»). */
+  adaptive?: AdaptiveSpec;
+}
+
+export interface AdaptiveVideo {
+  label: string;
+  height: number;
+  fps: number;
+  url: string;
+  mime: string;
+  bytes: number;
+}
+
+export interface AdaptiveSpec {
+  audio: { url: string; mime: string; bytes: number };
+  videos: AdaptiveVideo[];
+  selected: number;
 }
 
 export interface PlanRequest {
@@ -101,6 +118,8 @@ export interface PlanRequest {
   start?: number;
   force?: PlayMode;
   c?: 'mp4' | 'ts';
+  /** YouTube: calidad máxima (altura en píxeles). */
+  h?: number;
 }
 
 export interface Connection {
@@ -207,15 +226,21 @@ export async function loadVideos(conn: Connection): Promise<VideosPayload | null
   return (await res.json()) as VideosPayload;
 }
 
+export function isYoutubeId(id: string): boolean {
+  return id.indexOf('yt:') === 0;
+}
+
 export async function fetchPlan(conn: Connection, id: string, req: PlanRequest): Promise<VideoPlan> {
   const q = [`caps=${encodeURIComponent(req.caps)}`, `t=${conn.token}`];
+  if (req.h) q.push(`h=${req.h}`);
   if (req.audio !== undefined) q.push(`audio=${req.audio}`);
   if (req.start) q.push(`start=${req.start.toFixed(3)}`);
   if (req.force) q.push(`force=${req.force}`);
   if (req.c) q.push(`c=${req.c}`);
   let res: Response;
   try {
-    res = await withTimeout(fetch(`${conn.base}/pipo/video/${encodeURIComponent(id)}/play?${q.join('&')}`), 60000, 'Tiempo agotado');
+    const path = isYoutubeId(id) ? `/pipo/yt/${encodeURIComponent(id.slice(3))}/play` : `/pipo/video/${encodeURIComponent(id)}/play`;
+    res = await withTimeout(fetch(`${conn.base}${path}?${q.join('&')}`), 60000, 'Tiempo agotado');
   } catch {
     throw new Error(`No hay conexión con «${conn.name}». ¿Sigue encendido el PC?`);
   }
@@ -236,7 +261,7 @@ export async function fetchPlan(conn: Connection, id: string, req: PlanRequest):
 
 export interface RemoteCommand {
   seq: number;
-  type: 'play' | 'playNext' | 'enqueue';
+  type: 'play' | 'playNext' | 'enqueue' | 'video';
   tracks: TvTrack[];
   start: number;
 }
@@ -282,4 +307,42 @@ export async function fetchText(url: string, timeoutMs: number): Promise<string>
     throw new Error(msg);
   }
   return res.text();
+}
+
+// ───────────────────────────── Búsqueda en YouTube ─────────────────────────────
+
+export interface YtResult {
+  id: string; // «yt:<video>»
+  title: string;
+  channel: string;
+  durationMs: number;
+  thumb: string | null;
+}
+
+export interface YtPage {
+  items: YtResult[];
+  next: string | null;
+}
+
+/** El teléfono busca en YouTube y devuelve los resultados (la TV nunca habla con YouTube). */
+export async function ytSearch(conn: Connection, query: string, mode: 'videos' | 'songs', page: string | null): Promise<YtPage> {
+  const q = [`q=${encodeURIComponent(query)}`, `mode=${mode}`, `t=${conn.token}`];
+  if (page) q.push(`page=${encodeURIComponent(page)}`);
+  let res: Response;
+  try {
+    res = await withTimeout(fetch(`${conn.base}/pipo/yt/search?${q.join('&')}`), 45000, 'Tiempo agotado');
+  } catch {
+    throw new Error(`No hay conexión con «${conn.name}». ¿Tiene Internet y sigue encendido?`);
+  }
+  if (res.status === 401) throw new Unauthorized('La TV ya no está emparejada.');
+  if (!res.ok) {
+    let msg = `Error del equipo (${res.status}).`;
+    try {
+      msg = ((await res.json()) as { error?: string }).error || msg;
+    } catch {
+      // sin detalle
+    }
+    throw new Error(msg);
+  }
+  return (await res.json()) as YtPage;
 }

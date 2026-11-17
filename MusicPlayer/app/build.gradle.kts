@@ -13,8 +13,8 @@ android {
         applicationId = "com.personal.reproductor"
         minSdk = 26
         targetSdk = 34
-        versionCode = 11
-        versionName = "1.7.0"
+        versionCode = 12
+        versionName = "1.8.0"
     }
 
     // Firma estable (keystore del repositorio) para poder actualizar el APK sin desinstalar.
@@ -92,6 +92,7 @@ dependencies {
     // Reproducción (ExoPlayer + MediaSession + notificación multimedia)
     implementation("androidx.media3:media3-exoplayer:1.4.1")
     implementation("androidx.media3:media3-session:1.4.1")
+    implementation("androidx.media3:media3-ui:1.4.1") // visor de video de YouTube
 
     // YouTube sin anuncios (misma librería que la app NewPipe). Licencia GPL-3.0.
     implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.27.0")

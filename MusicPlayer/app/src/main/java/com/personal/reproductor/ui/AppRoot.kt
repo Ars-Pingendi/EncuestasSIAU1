@@ -124,6 +124,7 @@ private fun RouteContent(vm: MainViewModel, route: Route) {
         Route.SearchRoute -> SearchScreen(vm)
         Route.EqualizerRoute -> EqualizerScreen(vm)
         Route.SettingsRoute -> SettingsScreen(vm)
+        is Route.VideoRoute -> VideoScreen(vm, route)
     }
 }
 

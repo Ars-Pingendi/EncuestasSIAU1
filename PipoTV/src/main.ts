@@ -13,6 +13,7 @@ import { albumsView, artistsView, genresView, groupView, playlistsView, playlist
 import { nowPlayingView, queueView } from './views/now';
 import { settingsView } from './views/settings';
 import { movieDetailView, moviesView, showDetailView, showsView, videoHomeView } from './views/video';
+import { youtubeView } from './views/youtube';
 
 const root = document.getElementById('app')!;
 let shellReady = false;
@@ -32,6 +33,7 @@ function makeView(route: Route): View {
     case 'queue': return queueView();
     case 'equalizer': return equalizerView();
     case 'vhome': return videoHomeView();
+    case 'youtube': return youtubeView();
     case 'movies': return moviesView();
     case 'shows': return showsView();
     case 'movie': return movieDetailView(route.key || '');
@@ -62,6 +64,8 @@ async function start(conn: Connection) {
     app.library.load(payload);
     // Pipo para Windows comparte además películas y series; Pipo para Android solo música.
     app.hasVideo = false;
+    app.hasLocalVideos = false;
+    app.hasYoutube = !!(payload.features && payload.features.youtube);
     app.canConvert = !(payload.features && payload.features.convert === false);
     stopRemote();
     if (payload.features && payload.features.remote) startRemote(conn);
@@ -70,12 +74,13 @@ async function start(conn: Connection) {
         const videos = await loadVideos(conn);
         if (videos) {
           app.videos.load(videos);
-          app.hasVideo = true;
+          app.hasLocalVideos = true;
         }
       } catch (err) {
         if (err instanceof Unauthorized) throw err;
       }
     }
+    app.hasVideo = app.hasLocalVideos || app.hasYoutube;
     if (!app.hasVideo && app.mode === 'video') setMode('music');
   } catch (err) {
     if (err instanceof Unauthorized) {

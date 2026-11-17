@@ -28,6 +28,7 @@ import org.schabi.newpipe.extractor.stream.DeliveryMethod
 import org.schabi.newpipe.extractor.stream.StreamInfo
 import org.schabi.newpipe.extractor.stream.StreamInfoItem
 import org.schabi.newpipe.extractor.stream.StreamType
+import org.schabi.newpipe.extractor.stream.VideoStream
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
@@ -60,6 +61,31 @@ class YouTubeRepository {
     /** Audio listo para descargar. [contentLength] es -1 si YouTube no lo indica. */
     class DownloadSource(val url: String, val extension: String, val contentLength: Long, val videoId: String? = null)
 
+    /** Una calidad de video. [videoOnly]: sin audio (hay que combinarla con la pista de audio). */
+    class VideoRendition(
+        val height: Int,
+        val fps: Int,
+        val codec: String,
+        val bitrate: Int,
+        val videoOnly: Boolean,
+        val source: DownloadSource,
+    )
+
+    /**
+     * Lo que ofrece YouTube para ver un video: calidades de solo imagen (hasta 1080p, para combinar con
+     * [audio]) y calidades con audio incluido (normalmente 360p), todas en MP4/H.264.
+     */
+    class VideoOptions(
+        val videoId: String,
+        val title: String,
+        val durationMs: Long,
+        val adaptive: List<VideoRendition>,
+        val muxed: List<VideoRendition>,
+        val audio: DownloadSource?,
+    )
+
+    private class CachedVideo(val options: VideoOptions, val expiresAt: Long)
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -68,6 +94,7 @@ class YouTubeRepository {
     @Volatile
     private var initialized = false
     private val urlCache = ConcurrentHashMap<String, CachedStream>()
+    private val videoCache = ConcurrentHashMap<String, CachedVideo>()
     private val requestNumber = AtomicInteger(0)
 
     private fun ensureInit() {
@@ -168,6 +195,7 @@ class YouTubeRepository {
     fun invalidate(videoId: String) {
         urlCache.remove(videoId)
         urlCache.remove(videoId + TV_SUFFIX)
+        videoCache.remove(videoId)
     }
 
     /** Cabeceras que espera el servidor de audio de YouTube según el cliente que generó la URL. */
@@ -290,6 +318,58 @@ class YouTubeRepository {
         }
     }
 
+    // ------------------------------------------------------------------ video
+
+    /** Calidades de video disponibles (bloqueante: llamar fuera del hilo principal). */
+    fun videoOptions(videoId: String): VideoOptions {
+        val now = SystemClock.elapsedRealtime()
+        videoCache[videoId]?.let { if (it.expiresAt > now) return it.options }
+        ensureInit()
+        val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId")
+
+        fun rendition(s: VideoStream): VideoRendition {
+            val clen = Uri.parse(s.content).getQueryParameter("clen")?.toLongOrNull() ?: -1L
+            return VideoRendition(
+                height = s.height,
+                fps = s.fps,
+                codec = s.codec.orEmpty(),
+                bitrate = s.bitrate,
+                videoOnly = s.isVideoOnly,
+                source = DownloadSource(s.content, "mp4", clen, videoId),
+            )
+        }
+
+        fun usable(s: VideoStream) =
+            s.isUrl && s.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP && !s.content.isNullOrBlank() &&
+                s.format == MediaFormat.MPEG_4 && s.height > 0
+
+        // Una por altura (la de más bitrate); en MP4 con H.264 para que cualquier TV o teléfono la entienda.
+        fun best(list: List<VideoStream>, h264Only: Boolean): List<VideoRendition> =
+            list.filter { usable(it) && (!h264Only || it.codec.orEmpty().startsWith("avc1")) }
+                .groupBy { it.height }
+                .map { (_, group) -> group.maxWithOrNull(compareBy<VideoStream>({ it.bitrate }, { it.fps }))!! }
+                .sortedBy { it.height }
+                .map { rendition(it) }
+
+        val adaptive = best(info.videoOnlyStreams.orEmpty(), h264Only = true).filter { it.height <= MAX_VIDEO_HEIGHT && it.source.contentLength > 0 }
+        val muxed = best(info.videoStreams.orEmpty(), h264Only = false)
+        val audio = try {
+            sourceOf(videoId, pickAudio(videoId, info, preferM4a = true, now = now))
+        } catch (_: Exception) {
+            null
+        }
+        val options = VideoOptions(
+            videoId = videoId,
+            title = info.name.orEmpty(),
+            durationMs = info.duration.coerceAtLeast(0L) * 1000L,
+            adaptive = adaptive,
+            muxed = muxed,
+            audio = audio,
+        )
+        videoCache[videoId] = CachedVideo(options, now + URL_TTL_MS)
+        return options
+    }
+
     private fun resolveStreamUrl(videoId: String): String = bestStream(videoId).url
 
     private fun bestStream(videoId: String, preferM4a: Boolean = false): CachedStream {
@@ -298,6 +378,12 @@ class YouTubeRepository {
         urlCache[key]?.let { if (it.expiresAt > now) return it }
         ensureInit()
         val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId")
+        return pickAudio(videoId, info, preferM4a, now)
+    }
+
+    /** Elige el mejor audio de [info] y lo guarda en caché. */
+    private fun pickAudio(videoId: String, info: StreamInfo, preferM4a: Boolean, now: Long): CachedStream {
+        val key = if (preferM4a) videoId + TV_SUFFIX else videoId
         val candidates = info.audioStreams.filter {
             it.isUrl && it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP && !it.content.isNullOrBlank()
         }
@@ -339,6 +425,7 @@ class YouTubeRepository {
         const val YOUTUBE_BASE_URL = "https://www.youtube.com"
         const val URL_TTL_MS = 90L * 60L * 1000L
         const val CHUNK_BYTES = 1_048_576L
+        const val MAX_VIDEO_HEIGHT = 1080
         val POST_BODY = byteArrayOf(0x78, 0)
     }
 }
