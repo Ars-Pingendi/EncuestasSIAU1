@@ -2,7 +2,7 @@ name: Pipo Music Player - publicar versión de Windows
 
 # Publica como Release de GitHub el instalador y la versión portable ya compilados y probados
 # por el flujo «Pipo Music Player - Windows» (sin volver a compilar).
-# Versión publicada: la de PipoDesktop/package.json (1.2.0: películas y series para la TV LG).
+# Versión publicada: la de PipoDesktop/package.json (1.3.0: videos de YouTube en la app y en la TV, y «Ver / Reproducir en la TV»).
 on:
   push:
     branches: ["ccr-87fb0d44-h5atsk"]
