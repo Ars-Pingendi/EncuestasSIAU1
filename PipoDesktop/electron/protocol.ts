@@ -6,6 +6,7 @@ import { protocol } from 'electron';
 import { corsHeaders, fileResponse } from './files';
 import type { Library } from './library';
 import type { YouTube } from './youtube';
+import { videoIdOk, type YtVideo } from './ytVideo';
 
 export function registerScheme() {
   protocol.registerSchemesAsPrivileged([
@@ -16,7 +17,7 @@ export function registerScheme() {
   ]);
 }
 
-export function handleProtocol(distDir: string, library: Library, youtube: YouTube) {
+export function handleProtocol(distDir: string, library: Library, youtube: YouTube, ytVideo?: YtVideo) {
   protocol.handle('pipo', async (request) => {
     const url = new URL(request.url);
     const range = request.headers.get('range');
@@ -55,6 +56,28 @@ export function handleProtocol(distDir: string, library: Library, youtube: YouTu
           if (local) return fileResponse(local, range);
           return await youtube.streamResponse(id, range);
         }
+      }
+      if (url.host === 'yt' && ytVideo) {
+        // Visor de videos de YouTube: pipo://yt/<id>/play y pipo://yt/<id>/{v,m,a,aw}/<altura>
+        const [, id, kind, h] = url.pathname.split('/');
+        const json = (status: number, body: unknown) => {
+          const headers = corsHeaders();
+          headers.set('Content-Type', 'application/json; charset=utf-8');
+          return new Response(JSON.stringify(body), { status, headers });
+        };
+        if (!videoIdOk(id ?? '')) return json(404, { error: 'Video no encontrado' });
+        try {
+          if (kind === 'play') {
+            const plan = await ytVideo.plan(id, 'pipo://yt', '', Number(url.searchParams.get('h') ?? 0) || 0, url.searchParams.get('force') === 'direct');
+            ytVideo.log(`App: plan ${id}: ${plan.mode} ${plan.info}`);
+            return json(200, plan);
+          }
+          if (kind === 'v' || kind === 'm' || kind === 'a' || kind === 'aw') return await ytVideo.serve(id, kind, Number(h ?? 0) || 0, range);
+        } catch (err) {
+          ytVideo.log(`App: yt/${id}: ERROR ${(err as Error).message}`);
+          return json(500, { error: (err as Error).message });
+        }
+        return json(404, { error: 'No encontrado' });
       }
       return new Response('No encontrado', { status: 404 });
     } catch (err) {

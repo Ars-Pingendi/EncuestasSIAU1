@@ -158,6 +158,14 @@ export interface PipoApi {
   tvSetEnabled(on: boolean): Promise<TvStatus>;
   tvNewPin(): Promise<TvStatus>;
   tvUnpairAll(): Promise<TvStatus>;
+  /** «Reproducir / Ver en la TV»: manda la orden a la TV conectada. */
+  tvSend(type: 'play' | 'playNext' | 'enqueue' | 'video', tracks: Track[], start?: number): Promise<{ delivered: boolean; running: boolean }>;
+  /** ¿Hay una TV con Pipo abierto y conectada a este PC? */
+  tvConnected(): Promise<boolean>;
+  /** Registro de YouTube (app y TV), lo más reciente primero. */
+  tvLog(): Promise<string>;
+  /** Base de las direcciones del visor de videos de YouTube (pipo://yt). */
+  ytVideoBase: string;
 
   // Ventana y sistema
   appInfo(): Promise<AppInfo>;

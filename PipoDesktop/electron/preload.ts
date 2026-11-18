@@ -49,6 +49,10 @@ const api: PipoApi = {
   tvSetEnabled: (on) => ipcRenderer.invoke('tv:setEnabled', on),
   tvNewPin: () => ipcRenderer.invoke('tv:newPin'),
   tvUnpairAll: () => ipcRenderer.invoke('tv:unpairAll'),
+  tvSend: (type, tracks, start = 0) => ipcRenderer.invoke('tv:send', type, tracks, start),
+  tvConnected: () => ipcRenderer.invoke('tv:connected'),
+  tvLog: () => ipcRenderer.invoke('tv:log'),
+  ytVideoBase: 'pipo://yt',
 
   appInfo: () => ipcRenderer.invoke('app:info'),
   setTitleBarColors: (colors) => ipcRenderer.send('win:titleBar', colors),

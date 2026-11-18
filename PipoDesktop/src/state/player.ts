@@ -476,3 +476,8 @@ export async function restoreQueue() {
     publish();
   }
 }
+
+/** Al empezar a ver un video se pausa la música. */
+export function pausePlayback() {
+  if (!engine.el.paused) engine.pause();
+}

@@ -451,3 +451,21 @@ kbd {
 .tv-pair { display: flex; gap: 40px; align-items: flex-end; flex-wrap: wrap; background: var(--surface-2); border-radius: 12px; padding: 14px 18px; margin: 8px 0; }
 .tv-big { font-size: 30px; font-weight: 700; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
 .tv-big.code { color: var(--primary); letter-spacing: 0.2em; }
+
+/* Visor de videos de YouTube */
+.video-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(8, 6, 14, 0.95); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.video-box { width: min(1280px, 100%, calc((100vh - 190px) * 16 / 9)); color: #f1eef8; }
+.video-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.video-head .muted { color: #b9b2c9; }
+.video-title { font-size: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.video-frame { position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 14px; overflow: hidden; }
+.video-el { width: 100%; height: 100%; background: #000; display: block; }
+.video-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; text-align: center; padding: 24px; background: rgba(0, 0, 0, 0.45); pointer-events: none; }
+.video-bar { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+.video-bar .btn.outline { color: #f1eef8; border-color: rgba(255, 255, 255, 0.35); }
+.video-quality select { margin-left: 6px; padding: 5px 10px; border-radius: 8px; color: #f1eef8; background: #2a2438; border: 1px solid rgba(255, 255, 255, 0.3); font: inherit; }
+.video-quality select option { color: #f1eef8; background: #2a2438; }
+.video-close { width: 40px; height: 40px; border-radius: 20px; border: 0; display: flex; align-items: center; justify-content: center; color: #f1eef8; background: rgba(255, 255, 255, 0.12); cursor: pointer; }
+.video-close:hover { background: rgba(255, 255, 255, 0.22); }
+.dialog.wide { width: min(860px, 92vw); }
+.log-text { margin: 0; max-height: 52vh; overflow: auto; white-space: pre-wrap; word-break: break-all; font-family: Consolas, ui-monospace, monospace; font-size: 12.5px; line-height: 1.45; }

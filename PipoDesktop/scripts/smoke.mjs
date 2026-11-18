@@ -199,6 +199,34 @@ if (ytOk) {
   await page.locator('.sidebar .nav-item', { hasText: 'Descargadas de YouTube' }).click();
   await page.waitForTimeout(800);
   await shot('12-descargadas');
+
+  await step('YouTube: ver un video en la app', async () => {
+    await page.locator('.sidebar .nav-item').filter({ hasText: /^YouTube$/ }).click();
+    await page.locator('.yt-search .segmented button', { hasText: 'Videos' }).click();
+    await page.fill('.yt-search input', 'Linkin Park Given Up');
+    await page.locator('.yt-search button[type=submit]').click();
+    await page.waitForSelector('.main-scroll .track-row', { timeout: 90_000 });
+    await page.locator('.main-scroll .track-row').first().dblclick();
+    await page.waitForSelector('.video-overlay', { timeout: 10_000 });
+    const start = Date.now();
+    while (Date.now() - start < 120_000) {
+      await page.waitForTimeout(2000);
+      const s = await page.evaluate(() => {
+        const v = document.querySelector('.video-el');
+        return { t: v?.currentTime ?? 0, paused: v?.paused ?? true, w: v?.videoWidth ?? 0, h: v?.videoHeight ?? 0, msg: document.querySelector('.video-status')?.textContent ?? '' };
+      });
+      if (/No se pudo|tardó|respondió/.test(s.msg)) throw new Error(s.msg);
+      if (!s.paused && s.t > 3 && s.w > 0) {
+        await shot('11b-youtube-video');
+        const info = (await page.locator('.video-head .muted').textContent()) ?? '';
+        await page.keyboard.press('Escape');
+        return `imagen ${s.w}x${s.h}, ${s.t.toFixed(1)} s reproducidos · ${info}`;
+      }
+    }
+    await shot('11b-youtube-video');
+    throw new Error('el video no empezó a reproducirse');
+  });
+  await page.keyboard.press('Escape').catch(() => undefined);
 }
 
 await step('Ajustes', async () => {
@@ -208,6 +236,8 @@ await step('Ajustes', async () => {
   return (await page.locator('.panel', { hasText: 'Componente de YouTube' }).locator('.muted.small').first().textContent()) ?? '';
 });
 
+let tvBase = '';
+let tvToken = '';
 await step('Películas y series: servidor de video para la TV', async () => {
   if (!videosOk) throw new Error('no se pudo generar video de prueba (¿ffmpeg incluido?)');
   await nav('Ajustes');
@@ -221,6 +251,8 @@ await step('Películas y series: servidor de video para la TV', async () => {
   const pair = await fetch(`${base}/pipo/pair`, { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ pin }) });
   if (!pair.ok) throw new Error(`no se pudo emparejar (${pair.status})`);
   const token = (await pair.json()).token;
+  tvBase = base;
+  tvToken = token;
   const api = (p) => fetch(`${base}${p}${p.includes('?') ? '&' : '?'}t=${token}`);
   let catalog = { count: 0, items: [] };
   for (let i = 0; i < 60 && catalog.count < 4; i++) {
@@ -259,6 +291,30 @@ await step('Películas y series: servidor de video para la TV', async () => {
   if (thumb.status !== 200 || img[0] !== 0xff) throw new Error(`miniatura inválida: ${thumb.status}`);
   return `${movies} películas, ${series} serie; directo/remux/transcode/rango/miniatura correctos`;
 });
+
+if (tvToken) {
+  await step('YouTube para la TV: buscar, calidades y primeros fragmentos', async () => {
+    const api = (p) => fetch(`${tvBase}${p}${p.includes('?') ? '&' : '?'}t=${tvToken}`);
+    const s = await (await api(`/pipo/yt/search?q=${encodeURIComponent('Linkin Park Given Up')}&mode=videos`)).json();
+    if (!s.items?.length) throw new Error(s.error || 'sin resultados');
+    const id = s.items[0].id.slice(3);
+    const plan = await (await api(`/pipo/yt/${id}/play`)).json();
+    if (plan.error) throw new Error(plan.error);
+    const range = async (url) => {
+      const r = await fetch(`${tvBase}${url}`, { headers: { Range: 'bytes=0-65535' } });
+      const buf = Buffer.from(await r.arrayBuffer());
+      if (r.status !== 206 || buf.length !== 65536) throw new Error(`${url.split('?')[0]}: ${r.status}, ${buf.length} bytes`);
+      return buf.subarray(4, 8).toString('latin1');
+    };
+    const parts = [];
+    if (plan.mode === 'adaptive') {
+      parts.push(`imagen ${await range(plan.adaptive.videos[plan.adaptive.selected].url)}`);
+      parts.push(`audio ${await range(plan.adaptive.audio.url)} (${plan.adaptive.audio.mime})`);
+    } else parts.push(`video ${await range(plan.url)}`);
+    const log = await (await api('/pipo/log')).text();
+    return `${s.items[0].title}: ${plan.mode} ${plan.info}; ${parts.join(', ')}\n${log.split('\n').slice(0, 4).join('\n')}`;
+  });
+}
 
 await step('Tema claro', async () => {
   await page.locator('.segmented button', { hasText: 'Claro' }).click();

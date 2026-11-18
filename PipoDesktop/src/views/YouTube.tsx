@@ -8,7 +8,10 @@ import { plural } from '../lib/format';
 import { useStore } from '../lib/store';
 import { data, updateSettings } from '../state/data';
 import { lib } from '../state/library';
+import { playTracks } from '../state/player';
 import { navigate } from '../state/ui';
+import { openVideo } from '../components/VideoPlayer';
+import { sendToTv, tvSharing } from '../lib/tv';
 
 function toTrack(item: YtItem): Track {
   return {
@@ -46,6 +49,8 @@ export function YouTubeView() {
   const [available, setAvailable] = useState(true);
   const downloads = useStore(lib, (s) => s.downloads);
   const input = useRef<HTMLInputElement>(null);
+  // «En la TV»: el doble clic manda la canción o el video a la TV en vez de reproducirlo aquí.
+  const [toTv, setToTv] = useState(false);
 
   useEffect(() => {
     void api.appInfo().then((i) => setAvailable(i.ytdlpAvailable));
@@ -77,7 +82,7 @@ export function YouTubeView() {
   };
 
   const dlCount = downloads.size;
-  const hint = useMemo(() => (kind === 'songs' ? 'Canciones de YouTube Music' : 'Videos de YouTube (solo el audio)'), [kind]);
+  const hint = useMemo(() => (kind === 'songs' ? 'Canciones de YouTube Music' : 'Videos de YouTube (doble clic para verlos)'), [kind]);
 
   return (
     <div className="view">
@@ -105,6 +110,11 @@ export function YouTubeView() {
           }}
           options={[{ value: 'songs', label: 'Canciones' }, { value: 'videos', label: 'Videos' }]}
         />
+        {tvSharing() && (
+          <button type="button" className={`btn ${toTv ? 'filled' : 'outline'}`} aria-pressed={toTv} title="Con esto activado, el doble clic lo manda a la TV" onClick={() => setToTv(!toTv)}>
+            <Icon name="tv" size={20} /> En la TV
+          </button>
+        )}
         <button type="submit" className="btn filled" disabled={loading || !q.trim()}>
           {loading ? 'Buscando…' : 'Buscar'}
         </button>
@@ -120,16 +130,24 @@ export function YouTubeView() {
       ) : results.length ? (
         <>
           <div className="muted small yt-count">
-            {plural(results.length, 'resultado', 'resultados')} · doble clic para escuchar · clic derecho para descargar, agregar a una lista o a favoritos
+            {plural(results.length, 'resultado', 'resultados')} · doble clic para {kind === 'videos' ? 'ver el video' : 'escuchar'}{toTv ? ' en la TV' : ''} · clic derecho para ver el video, descargar, agregar a una lista o mandar a la TV
           </div>
-          <TrackList tracks={results} />
+          <TrackList
+            tracks={results}
+            onPlay={(i) => {
+              const t = results[i];
+              if (kind === 'videos') return toTv ? void sendToTv('video', [t]) : openVideo(t);
+              if (toTv) return void sendToTv('play', results, i);
+              playTracks(results, i);
+            }}
+          />
         </>
       ) : (
         !error && (
           <Empty
             icon="youtube"
             title="Escucha YouTube sin anuncios"
-            text="Busca canciones o videos: Pipo reproduce solo el audio, en segundo plano y con tu ecualizador. Puedes guardarlas en listas y favoritos o descargarlas para escuchar sin internet."
+            text="Busca canciones o videos sin anuncios. Las canciones suenan en segundo plano y con tu ecualizador; los videos se ven aquí (hasta 1080p) o en la TV. Puedes guardarlas en listas y favoritos o descargarlas para escuchar sin internet."
           />
         )
       )}

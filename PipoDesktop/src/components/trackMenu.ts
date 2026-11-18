@@ -7,6 +7,8 @@ import { isDownloaded, lib } from '../state/library';
 import { addToQueue, playNext, playTracks, removeFromQueue } from '../state/player';
 import { navigate, toast, type MenuItem } from '../state/ui';
 import { openAddToPlaylist } from './Dialogs';
+import { sendToTv, tvSharing } from '../lib/tv';
+import { openVideo } from './VideoPlayer';
 
 export interface TrackContext {
   list?: Track[];
@@ -19,6 +21,14 @@ export function trackMenuItems(t: Track, ctx: TrackContext = {}): MenuItem[] {
   const items: MenuItem[] = [];
   if (ctx.queueIndex === undefined) {
     items.push({ label: 'Reproducir', icon: 'play', run: () => playTracks(ctx.list ?? [t], ctx.list ? ctx.index ?? 0 : 0) });
+  }
+  if (t.videoId) items.push({ label: 'Ver video', icon: 'youtube', run: () => openVideo(t) });
+  if (tvSharing()) {
+    items.push(
+      { label: 'Reproducir en la TV', icon: 'tv', run: () => void sendToTv('play', [t]) },
+      { label: 'Agregar a la cola de la TV', icon: 'tv', run: () => void sendToTv('enqueue', [t]) },
+    );
+    if (t.videoId) items.push({ label: 'Ver video en la TV', icon: 'tv', run: () => void sendToTv('video', [t]) });
   }
   items.push(
     { label: 'Reproducir a continuación', icon: 'playNext', run: () => playNext([t]) },

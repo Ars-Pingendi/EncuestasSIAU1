@@ -9,12 +9,12 @@ Versión de escritorio de Pipo Music Player, con las mismas funciones que la app
 - **Ecualizador de 10 bandas** (31 Hz – 16 kHz, ±12 dB) con curva en vivo, los mismos 13 preajustes de Android, preajustes propios, refuerzo de graves, sonido envolvente y amplificación con limitador. **Cada salida de audio (altavoces, audífonos, Bluetooth) recuerda su propio ajuste** y se cambia sola.
 - **Listas de reproducción y favoritos** (canciones y álbumes), reordenables arrastrando. Listas automáticas: agregadas recientemente, más reproducidas, reproducidas recientemente y descargadas de YouTube.
 - **Compartir**: clic derecho → «Compartir» abre el archivo con nombre legible («Artista - Título») en el Explorador para enviarlo por WhatsApp, Uso compartido en proximidad, correo o Bluetooth; también se puede **arrastrar** una canción desde Pipo a WhatsApp o a cualquier carpeta, guardar una copia o guardar varias de una vez en una carpeta o memoria USB, y copiar el enlace de YouTube.
-- **Pipo en la TV (LG webOS)**: *Ajustes › Pipo en la TV* comparte tu biblioteca, listas y favoritos con la app Pipo del televisor por la red de la casa, con un código de emparejamiento (ver `PipoTV/README.md`).
+- **Pipo en la TV (LG webOS)**: *Ajustes › Pipo en la TV* comparte tu biblioteca, listas y favoritos con la app Pipo del televisor por la red de la casa, con un código de emparejamiento (ver `PipoTV/README.md`). La TV también **busca y ve videos de YouTube** a través del PC, y desde Pipo puedes mandarle música o videos: clic derecho › *Reproducir en la TV*, *Agregar a la cola de la TV* o *Ver video en la TV*, o el botón **En la TV** de la pestaña YouTube. *Ajustes › Ver registro de YouTube y la TV* muestra qué pasó si un video no carga.
 - **Películas y series para la TV**: *Ajustes › Películas y series* indica las carpetas de video; Pipo reconoce películas y series (por el nombre o la carpeta), y la app de la TV las reproduce directamente o convertidas al vuelo con ffmpeg cuando el televisor no soporta el códec (por ejemplo audio DTS), con pistas de audio, subtítulos y carátulas.
 - **Cola editable** (arrastrar para reordenar, guardar como lista), aleatorio, repetir y **temporizador de apagado** con desvanecimiento.
 - **Retoma donde lo dejaste**: cola, canción y posición se conservan al cerrar.
 - **Integración con Windows**: teclas multimedia, panel multimedia del sistema, botones en la miniatura de la barra de tareas, tema claro u oscuro según Windows y atajos de teclado.
-- **YouTube sin anuncios**: búsqueda de canciones (YouTube Music) o videos, reproducción solo del audio con el ecualizador, listas, favoritos y **descargas** para escuchar sin internet. Usa [yt-dlp](https://github.com/yt-dlp/yt-dlp) (incluido y actualizable desde *Ajustes*). Incumple los términos de uso de YouTube y puede dejar de funcionar si YouTube cambia algo.
+- **YouTube sin anuncios**: búsqueda de canciones (YouTube Music) o videos, reproducción del audio con el ecualizador, listas, favoritos y **descargas** para escuchar sin internet. En *Videos* (o clic derecho › *Ver video*) el video se **ve dentro de la app** hasta en 1080p, con selector de calidad y pantalla completa; si la imagen y el audio por separado fallan, se usa el video con audio incluido. Usa [yt-dlp](https://github.com/yt-dlp/yt-dlp) (incluido y actualizable desde *Ajustes*). Incumple los términos de uso de YouTube y puede dejar de funcionar si YouTube cambia algo.
 
 ## Instalar
 
@@ -39,7 +39,7 @@ Para YouTube, coloca `yt-dlp.exe` en `resources/bin/` antes de empaquetar (el fl
 
 ## Estructura
 
-- `electron/`: proceso principal — biblioteca (`library.ts`), YouTube (`youtube.ts`), protocolo `pipo://` con soporte de rangos (`protocol.ts`), almacenamiento (`store.ts`).
+- `electron/`: proceso principal — biblioteca (`library.ts`), YouTube (`youtube.ts`), videos de YouTube por partes para el visor y la TV (`ytVideo.ts`), órdenes para la TV (`tvRemote.ts`), protocolo `pipo://` con soporte de rangos (`protocol.ts`), almacenamiento (`store.ts`).
 - `src/`: interfaz en React — motor de audio Web Audio (`audio/engine.ts`), estado (`state/`), vistas y componentes.
 - `scripts/smoke.mjs`: prueba automática del ejecutable de Windows con capturas (`capturas/`).
 

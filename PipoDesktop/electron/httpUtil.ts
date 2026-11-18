@@ -54,3 +54,39 @@ export function serveFile(req: http.IncomingMessage, res: http.ServerResponse, f
   if (req.method === 'HEAD') return res.end();
   return finish(fs.createReadStream(file));
 }
+
+/** Envía una respuesta web (fetch/Response) por el servidor HTTP de Node, cortándola si el cliente se va. */
+export async function sendWebResponse(res: http.ServerResponse, r: Response) {
+  const headers: Record<string, string> = {};
+  r.headers.forEach((v, k) => {
+    headers[k] = v;
+  });
+  res.writeHead(r.status, headers);
+  if (!r.body) return res.end();
+  const reader = r.body.getReader();
+  let closed = false;
+  res.on('close', () => {
+    closed = true;
+    reader.cancel().catch(() => undefined);
+  });
+  try {
+    while (!closed) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!res.write(value)) {
+        await new Promise<void>((ok) => {
+          const go = () => {
+            res.off('drain', go);
+            res.off('close', go);
+            ok();
+          };
+          res.on('drain', go);
+          res.on('close', go);
+        });
+      }
+    }
+    if (!closed) res.end();
+  } catch {
+    res.destroy();
+  }
+}

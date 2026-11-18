@@ -15,6 +15,7 @@ import { EqualizerView } from './views/Equalizer';
 import { AlbumsView, AlbumView, ArtistsView, ArtistView, GroupsView, GroupView, SongsView } from './views/Library';
 import { SearchView } from './views/Search';
 import { SettingsView } from './views/Settings';
+import { initTv } from './lib/tv';
 import { YouTubeView } from './views/YouTube';
 
 function View({ route }: { route: Route }) {
@@ -62,6 +63,8 @@ function isTyping(e: KeyboardEvent) {
 function useShortcuts() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Con una ventana encima (p. ej. el visor de videos) los atajos de la música no actúan.
+      if (ui.get().dialog) return;
       if (e.ctrlKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         ui.set({ nowPlaying: false });
@@ -124,6 +127,7 @@ export function App() {
   const route = stack[stack.length - 1];
   useTheme();
   useShortcuts();
+  useEffect(() => initTv(), []);
   return (
     <div className={`app ${isWindows ? 'win' : ''}`} onContextMenu={(e) => (e.target as HTMLElement).closest('input, textarea') || e.preventDefault()}>
       <Sidebar />

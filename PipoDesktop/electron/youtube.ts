@@ -318,6 +318,17 @@ export class YouTube {
       }));
   }
 
+  /** Información completa del video (formatos y sus direcciones) para verlo en la app o en la TV. */
+  async videoInfo(videoId: string): Promise<any> {
+    const js = await this.jsRuntimeArgs();
+    const r = await this.run([...js, '-J', '--no-playlist', '--no-warnings', `https://www.youtube.com/watch?v=${videoId}`], undefined, 90_000);
+    if (r.code !== 0) {
+      this.log(`video ${videoId}: código ${r.code}\n${r.stderr.split('\n').slice(-25).join('\n')}`);
+      throw new Error(friendlyError(r.stderr) ?? 'YouTube no entregó este video.');
+    }
+    return JSON.parse(r.stdout);
+  }
+
   // ───────────────────────────── Reproducción ─────────────────────────────
   //
   // yt-dlp descarga el audio a una caché temporal y la app lo reproduce mientras llega:

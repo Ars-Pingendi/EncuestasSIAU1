@@ -8,7 +8,7 @@ import { plural } from '../lib/format';
 import { useStore } from '../lib/store';
 import { data, updateSettings, updateUser, type Theme } from '../state/data';
 import { lib } from '../state/library';
-import { navigate, openDialog, toast } from '../state/ui';
+import { closeDialog, navigate, openDialog, toast } from '../state/ui';
 
 const SHORTCUTS: [string, string][] = [
   ['Espacio', 'Reproducir / pausar'],
@@ -144,6 +144,9 @@ export function SettingsView() {
               </button>
               <button type="button" className="btn text danger" disabled={!tv.paired} onClick={() => void api.tvUnpairAll().then((s) => (setTv(s), toast('Se olvidaron las TV emparejadas')))}>
                 Olvidar TV emparejadas ({tv.paired})
+              </button>
+              <button type="button" className="btn text" onClick={() => void openYtLog()}>
+                Ver registro de YouTube y la TV
               </button>
             </div>
           </>
@@ -286,5 +289,28 @@ export function SettingsView() {
         </div>
       </section>
     </div>
+  );
+}
+
+/** Lo último que pasó entre la app, la TV y YouTube (para saber por qué un video no carga). */
+async function openYtLog() {
+  const text = (await api.tvLog()) || 'Todavía no hay nada registrado.';
+  openDialog(
+    <div className="dialog-backdrop" onMouseDown={(e) => e.target === e.currentTarget && closeDialog()}>
+      <div className="dialog wide" role="dialog" aria-label="Registro de YouTube y la TV">
+        <h2>Registro de YouTube y la TV</h2>
+        <div className="dialog-body">
+          <pre className="log-text">{text}</pre>
+        </div>
+        <div className="dialog-actions">
+          <button type="button" className="btn text" onClick={() => void navigator.clipboard.writeText(text).then(() => toast('Registro copiado'))}>
+            Copiar
+          </button>
+          <button type="button" className="btn filled" onClick={() => closeDialog()}>
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>,
   );
 }

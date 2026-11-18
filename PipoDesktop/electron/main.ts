@@ -16,6 +16,8 @@ import { TvServer } from './tvServer';
 import { VideoLibrary } from './videoLibrary';
 import { VideoService } from './videoService';
 import { YouTube } from './youtube';
+import { YtVideo } from './ytVideo';
+import { TvRemote } from './tvRemote';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.join(here, '..');
@@ -35,6 +37,8 @@ let win: BrowserWindow | null = null;
 let store: JsonStore;
 let library: Library;
 let youtube: YouTube;
+let ytVideo: YtVideo;
+const tvRemote = new TvRemote();
 let tvServer: TvServer;
 let videoLibrary: VideoLibrary;
 let videoService: VideoService;
@@ -166,7 +170,14 @@ app.whenReady().then(() => {
     onDownload: (e: DownloadEvent) => send('yt:download', e),
   });
 
-  handleProtocol(distDir, library, youtube);
+  // Videos de YouTube (visor de la app y TV): yt-dlp da los archivos y se piden por partes.
+  // Se usa el fetch de Node: permite las cabeceras que YouTube espera para cada archivo.
+  ytVideo = new YtVideo({
+    info: (id) => youtube.videoInfo(id),
+    fetch: (url, init) => fetch(url, init),
+    log: (line) => fs.appendFile(path.join(app.getPath('userData'), 'youtube.log'), `[${new Date().toISOString()}] ${line}\n`, () => undefined),
+  });
+  handleProtocol(distDir, library, youtube, ytVideo);
 
   // Permisos: solo audio (lista de salidas de audio y selección de altavoz).
   const allowed = new Set(['media', 'speaker-selection', 'fullscreen', 'clipboard-sanitized-write']);
@@ -323,7 +334,7 @@ app.whenReady().then(() => {
   });
 
   // Pipo en la TV (LG webOS): biblioteca compartida por la red de la casa.
-  tvServer = new TvServer({ store, library, youtube, appVersion: app.getVersion(), video: videoService });
+  tvServer = new TvServer({ store, library, youtube, appVersion: app.getVersion(), video: videoService, ytVideo, remote: tvRemote });
   void tvServer.startIfEnabled().then(() => {
     // Los videos solo se leen si se comparte con la TV (la primera vez tarda por el análisis de cada archivo).
     if (tvServer.status().enabled) {
@@ -342,6 +353,9 @@ app.whenReady().then(() => {
   });
   handle('tv:newPin', () => tvServer.regeneratePin());
   handle('tv:unpairAll', () => tvServer.unpairAll());
+  handle('tv:send', (type: 'play' | 'playNext' | 'enqueue' | 'video', tracks: Track[], start: number) => tvServer.sendRemote(type, tracks, start));
+  handle('tv:connected', () => tvServer.remoteConnected());
+  handle('tv:log', () => tvServer.logText());
 
   // Sistema
   handle('app:info', () => ({

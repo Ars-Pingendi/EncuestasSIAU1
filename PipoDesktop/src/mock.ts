@@ -165,6 +165,11 @@ export function createMockApi(): PipoApi {
     tvSetEnabled: async (on) => ({ enabled: on, running: on, port: 37373, addresses: ['192.168.1.20'], pin: '4821', paired: 1 }),
     tvNewPin: async () => ({ enabled: true, running: true, port: 37373, addresses: ['192.168.1.20'], pin: '7305', paired: 1 }),
     tvUnpairAll: async () => ({ enabled: true, running: true, port: 37373, addresses: ['192.168.1.20'], pin: '7305', paired: 0 }),
+    tvSend: async () => ({ delivered: true, running: true }),
+    tvConnected: async () => true,
+    tvLog: async () => '21:06:04 YouTube: abc: respondió en 1500 ms',
+    // Vista previa en el navegador: un servidor de prueba puede ofrecer el visor (?ytbase=http://…/pipo/yt).
+    ytVideoBase: new URLSearchParams(location.search).get('ytbase') || 'pipo://yt',
     appInfo: async () => ({
       version: '1.0.0',
       platform: 'win32',
