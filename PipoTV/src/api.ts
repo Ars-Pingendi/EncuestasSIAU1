@@ -1,3 +1,4 @@
+import { errorText, request, type NetResponse } from './net';
 // Conexión con Pipo para Windows (servidor en la red de la casa).
 export interface TvTrack {
   id: string;
@@ -230,31 +231,41 @@ export function isYoutubeId(id: string): boolean {
   return id.indexOf('yt:') === 0;
 }
 
-export async function fetchPlan(conn: Connection, id: string, req: PlanRequest): Promise<VideoPlan> {
+/** Lee una respuesta JSON del equipo: 401 → hay que emparejar; otro error → su mensaje. */
+function jsonOf<T>(r: NetResponse): T {
+  if (r.status === 401) throw new Unauthorized('La TV ya no está emparejada.');
+  if (r.status < 200 || r.status >= 300) throw new Error(errorText(r) || `Error del equipo (${r.status}).`);
+  return JSON.parse(r.body as string) as T;
+}
+
+/**
+ * Pide al equipo cómo reproducir un video. [register] recibe la función para cancelar la petición
+ * (al cerrar el reproductor), así no queda una conexión colgada ocupando lugar.
+ */
+export async function fetchPlan(conn: Connection, id: string, req: PlanRequest, register?: (abort: () => void) => void): Promise<VideoPlan> {
   const q = [`caps=${encodeURIComponent(req.caps)}`, `t=${conn.token}`];
   if (req.h) q.push(`h=${req.h}`);
   if (req.audio !== undefined) q.push(`audio=${req.audio}`);
   if (req.start) q.push(`start=${req.start.toFixed(3)}`);
   if (req.force) q.push(`force=${req.force}`);
   if (req.c) q.push(`c=${req.c}`);
-  let res: Response;
+  const yt = isYoutubeId(id);
+  const path = yt ? `/pipo/yt/${encodeURIComponent(id.slice(3))}/play` : `/pipo/video/${encodeURIComponent(id)}/play`;
+  const r = request(`${conn.base}${path}?${q.join('&')}`, { timeoutMs: yt ? 75000 : 60000 });
+  if (register) register(r.abort);
+  let res: NetResponse;
   try {
-    const path = isYoutubeId(id) ? `/pipo/yt/${encodeURIComponent(id.slice(3))}/play` : `/pipo/video/${encodeURIComponent(id)}/play`;
-    res = await withTimeout(fetch(`${conn.base}${path}?${q.join('&')}`), 60000, 'Tiempo agotado');
-  } catch {
-    throw new Error(`No hay conexión con «${conn.name}». ¿Sigue encendido el PC?`);
+    res = await r.promise;
+  } catch (err) {
+    const m = (err as Error).message;
+    if (m === 'Cancelada') throw err;
+    throw new Error(
+      m === 'Tiempo agotado'
+        ? `«${conn.name}» no respondió a tiempo.${yt ? ' YouTube puede estar tardando; inténtalo de nuevo.' : ''}`
+        : `No hay conexión con «${conn.name}». ¿Sigue encendido?`,
+    );
   }
-  if (res.status === 401) throw new Unauthorized('La TV ya no está emparejada.');
-  if (!res.ok) {
-    let msg = `Error del equipo (${res.status}).`;
-    try {
-      msg = ((await res.json()) as { error?: string }).error || msg;
-    } catch {
-      // sin detalle
-    }
-    throw new Error(msg);
-  }
-  return (await res.json()) as VideoPlan;
+  return jsonOf<VideoPlan>(res);
 }
 
 // ───────────────────────────── Órdenes del teléfono ─────────────────────────────
@@ -276,10 +287,8 @@ export interface RemotePoll {
  * Con `since` = -1 solo devuelve la posición actual (para no repetir órdenes viejas).
  */
 export async function pollRemote(conn: Connection, since: number): Promise<RemotePoll> {
-  const res = await withTimeout(fetch(`${conn.base}/pipo/remote?since=${since}&t=${conn.token}`), 35000, 'Tiempo agotado');
-  if (res.status === 401) throw new Unauthorized('La TV ya no está emparejada.');
-  if (!res.ok) throw new Error(`Error del equipo (${res.status}).`);
-  return (await res.json()) as RemotePoll;
+  const res = await request(`${conn.base}/pipo/remote?since=${since}&t=${conn.token}`, { timeoutMs: 30000 }).promise;
+  return jsonOf<RemotePoll>(res);
 }
 
 export function absoluteUrl(conn: Connection, path: string): string {
@@ -296,17 +305,9 @@ export function subtitleUrl(conn: Connection, id: string, subId: string): string
 
 /** Descarga un texto (subtítulos) con un límite de tiempo largo: el PC puede tener que extraerlo del video. */
 export async function fetchText(url: string, timeoutMs: number): Promise<string> {
-  const res = await withTimeout(fetch(url), timeoutMs, 'Tiempo agotado');
-  if (!res.ok) {
-    let msg = `Error (${res.status})`;
-    try {
-      msg = ((await res.json()) as { error?: string }).error || msg;
-    } catch {
-      // sin detalle
-    }
-    throw new Error(msg);
-  }
-  return res.text();
+  const res = await request(url, { timeoutMs }).promise;
+  if (res.status < 200 || res.status >= 300) throw new Error(errorText(res) || `Error (${res.status})`);
+  return res.body as string;
 }
 
 // ───────────────────────────── Búsqueda en YouTube ─────────────────────────────
@@ -328,21 +329,11 @@ export interface YtPage {
 export async function ytSearch(conn: Connection, query: string, mode: 'videos' | 'songs', page: string | null): Promise<YtPage> {
   const q = [`q=${encodeURIComponent(query)}`, `mode=${mode}`, `t=${conn.token}`];
   if (page) q.push(`page=${encodeURIComponent(page)}`);
-  let res: Response;
+  let res: NetResponse;
   try {
-    res = await withTimeout(fetch(`${conn.base}/pipo/yt/search?${q.join('&')}`), 45000, 'Tiempo agotado');
+    res = await request(`${conn.base}/pipo/yt/search?${q.join('&')}`, { timeoutMs: 45000 }).promise;
   } catch {
     throw new Error(`No hay conexión con «${conn.name}». ¿Tiene Internet y sigue encendido?`);
   }
-  if (res.status === 401) throw new Unauthorized('La TV ya no está emparejada.');
-  if (!res.ok) {
-    let msg = `Error del equipo (${res.status}).`;
-    try {
-      msg = ((await res.json()) as { error?: string }).error || msg;
-    } catch {
-      // sin detalle
-    }
-    throw new Error(msg);
-  }
-  return (await res.json()) as YtPage;
+  return jsonOf<YtPage>(res);
 }

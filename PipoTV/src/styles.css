@@ -253,6 +253,7 @@ svg { flex: none; }
 .vp-msg { font-size: 32px; max-width: 1200px; margin-top: 10px; }
 .hidden { opacity: 0; pointer-events: none; }
 .vp-center.hidden { display: none; }
+.vp-sub { font-size: 24px; max-width: 1400px; margin-top: 14px; color: var(--muted); }
 .vp-controls { position: absolute; left: 0; right: 0; bottom: 0; padding: 120px 70px 44px; background: linear-gradient(to top, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0)); transition: opacity 0.25s; }
 .vp-progress { padding: 20px 0; border-radius: 12px; }
 .vp-track { position: relative; height: 10px; border-radius: 5px; background: rgba(255, 255, 255, 0.22); }

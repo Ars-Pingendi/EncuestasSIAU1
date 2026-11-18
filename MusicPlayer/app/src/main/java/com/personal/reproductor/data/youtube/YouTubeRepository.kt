@@ -373,10 +373,28 @@ class YouTubeRepository {
 
     /** Calidades de video disponibles (bloqueante: llamar fuera del hilo principal). */
     fun videoOptions(videoId: String): VideoOptions {
+        videoCache[videoId]?.let { if (it.expiresAt > SystemClock.elapsedRealtime()) return it.options }
+        // Si ya se está consultando este video (p. ej. el teléfono lo preparó al pulsar «Ver en la TV»),
+        // se espera a esa consulta en vez de repetirla.
+        synchronized(videoLocks.getOrPut(videoId) { Any() }) {
+            videoCache[videoId]?.let { if (it.expiresAt > SystemClock.elapsedRealtime()) return it.options }
+            return extractVideoOptions(videoId)
+        }
+    }
+
+    private val videoLocks = ConcurrentHashMap<String, Any>()
+
+    private fun extractVideoOptions(videoId: String): VideoOptions {
         val now = SystemClock.elapsedRealtime()
-        videoCache[videoId]?.let { if (it.expiresAt > now) return it.options }
         ensureInit()
-        val info = StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId")
+        YouTubeLog.add("YouTube", "$videoId: consultando a YouTube…")
+        val info = try {
+            StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId")
+        } catch (e: Exception) {
+            YouTubeLog.add("YouTube", "$videoId: YouTube falló tras ${SystemClock.elapsedRealtime() - now} ms (${e.javaClass.simpleName}: ${e.message})")
+            throw e
+        }
+        YouTubeLog.add("YouTube", "$videoId: YouTube respondió en ${SystemClock.elapsedRealtime() - now} ms")
 
         fun rendition(s: VideoStream): VideoRendition {
             val clen = Uri.parse(s.content).getQueryParameter("clen")?.toLongOrNull() ?: -1L

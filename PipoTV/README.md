@@ -56,7 +56,7 @@ Si la TV no logra reproducir algo, **reintenta sola** con la siguiente forma (di
 
 ## Instalar en la TV
 
-El instalador es `com.personal.pipomusicplayer_1.5.1_all.ipk`.
+El instalador es `com.personal.pipomusicplayer_1.5.2_all.ipk`.
 
 ### Opción A — Modo desarrollador (sin modificar la TV)
 

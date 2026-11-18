@@ -1,11 +1,10 @@
 // Reproductor de video a pantalla completa para la TV.
 import { AdaptivePlayer } from '../adaptive';
 import { absoluteUrl, fetchPlan, fetchText, isYoutubeId, subtitleUrl, Unauthorized, type PlanSub, type PlayMode, type TvVideo, type VideoPlan } from '../api';
-import { engine } from '../audio';
 import { detectCaps } from '../caps';
 import { clear, formatTime, h, icon } from '../dom';
 import { focus, KEY, setKeyOwner, type Dir } from '../nav';
-import { app, toast } from '../state';
+import { app, releaseMusic, toast } from '../state';
 import { closeOverlay, openOverlay, setBackHook, type View } from '../ui';
 import { getPrefs, resumable, saveProgress, setPrefs } from '../videostate';
 
@@ -97,7 +96,7 @@ const MODE_LABEL: { [m: string]: string } = {
 /** Abre el reproductor. Si el video tiene un punto de reanudación y `resume` no es false, continúa desde ahí. */
 export function playVideo(item: TvVideo, opts: { resume?: boolean } = {}) {
   const r = opts.resume === false ? null : resumable(item.id);
-  engine.pause();
+  releaseMusic();
   openOverlay(createPlayer(item, r ? r.pos : 0));
 }
 
@@ -112,6 +111,8 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   let force: PlayMode | undefined;
   let adaptive: AdaptivePlayer | null = null;
   let failLog: string[] = [];
+  let planAbort: (() => void) | null = null;
+  let statusTimer: ReturnType<typeof setInterval> | undefined;
   let container: 'mp4' | 'ts' = getPrefs().container;
   let loadToken = 0;
   let started = false;
@@ -133,7 +134,8 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   const title = h('div', { class: 'vp-title' });
   const badge = h('div', { class: 'vp-badge' });
   const centerMsg = h('div', { class: 'vp-msg' });
-  const spinner = h('div', { class: 'vp-center hidden' }, h('div', { class: 'spinner' }), centerMsg);
+  const subMsg = h('div', { class: 'vp-sub' });
+  const spinner = h('div', { class: 'vp-center hidden' }, h('div', { class: 'spinner' }), centerMsg, subMsg);
   const buffered = h('div', { class: 'vp-buffered' });
   const played = h('div', { class: 'vp-played' });
   const knob = h('div', { class: 'vp-knob' });
@@ -188,6 +190,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
 
   /** Mensaje en el centro; con `spin` en falso es un error definitivo y no se muestra el círculo de carga. */
   const setBusy = (text: string | null, spin = true) => {
+    if (text === null || !spin) stopWatch(text === null);
     spinner.classList.toggle('hidden', text === null || !spin);
     centerMsg.textContent = text || '';
   };
@@ -208,18 +211,56 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     }, 4500);
   };
 
+  // ───────────── Qué está haciendo el teléfono (YouTube) ─────────────
+
+  /** Mientras se espera a YouTube se muestra cuánto lleva y la última línea del registro del teléfono. */
+  function watchPhone(label: string) {
+    stopWatch(true);
+    if (!isYoutubeId(item.id)) return;
+    const t0 = Date.now();
+    let asking = false;
+    statusTimer = setInterval(() => {
+      const secs = Math.round((Date.now() - t0) / 1000);
+      if (secs >= 4) centerMsg.textContent = `${label} (${secs} s)`;
+      if (asking) return;
+      asking = true;
+      fetchText(`${conn.base}/pipo/log?t=${conn.token}`, 4000)
+        .then((text) => {
+          const line = text.split('\n')[0] || '';
+          subMsg.textContent = line ? `Teléfono: ${line.replace(/^\d\d:\d\d:\d\d\s+/, '')}` : '';
+        })
+        .catch(() => {
+          subMsg.textContent = 'El teléfono no responde (¿sigue con Pipo abierto y en el mismo Wi-Fi?)';
+        })
+        .then(() => {
+          asking = false;
+        });
+    }, 2000);
+  }
+
+  function stopWatch(clearText: boolean) {
+    if (statusTimer) clearInterval(statusTimer);
+    statusTimer = undefined;
+    if (clearText) subMsg.textContent = '';
+  }
+
   // ───────────── Carga y reintentos ─────────────
 
   async function start(startSec: number, o: { audio?: number; fallback?: boolean } = {}) {
     const token = ++loadToken;
     started = false;
     setBusy(isYoutubeId(item.id) ? 'Consultando a YouTube desde el teléfono…' : 'Preparando el video…');
+    watchPhone('Consultando a YouTube desde el teléfono…');
     if (watchdog) clearTimeout(watchdog);
+    if (planAbort) planAbort();
+    planAbort = null;
     let p: VideoPlan;
     try {
-      p = await fetchPlan(conn, item.id, { caps: detectCaps(), audio: o.audio !== undefined ? o.audio : audioIndex, start: startSec, force, c: container });
+      p = await fetchPlan(conn, item.id, { caps: detectCaps(), audio: o.audio !== undefined ? o.audio : audioIndex, start: startSec, force, c: container }, (abort) => {
+        planAbort = abort;
+      });
     } catch (err) {
-      if (destroyed || token !== loadToken) return;
+      if (destroyed || token !== loadToken || (err as Error).message === 'Cancelada') return;
       if (err instanceof Unauthorized) {
         toast('La TV ya no está emparejada. Vuelve a conectarla desde Ajustes.');
         closeOverlay();
@@ -246,6 +287,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     }
     if (p.mode === 'adaptive' && p.adaptive) {
       setBusy('Cargando imagen y audio desde el teléfono…');
+      watchPhone('Cargando imagen y audio desde el teléfono…');
       adaptive = new AdaptivePlayer(video, (path) => absoluteUrl(conn, path), p.adaptive, p.durationMs / 1000, startSec, (msg) => {
         if (!destroyed && token === loadToken) fail(msg);
       });
@@ -693,6 +735,8 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     focus: () => focus(progress),
     destroy: () => {
       destroyed = true;
+      if (planAbort) planAbort();
+      stopWatch(true);
       persist();
       clearInterval(tickTimer);
       clearNext();

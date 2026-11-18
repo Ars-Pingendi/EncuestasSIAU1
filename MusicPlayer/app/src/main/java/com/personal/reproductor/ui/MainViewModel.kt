@@ -389,7 +389,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Abre el video de YouTube [track] en la TV. */
-    fun tvWatch(track: Track) = tvSend("video", listOf(track), 0)
+    fun tvWatch(track: Track) {
+        // El teléfono empieza a consultar YouTube ya: cuando la TV lo pida, estará listo (o casi).
+        track.remoteId?.let { com.personal.reproductor.tv.TvYouTube.prepare(app, it) }
+        tvSend("video", listOf(track), 0)
+    }
 
     fun tvPlayNext(tracks: List<Track>) = tvSend("playNext", tracks, 0)
 

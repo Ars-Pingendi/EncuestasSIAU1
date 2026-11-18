@@ -6,6 +6,7 @@
 // Se lee solo el principio de cada archivo, se arma la lista de fragmentos y se piden por rango
 // los que hacen falta, unos 30 s por delante de la reproducción.
 import type { AdaptiveSpec, AdaptiveVideo } from './api';
+import { errorText, request } from './net';
 
 const AHEAD_SEC = 30;
 const BEHIND_SEC = 30;
@@ -35,6 +36,7 @@ interface Feeder {
   gen: number;
   failures: number;
   retryAt: number;
+  abort?: () => void;
 }
 
 function fourcc(dv: DataView, off: number): string {
@@ -45,23 +47,27 @@ function u64(dv: DataView, off: number): number {
   return dv.getUint32(off) * 4294967296 + dv.getUint32(off + 4);
 }
 
-/** Pide los bytes [from, to] de un archivo. Si el servidor ignora el rango (200) se recorta aquí. */
-export function getRange(url: string, from: number, to: number): Promise<ArrayBuffer> {
-  return fetch(url, { headers: { Range: `bytes=${from}-${to}` } }).then((res) => {
-    if (!res.ok) {
+/**
+ * Pide los bytes [from, to] de un archivo. Si el servidor ignora el rango (200) se recorta aquí.
+ * Se puede cancelar (al adelantar, cambiar de calidad o cerrar) para no dejar conexiones ocupadas.
+ */
+export function getRange(url: string, from: number, to: number, timeoutMs = 30000): { promise: Promise<ArrayBuffer>; abort(): void } {
+  const r = request(url, { headers: { Range: `bytes=${from}-${to}` }, binary: true, timeoutMs, timeoutMessage: 'el teléfono no envió datos a tiempo' });
+  const promise = r.promise.then((res) => {
+    const buf = res.body as ArrayBuffer;
+    if (res.status < 200 || res.status >= 300) {
       // El teléfono explica el motivo en un JSON {"error": "…"}.
-      return res.text().then((body) => {
-        let why = '';
-        try {
-          why = (JSON.parse(body) as { error?: string }).error || '';
-        } catch {
-          why = body.slice(0, 120);
-        }
-        throw new Error(`HTTP ${res.status}${why ? `: ${why}` : ''}`);
-      });
+      let detail = '';
+      try {
+        detail = errorText({ status: res.status, body: new TextDecoder().decode(new Uint8Array(buf || new ArrayBuffer(0))) });
+      } catch {
+        // sin detalle
+      }
+      throw new Error(`HTTP ${res.status}${detail ? `: ${detail}` : ''}`);
     }
-    return res.arrayBuffer().then((buf) => (res.status === 200 && from > 0 ? buf.slice(from, to + 1) : buf));
+    return res.status === 200 && from > 0 ? buf.slice(from, to + 1) : buf;
   });
+  return { promise, abort: r.abort };
 }
 
 function why(err: unknown): string {
@@ -138,11 +144,13 @@ export function parseHead(buf: ArrayBuffer, fileSize: number): ParsedHead | null
 }
 
 /** Lee inicialización e índice de un archivo, ampliando la lectura si hace falta. */
-export async function loadRep(url: string, mime: string, size: number): Promise<Rep> {
+export async function loadRep(url: string, mime: string, size: number, register?: (abort: () => void) => void): Promise<Rep> {
   let window = HEAD_BYTES;
   for (let attempt = 0; attempt < 4; attempt++) {
     const to = size > 0 ? Math.min(size - 1, window - 1) : window - 1;
-    const buf = await getRange(url, 0, to);
+    const req = getRange(url, 0, to, 45000);
+    if (register) register(req.abort);
+    const buf = await req.promise;
     const parsed = parseHead(buf, size);
     if (parsed) return { url, mime, init: buf.slice(0, parsed.initEnd), segs: parsed.segs };
     if (size > 0 && to >= size - 1) break;
@@ -171,6 +179,8 @@ export class AdaptivePlayer {
   private timer: ReturnType<typeof setInterval> | undefined;
   private quality: number;
   private fatalSent = false;
+  /** Peticiones de inicio (índices) en curso, para cancelarlas al cerrar. */
+  private pending: (() => void)[] = [];
   private onSeeking = () => this.seek();
   private onTime = () => this.pump();
 
@@ -211,6 +221,9 @@ export class AdaptivePlayer {
 
   destroy() {
     this.dead = true;
+    for (const abort of this.pending) abort();
+    this.pending = [];
+    for (const f of this.feeders()) if (f.abort) f.abort();
     if (this.timer) clearInterval(this.timer);
     this.video.removeEventListener('seeking', this.onSeeking);
     this.video.removeEventListener('timeupdate', this.onTime);
@@ -275,13 +288,14 @@ export class AdaptivePlayer {
     try {
       const chosen = this.spec.videos[this.quality];
       const [vrep, arep] = await Promise.all([
-        loadRep(this.resolve(chosen.url), chosen.mime, chosen.bytes).catch((e) => {
+        loadRep(this.resolve(chosen.url), chosen.mime, chosen.bytes, (a) => this.pending.push(a)).catch((e) => {
           throw new Error(`imagen ${chosen.label}: ${why(e)}`);
         }),
-        loadRep(this.resolve(this.spec.audio.url), this.spec.audio.mime, this.spec.audio.bytes).catch((e) => {
+        loadRep(this.resolve(this.spec.audio.url), this.spec.audio.mime, this.spec.audio.bytes, (a) => this.pending.push(a)).catch((e) => {
           throw new Error(`audio: ${why(e)}`);
         }),
       ]);
+      this.pending = [];
       if (this.dead) return;
       const total = Math.max(vrep.segs.length ? vrep.segs[vrep.segs.length - 1].t1 : 0, arep.segs.length ? arep.segs[arep.segs.length - 1].t1 : 0);
       try {
@@ -322,7 +336,9 @@ export class AdaptivePlayer {
     f.busy = true;
     const gen = f.gen;
     const stale = () => this.dead || gen !== f.gen;
-    getRange(f.rep.url, seg.start, seg.end)
+    const req = getRange(f.rep.url, seg.start, seg.end);
+    f.abort = req.abort;
+    req.promise
       .then(async (buf) => {
         if (stale()) return;
         await this.trim(f, now);
@@ -380,6 +396,8 @@ export class AdaptivePlayer {
     const t = this.video.currentTime || 0;
     for (const f of this.feeders()) {
       if (!f.rep) continue;
+      if (f.abort) f.abort();
+      f.abort = undefined;
       f.gen++;
       f.busy = false;
       f.failures = 0;
@@ -409,6 +427,8 @@ export class AdaptivePlayer {
     const f = this.v;
     const target = this.spec.videos[index];
     if (this.dead || !f || !target || index === this.quality) return;
+    if (f.abort) f.abort();
+    f.abort = undefined;
     f.gen++;
     f.busy = true;
     if (f.sb.updating) {
@@ -419,7 +439,7 @@ export class AdaptivePlayer {
       }
     }
     try {
-      const rep = await loadRep(this.resolve(target.url), target.mime, target.bytes);
+      const rep = await loadRep(this.resolve(target.url), target.mime, target.bytes, (a) => this.pending.push(a));
       if (this.dead) return;
       await this.remove(f, 0, this.ms.duration || 1e9);
       await this.append(f, rep.init);

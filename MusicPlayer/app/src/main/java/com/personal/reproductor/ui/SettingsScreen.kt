@@ -45,6 +45,11 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.personal.reproductor.data.ThemeMode
 import com.personal.reproductor.tv.TvShare
+import com.personal.reproductor.data.youtube.YouTubeLog
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 
 @Composable
 fun SettingsScreen(vm: MainViewModel) {
@@ -253,6 +258,25 @@ fun SettingsScreen(vm: MainViewModel) {
                                 else if (TvVideos.hasPermission(context)) vm.setTvVideos(true)
                                 else videoPermission.launch(TvVideos.permission())
                             },
+                        )
+                    }
+                    var showLog by remember { mutableStateOf(false) }
+                    TextButton(onClick = { showLog = true }) { Text("Ver registro de YouTube y la TV") }
+                    if (showLog) {
+                        val logText = remember(showLog) { YouTubeLog.dump(60).ifEmpty { "Todavía no hay nada registrado." } }
+                        val clipboard = LocalClipboardManager.current
+                        AlertDialog(
+                            onDismissRequest = { showLog = false },
+                            title = { Text("Registro de YouTube y la TV") },
+                            text = {
+                                Column(Modifier.heightIn(max = 420.dp).verticalScroll(rememberScrollState())) {
+                                    Text(logText, style = MaterialTheme.typography.bodySmall, fontFamily = FontFamily.Monospace)
+                                }
+                            },
+                            confirmButton = {
+                                TextButton(onClick = { clipboard.setText(AnnotatedString(logText)); showLog = false }) { Text("Copiar") }
+                            },
+                            dismissButton = { TextButton(onClick = { showLog = false }) { Text("Cerrar") } },
                         )
                     }
                     Row {

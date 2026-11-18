@@ -1,8 +1,7 @@
 // «Reproducir en la TV»: el teléfono Android manda órdenes (reproducir, a continuación, a la cola)
 // y la TV las recibe preguntándole cada pocos segundos con una petición larga.
 import { pollRemote, Unauthorized, type Connection, type RemoteCommand } from './api';
-import { engine } from './audio';
-import { addToQueue, app, playNext, playTracks, toast } from './state';
+import { addToQueue, app, playNext, playTracks, releaseMusic, toast } from './state';
 import { closeOverlay, openNowPlaying, switchMode } from './ui';
 import { playVideo } from './views/player';
 import { ytVideo } from './views/youtube';
@@ -19,7 +18,7 @@ function apply(c: RemoteCommand) {
   if (c.type === 'video') {
     // «Ver en la TV» desde el teléfono: se deja lo que hubiera y se abre el video de YouTube.
     const t = tracks[0];
-    engine.pause();
+    releaseMusic();
     closeOverlay(false);
     if (app.hasYoutube && app.mode !== 'video') switchMode('video');
     toast(`Desde el teléfono: «${t.title}»`);

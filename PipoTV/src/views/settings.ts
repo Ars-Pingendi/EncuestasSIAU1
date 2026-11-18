@@ -44,7 +44,7 @@ export function settingsView(actions: { reload(): void; forget(): void }): View 
         h('button', { class: 'btn', focus: true, onclick: actions.forget }, icon('computer', 34), 'Conectar con otro equipo'),
       ),
     ),
-    app.hasYoutube ? logPanel() : null,
+    app.hasYoutube || !app.canConvert ? logPanel() : null,
     h(
       'div',
       { class: 'panel' },
@@ -64,7 +64,7 @@ export function settingsView(actions: { reload(): void; forget(): void }): View 
       'div',
       { class: 'panel' },
       h('h2', null, 'Acerca de'),
-      h('p', null, 'Pipo Music Player 1.5.1 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
+      h('p', null, 'Pipo Music Player 1.5.2 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
     ),
   );
   return { el };

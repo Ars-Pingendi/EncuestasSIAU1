@@ -322,6 +322,7 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
                 "play" -> {
                     val token = session.parms["t"] ?: session.headers["x-pipo-token"].orEmpty()
                     val forceDirect = session.parms["force"] == "direct"
+                    YouTubeLog.add("TV", "la TV pide el video $videoId${if (forceDirect) " (con audio incluido)" else ""}")
                     val t0 = System.currentTimeMillis()
                     val plan = TvYouTube.plan(app, videoId, token, session.parms["h"]?.toIntOrNull() ?: 0, forceDirect)
                     YouTubeLog.add("TV", "plan $videoId${if (forceDirect) " (con audio incluido)" else ""}: ${plan.getString("mode")} ${plan.getString("info")} en ${System.currentTimeMillis() - t0} ms")

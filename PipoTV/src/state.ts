@@ -148,6 +148,20 @@ export function addToQueue(tracks: TvTrack[]) {
   emit();
 }
 
+/**
+ * Para ver un video: detiene la música y cierra su conexión con el PC o el teléfono (una pausa la
+ * deja abierta y ocupa lugar). La posición se conserva: al pulsar Reproducir sigue donde iba.
+ */
+export function releaseMusic() {
+  if (!engine.el.getAttribute('src')) return;
+  const pos = player.position;
+  engine.stop();
+  player.position = pos;
+  player.playing = false;
+  saveQueue();
+  emit();
+}
+
 export function togglePlay() {
   if (player.index < 0) {
     if (player.queue.length) loadIndex(0);
@@ -378,6 +392,7 @@ export function initPlayer() {
   });
   let lastEmit = 0;
   el.addEventListener('timeupdate', () => {
+    if (!el.getAttribute('src')) return; // la música se soltó para ver un video: se conserva la posición
     player.position = el.currentTime * 1000;
     const now = Date.now();
     if (now - lastEmit > 500) {

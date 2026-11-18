@@ -9,6 +9,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import java.util.UUID
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * YouTube para la app de la TV: el teléfono busca y entrega los videos («/pipo/yt/…»).
@@ -17,6 +21,34 @@ import java.util.UUID
  */
 object TvYouTube {
     private const val MAX_SESSIONS = 12
+    private const val PLAN_TIMEOUT_S = 60L
+    private val worker = Executors.newCachedThreadPool()
+
+    /**
+     * Calidades del video con un límite de tiempo: si YouTube tarda demasiado se avisa a la TV
+     * (la consulta sigue en segundo plano y, si termina, el siguiente intento ya la encuentra lista).
+     */
+    private fun optionsWithTimeout(app: ReproductorApp, videoId: String): YouTubeRepository.VideoOptions {
+        val future = worker.submit<YouTubeRepository.VideoOptions> { app.youtube.videoOptions(videoId) }
+        return try {
+            future.get(PLAN_TIMEOUT_S, TimeUnit.SECONDS)
+        } catch (e: TimeoutException) {
+            throw IOException("YouTube tardó más de $PLAN_TIMEOUT_S s en responder. Vuelve a intentarlo en un momento.")
+        } catch (e: ExecutionException) {
+            throw (e.cause as? Exception) ?: e
+        }
+    }
+
+    /** El teléfono empieza a consultar el video antes de que la TV lo pida («Ver en la TV»). */
+    fun prepare(app: ReproductorApp, videoId: String) {
+        worker.execute {
+            try {
+                app.youtube.videoOptions(videoId)
+            } catch (_: Exception) {
+                // la TV verá el error cuando lo pida
+            }
+        }
+    }
 
     /** Búsquedas con más páginas disponibles, para «Cargar más». */
     private val sessions = object : LinkedHashMap<String, YouTubeRepository.SearchPage>(16, 0.75f, true) {
@@ -64,7 +96,7 @@ object TvYouTube {
      * incluido (360p), la reserva si lo anterior falla. [maxHeight]: calidad máxima pedida (0 = la mejor).
      */
     fun plan(app: ReproductorApp, videoId: String, token: String, maxHeight: Int, forceDirect: Boolean = false): JSONObject {
-        val o = app.youtube.videoOptions(videoId)
+        val o = optionsWithTimeout(app, videoId)
         val audio = o.audio
         val canAdapt = !forceDirect && o.adaptive.isNotEmpty() && audio != null && audio.extension == "m4a"
         val muxed = o.muxed.lastOrNull()
