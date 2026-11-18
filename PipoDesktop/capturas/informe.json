@@ -48,7 +48,12 @@
     {
       "name": "YouTube: descargar para escuchar sin internet",
       "ok": false,
-      "detail": "No se pudo reproducir «La Bicicleta (Versión Vallenato)»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo descargar: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
+      "detail": "No se pudo descargar: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
+    },
+    {
+      "name": "YouTube: ver un video en la app",
+      "ok": false,
+      "detail": "el video no empezó a reproducirse"
     },
     {
       "name": "Ajustes",
@@ -61,6 +66,11 @@
       "detail": "2 películas, 1 serie; directo/remux/transcode/rango/miniatura correctos"
     },
     {
+      "name": "YouTube para la TV: buscar, calidades y primeros fragmentos",
+      "ok": false,
+      "detail": "YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
+    },
+    {
       "name": "Tema claro",
       "ok": true,
       "detail": ""
@@ -71,5 +81,7 @@
       "detail": "listas: Para trabajar (5); favoritos: 1"
     }
   ],
-  "consoleErrors": []
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 500 (Internal Server Error)"
+  ]
 }
