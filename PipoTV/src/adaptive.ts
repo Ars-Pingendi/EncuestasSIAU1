@@ -5,7 +5,7 @@
 // ftyp + moov (inicialización), sidx (dónde empieza cada fragmento de ~5 s) y luego moof + mdat.
 // Se lee solo el principio de cada archivo, se arma la lista de fragmentos y se piden por rango
 // los que hacen falta, unos 30 s por delante de la reproducción.
-import type { AdaptiveSpec, AdaptiveVideo } from './api';
+import type { AdaptiveAudio, AdaptiveSpec, AdaptiveVideo } from './api';
 import { errorText, request } from './net';
 
 const AHEAD_SEC = 30;
@@ -143,7 +143,180 @@ export function parseHead(buf: ArrayBuffer, fileSize: number): ParsedHead | null
   return null;
 }
 
-/** Lee inicialización e índice de un archivo, ampliando la lectura si hace falta. */
+
+// ───────────────────────────── WebM (audio Opus de YouTube) ─────────────────────────────
+// Un WebM empieza con la cabecera EBML y un «Segment» que contiene Info (escala de tiempo y
+// duración), Tracks y Cues (el índice: en qué byte empieza cada «Cluster» y a qué tiempo). La
+// inicialización son los bytes antes del primer Cluster; cada Cluster es un fragmento.
+
+const EBML_ID = 0x1a45dfa3;
+const SEGMENT_ID = 0x18538067;
+const SEEKHEAD_ID = 0x114d9b74;
+const INFO_ID = 0x1549a966;
+const CUES_ID = 0x1c53bb6b;
+const CLUSTER_ID = 0x1f43b675;
+
+interface Vint {
+  value: number;
+  len: number;
+}
+
+function vint(dv: DataView, off: number, keepMarker: boolean): Vint | null {
+  if (off >= dv.byteLength) return null;
+  const first = dv.getUint8(off);
+  let len = 1;
+  let mask = 0x80;
+  while (len <= 8 && !(first & mask)) {
+    len++;
+    mask >>= 1;
+  }
+  if (len > 8 || off + len > dv.byteLength) return null;
+  let value = keepMarker ? first : first & (mask - 1);
+  let allOnes = (first & (mask - 1)) === mask - 1;
+  for (let i = 1; i < len; i++) {
+    const b = dv.getUint8(off + i);
+    if (b !== 0xff) allOnes = false;
+    value = value * 256 + b;
+  }
+  return { value: !keepMarker && allOnes ? -1 : value, len };
+}
+
+interface Ebml {
+  id: number;
+  size: number; // -1 = desconocido
+  dataStart: number;
+}
+
+function element(dv: DataView, off: number): Ebml | null {
+  const id = vint(dv, off, true);
+  if (!id) return null;
+  const size = vint(dv, off + id.len, false);
+  if (!size) return null;
+  return { id: id.value, size: size.value, dataStart: off + id.len + size.len };
+}
+
+function uintAt(dv: DataView, off: number, size: number): number {
+  let v = 0;
+  for (let i = 0; i < size; i++) v = v * 256 + dv.getUint8(off + i);
+  return v;
+}
+
+/** Recorre los hijos de [start, end) llamando a fn(elemento). */
+function children(dv: DataView, start: number, end: number, fn: (e: Ebml) => void) {
+  let off = start;
+  while (off < end) {
+    const e = element(dv, off);
+    if (!e || e.size < 0) return;
+    fn(e);
+    off = e.dataStart + e.size;
+  }
+}
+
+interface WebmContext {
+  segStart: number; // dónde empiezan los datos del Segment (las posiciones de Cues son relativas a esto)
+  segEnd: number;
+  scale: number; // nanosegundos por unidad
+  duration: number; // en unidades
+}
+
+/** Lee un elemento Cues que empieza en dv[off] (posición absoluta en el archivo: base + off). */
+function parseCues(dv: DataView, off: number, base: number, ctx: WebmContext): Seg[] | null {
+  const cues = element(dv, off);
+  if (!cues || cues.id !== CUES_ID) throw new Error('Índice de audio dañado');
+  if (cues.dataStart + cues.size > dv.byteLength) return null;
+  const points: { t: number; pos: number }[] = [];
+  children(dv, cues.dataStart, cues.dataStart + cues.size, (cp) => {
+    if (cp.id !== 0xbb) return;
+    let t = -1;
+    let pos = -1;
+    children(dv, cp.dataStart, cp.dataStart + cp.size, (c) => {
+      if (c.id === 0xb3) t = uintAt(dv, c.dataStart, c.size);
+      else if (c.id === 0xb7 && pos < 0) {
+        children(dv, c.dataStart, c.dataStart + c.size, (tp) => {
+          if (tp.id === 0xf1) pos = uintAt(dv, tp.dataStart, tp.size);
+        });
+      }
+    });
+    if (t >= 0 && pos >= 0 && (!points.length || pos > points[points.length - 1].pos)) points.push({ t, pos });
+  });
+  if (!points.length) throw new Error('Índice de audio vacío');
+  const cuesAbs = base + off;
+  const segs: Seg[] = [];
+  for (let i = 0; i < points.length; i++) {
+    const start = ctx.segStart + points[i].pos;
+    const nextStart = i + 1 < points.length ? ctx.segStart + points[i + 1].pos : cuesAbs > start ? cuesAbs : ctx.segEnd;
+    const t0 = (points[i].t * ctx.scale) / 1e9;
+    const t1 = i + 1 < points.length ? (points[i + 1].t * ctx.scale) / 1e9 : ctx.duration > 0 ? (ctx.duration * ctx.scale) / 1e9 : t0 + 10;
+    segs.push({ start, end: nextStart - 1, t0, t1 });
+  }
+  return segs;
+}
+
+type WebmHead = { initEnd: number; segs: Seg[] } | { cuesAt: number; initEnd: number; ctx: WebmContext } | null;
+
+/** Principio de un WebM: inicialización y, si el índice está ahí, los fragmentos. null = faltan bytes. */
+export function parseWebmHead(buf: ArrayBuffer, fileSize: number): WebmHead {
+  const dv = new DataView(buf);
+  const len = buf.byteLength;
+  const head = element(dv, 0);
+  if (!head || head.id !== EBML_ID) throw new Error('No es un archivo WebM');
+  const seg = element(dv, head.dataStart + head.size);
+  if (!seg) return null;
+  if (seg.id !== SEGMENT_ID) throw new Error('WebM sin segmento');
+  const ctx: WebmContext = {
+    segStart: seg.dataStart,
+    segEnd: seg.size < 0 ? fileSize : Math.min(fileSize > 0 ? fileSize : Infinity, seg.dataStart + seg.size),
+    scale: 1000000,
+    duration: 0,
+  };
+  let off = seg.dataStart;
+  let cuesAt = -1;
+  let firstCluster = -1;
+  let segs: Seg[] | null = null;
+  while (off < len) {
+    const e = element(dv, off);
+    if (!e) return null;
+    if (e.id === CLUSTER_ID) {
+      firstCluster = off;
+      break;
+    }
+    if (e.size < 0) throw new Error('WebM con tamaño desconocido');
+    const end = e.dataStart + e.size;
+    if (e.id === INFO_ID || e.id === SEEKHEAD_ID || e.id === CUES_ID) {
+      if (end > len) return null;
+      if (e.id === INFO_ID) {
+        children(dv, e.dataStart, end, (c) => {
+          if (c.id === 0x2ad7b1) ctx.scale = uintAt(dv, c.dataStart, c.size);
+          else if (c.id === 0x4489) ctx.duration = c.size === 4 ? dv.getFloat32(c.dataStart) : dv.getFloat64(c.dataStart);
+        });
+      } else if (e.id === SEEKHEAD_ID) {
+        children(dv, e.dataStart, end, (sk) => {
+          if (sk.id !== 0x4dbb) return;
+          let id = 0;
+          let pos = -1;
+          children(dv, sk.dataStart, sk.dataStart + sk.size, (c) => {
+            if (c.id === 0x53ab) id = uintAt(dv, c.dataStart, c.size);
+            else if (c.id === 0x53ac) pos = uintAt(dv, c.dataStart, c.size);
+          });
+          if (id === CUES_ID && pos >= 0) cuesAt = ctx.segStart + pos;
+        });
+      } else {
+        segs = parseCues(dv, off, 0, ctx);
+      }
+    }
+    off = end;
+  }
+  if (firstCluster < 0) return null;
+  if (segs) return { initEnd: firstCluster, segs };
+  if (cuesAt > 0) return { cuesAt, initEnd: firstCluster, ctx };
+  throw new Error('El audio no trae índice');
+}
+
+function isWebm(buf: ArrayBuffer): boolean {
+  return buf.byteLength >= 4 && new DataView(buf).getUint32(0) === EBML_ID;
+}
+
+/** Lee inicialización e índice de un archivo (MP4 o WebM), ampliando la lectura si hace falta. */
 export async function loadRep(url: string, mime: string, size: number, register?: (abort: () => void) => void): Promise<Rep> {
   let window = HEAD_BYTES;
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -151,8 +324,22 @@ export async function loadRep(url: string, mime: string, size: number, register?
     const req = getRange(url, 0, to, 45000);
     if (register) register(req.abort);
     const buf = await req.promise;
-    const parsed = parseHead(buf, size);
-    if (parsed) return { url, mime, init: buf.slice(0, parsed.initEnd), segs: parsed.segs };
+    if (isWebm(buf)) {
+      const w = parseWebmHead(buf, size);
+      if (w && 'segs' in w) return { url, mime, init: buf.slice(0, w.initEnd), segs: w.segs };
+      if (w && 'cuesAt' in w) {
+        // El índice está al final del archivo: se pide aparte.
+        const cuesReq = getRange(url, w.cuesAt, size > 0 ? Math.min(size - 1, w.cuesAt + 1024 * 1024) : w.cuesAt + 1024 * 1024, 45000);
+        if (register) register(cuesReq.abort);
+        const cuesBuf = await cuesReq.promise;
+        const segs = parseCues(new DataView(cuesBuf), 0, w.cuesAt, w.ctx);
+        if (!segs) throw new Error('Índice de audio demasiado grande');
+        return { url, mime, init: buf.slice(0, w.initEnd), segs };
+      }
+    } else {
+      const parsed = parseHead(buf, size);
+      if (parsed) return { url, mime, init: buf.slice(0, parsed.initEnd), segs: parsed.segs };
+    }
     if (size > 0 && to >= size - 1) break;
     window *= 4;
   }
@@ -183,6 +370,12 @@ export class AdaptivePlayer {
   private pending: (() => void)[] = [];
   private onSeeking = () => this.seek();
   private onTime = () => this.pump();
+  /** Audio elegido para la fuente adaptativa (o null si va aparte, sincronizado). */
+  private audioSpec: AdaptiveAudio | null = null;
+  /** Si el televisor no admite el audio de YouTube en la fuente adaptativa: se reproduce aparte. */
+  private sync: HTMLAudioElement | null = null;
+  private syncTimer: ReturnType<typeof setInterval> | undefined;
+  private syncHandlers: { [ev: string]: () => void } = {};
 
   constructor(
     private video: HTMLVideoElement,
@@ -208,8 +401,18 @@ export class AdaptivePlayer {
   attach() {
     const first = this.spec.videos[this.quality];
     if (!first || typeof MediaSource === 'undefined') return this.fatal('Este televisor no admite reproducción adaptativa');
-    if (!MediaSource.isTypeSupported(first.mime) || !MediaSource.isTypeSupported(this.spec.audio.mime)) {
-      return this.fatal('Este televisor no admite el formato de YouTube');
+    if (!MediaSource.isTypeSupported(first.mime)) return this.fatal(`este televisor no admite la imagen de YouTube (${first.mime})`);
+    const candidates = [this.spec.audio].concat(this.spec.audioAlt ? [this.spec.audioAlt] : []);
+    this.audioSpec = candidates.filter((a) => MediaSource.isTypeSupported(a.mime))[0] || null;
+    if (!this.audioSpec) {
+      // Plan B: la imagen por la fuente adaptativa y el audio en su propio reproductor, sincronizado.
+      const probe = document.createElement('audio');
+      const playable = candidates.filter((a) => {
+        const r = probe.canPlayType(a.mime);
+        return r === 'probably' || r === 'maybe';
+      })[0];
+      if (!playable) return this.fatal(`este televisor no admite el audio de YouTube (${candidates.map((a) => a.mime).join(', ')})`);
+      this.startSyncAudio(playable);
     }
     this.ms.addEventListener('sourceopen', () => void this.open());
     this.url = URL.createObjectURL(this.ms);
@@ -224,6 +427,7 @@ export class AdaptivePlayer {
     for (const abort of this.pending) abort();
     this.pending = [];
     for (const f of this.feeders()) if (f.abort) f.abort();
+    this.stopSyncAudio();
     if (this.timer) clearInterval(this.timer);
     this.video.removeEventListener('seeking', this.onSeeking);
     this.video.removeEventListener('timeupdate', this.onTime);
@@ -287,25 +491,32 @@ export class AdaptivePlayer {
     if (this.dead) return;
     try {
       const chosen = this.spec.videos[this.quality];
+      const audio = this.audioSpec;
       const [vrep, arep] = await Promise.all([
         loadRep(this.resolve(chosen.url), chosen.mime, chosen.bytes, (a) => this.pending.push(a)).catch((e) => {
           throw new Error(`imagen ${chosen.label}: ${why(e)}`);
         }),
-        loadRep(this.resolve(this.spec.audio.url), this.spec.audio.mime, this.spec.audio.bytes, (a) => this.pending.push(a)).catch((e) => {
-          throw new Error(`audio: ${why(e)}`);
-        }),
+        audio
+          ? loadRep(this.resolve(audio.url), audio.mime, audio.bytes, (a) => this.pending.push(a)).catch((e) => {
+              throw new Error(`audio: ${why(e)}`);
+            })
+          : Promise.resolve(null),
       ]);
       this.pending = [];
       if (this.dead) return;
-      const total = Math.max(vrep.segs.length ? vrep.segs[vrep.segs.length - 1].t1 : 0, arep.segs.length ? arep.segs[arep.segs.length - 1].t1 : 0);
+      const total = Math.max(vrep.segs.length ? vrep.segs[vrep.segs.length - 1].t1 : 0, arep && arep.segs.length ? arep.segs[arep.segs.length - 1].t1 : 0);
       try {
         this.ms.duration = this.durationSec > 0 ? Math.max(this.durationSec, total) : total;
       } catch {
         // la duración se corrige al terminar
       }
       this.v = { name: 'video', sb: this.ms.addSourceBuffer(chosen.mime), rep: null, next: 0, busy: true, gen: 0, failures: 0, retryAt: 0 };
-      this.a = { name: 'audio', sb: this.ms.addSourceBuffer(this.spec.audio.mime), rep: null, next: 0, busy: true, gen: 0, failures: 0, retryAt: 0 };
-      for (const [f, rep] of [[this.v, vrep], [this.a, arep]] as [Feeder, Rep][]) {
+      const pairs: [Feeder, Rep][] = [[this.v, vrep]];
+      if (audio && arep) {
+        this.a = { name: 'audio', sb: this.ms.addSourceBuffer(audio.mime), rep: null, next: 0, busy: true, gen: 0, failures: 0, retryAt: 0 };
+        pairs.push([this.a, arep]);
+      }
+      for (const [f, rep] of pairs) {
         await this.append(f, rep.init);
         f.rep = rep;
         f.next = segAt(rep, this.startSec);
@@ -318,7 +529,70 @@ export class AdaptivePlayer {
   }
 
   private feeders(): Feeder[] {
-    return this.v && this.a ? [this.v, this.a] : [];
+    if (!this.v) return [];
+    if (this.sync) return [this.v];
+    return this.a ? [this.v, this.a] : [];
+  }
+
+  /** Audio aparte (si el televisor no lo admite en la fuente adaptativa), siguiendo a la imagen. */
+  private startSyncAudio(a: AdaptiveAudio) {
+    const audio = new Audio();
+    audio.preload = 'auto';
+    audio.src = this.resolve(a.url);
+    this.sync = audio;
+    const v = this.video;
+    const align = () => {
+      if (Math.abs(audio.currentTime - v.currentTime) > 0.25) {
+        try {
+          audio.currentTime = v.currentTime;
+        } catch {
+          // todavía sin datos
+        }
+      }
+    };
+    this.syncHandlers = {
+      playing: () => {
+        align();
+        const p = audio.play();
+        if (p && p.catch) p.catch(() => undefined);
+      },
+      pause: () => audio.pause(),
+      waiting: () => audio.pause(),
+      seeking: () => {
+        try {
+          audio.currentTime = v.currentTime;
+        } catch {
+          // todavía sin datos
+        }
+      },
+      volumechange: () => {
+        audio.volume = v.volume;
+        audio.muted = v.muted;
+      },
+    };
+    for (const ev of Object.keys(this.syncHandlers)) v.addEventListener(ev, this.syncHandlers[ev]);
+    audio.addEventListener('error', () => this.fatal('el audio de YouTube no se pudo reproducir'));
+    // Corrige el desfase poco a poco: si se separan más de un cuarto de segundo, el audio salta a la imagen.
+    this.syncTimer = setInterval(() => {
+      if (v.paused || v.readyState < 3) return;
+      if (audio.paused && audio.readyState >= 2) {
+        const p = audio.play();
+        if (p && p.catch) p.catch(() => undefined);
+      }
+      align();
+    }, 1000);
+  }
+
+  private stopSyncAudio() {
+    if (this.syncTimer) clearInterval(this.syncTimer);
+    for (const ev of Object.keys(this.syncHandlers)) this.video.removeEventListener(ev, this.syncHandlers[ev]);
+    this.syncHandlers = {};
+    if (this.sync) {
+      this.sync.pause();
+      this.sync.removeAttribute('src');
+      this.sync.load();
+    }
+    this.sync = null;
   }
 
   private pump() {

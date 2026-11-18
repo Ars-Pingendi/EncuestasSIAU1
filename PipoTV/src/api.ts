@@ -107,8 +107,17 @@ export interface AdaptiveVideo {
   bytes: number;
 }
 
+export interface AdaptiveAudio {
+  url: string;
+  mime: string;
+  bytes: number;
+}
+
 export interface AdaptiveSpec {
-  audio: { url: string; mime: string; bytes: number };
+  /** Audio preferido (M4A si YouTube lo ofrece; si no, WebM/Opus). */
+  audio: AdaptiveAudio;
+  /** El otro formato de audio, si YouTube ofrece ambos. */
+  audioAlt?: AdaptiveAudio;
   videos: AdaptiveVideo[];
   selected: number;
 }

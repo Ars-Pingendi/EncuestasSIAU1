@@ -20,7 +20,7 @@ function apply(c: RemoteCommand) {
     const t = tracks[0];
     releaseMusic();
     closeOverlay(false);
-    if (app.hasYoutube && app.mode !== 'video') switchMode('video');
+    if (app.hasYoutube && app.mode !== 'video') switchMode('video', false);
     toast(`Desde el teléfono: «${t.title}»`);
     playVideo(ytVideo({ id: t.id, title: t.title, durationMs: t.durationMs }), { resume: false });
     return;
@@ -29,7 +29,7 @@ function apply(c: RemoteCommand) {
   if (c.type === 'play') {
     // Lo que se manda desde el teléfono tiene prioridad: se deja el video (si lo había) y se pasa a Música.
     closeOverlay(false);
-    if (app.mode === 'video') switchMode('music');
+    if (app.mode === 'video') switchMode('music', false);
     playTracks(tracks, Math.max(0, Math.min(c.start || 0, tracks.length - 1)), false);
     toast(`Desde el teléfono: «${tracks[Math.min(c.start || 0, tracks.length - 1)].title}»`);
     openNowPlaying();

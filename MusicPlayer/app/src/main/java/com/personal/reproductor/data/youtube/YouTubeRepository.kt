@@ -81,7 +81,12 @@ class YouTubeRepository {
         val durationMs: Long,
         val adaptive: List<VideoRendition>,
         val muxed: List<VideoRendition>,
+        /** El mejor audio para el teléfono (ExoPlayer entiende M4A y WebM/Opus). */
         val audio: DownloadSource?,
+        /** Audio M4A/AAC (el que cualquier TV entiende), si YouTube lo ofrece. */
+        val audioM4a: DownloadSource? = null,
+        /** Audio WebM/Opus, si YouTube lo ofrece (a veces es el único). */
+        val audioWebm: DownloadSource? = null,
     )
 
     private class CachedVideo(val options: VideoOptions, val expiresAt: Long)
@@ -438,6 +443,23 @@ class YouTubeRepository {
         } catch (_: Exception) {
             null
         }
+        // Las dos variantes de audio por separado: la TV elige la que entiende.
+        val progressiveAudio = info.audioStreams.orEmpty().filter {
+            it.isUrl && it.deliveryMethod == DeliveryMethod.PROGRESSIVE_HTTP && !it.content.isNullOrBlank()
+        }
+        val originalAudio = progressiveAudio.filter { s -> s.audioTrackType?.name.let { it == null || it == "ORIGINAL" } }.ifEmpty { progressiveAudio }
+        fun bestAudio(formats: Set<MediaFormat>, extension: String): DownloadSource? {
+            val best = originalAudio.filter { it.format in formats }.maxByOrNull { bitrateOf(it) } ?: return null
+            val clen = Uri.parse(best.content).getQueryParameter("clen")?.toLongOrNull() ?: -1L
+            return DownloadSource(best.content, extension, clen, videoId)
+        }
+        val audioM4a = bestAudio(setOf(MediaFormat.M4A), "m4a")
+        val audioWebm = bestAudio(setOf(MediaFormat.WEBMA_OPUS, MediaFormat.WEBMA), "webm")
+        YouTubeLog.add(
+            "YouTube",
+            "$videoId: audio ${info.audioStreams.orEmpty().groupingBy { it.deliveryMethod.name + "/" + (it.format?.name ?: "?") }.eachCount()}; " +
+                "M4A ${if (audioM4a != null) "sí" else "no"}, Opus ${if (audioWebm != null) "sí" else "no"}",
+        )
         val options = VideoOptions(
             videoId = videoId,
             title = info.name.orEmpty(),
@@ -445,6 +467,8 @@ class YouTubeRepository {
             adaptive = adaptive,
             muxed = muxed,
             audio = audio,
+            audioM4a = audioM4a,
+            audioWebm = audioWebm,
         )
         videoCache[videoId] = CachedVideo(options, now + URL_TTL_MS)
         return options

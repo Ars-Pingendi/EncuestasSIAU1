@@ -87,13 +87,14 @@ function renderSidebar() {
   }
 }
 
-export function switchMode(mode: 'music' | 'video') {
+/** [focusSidebar] en falso cuando se abre algo encima (p. ej. un video enviado desde el teléfono). */
+export function switchMode(mode: 'music' | 'video', focusSidebar = true) {
   if (app.mode === mode) return;
   setMode(mode);
   renderSidebar();
   navigate({ view: homeView() }, true);
   update();
-  setTimeout(() => focus(sidebar.querySelector<HTMLElement>(`[data-key="mode-${mode}"]`)), 40);
+  if (focusSidebar) setTimeout(() => focus(sidebar.querySelector<HTMLElement>(`[data-key="mode-${mode}"]`)), 40);
 }
 
 export function mountShell(container: HTMLElement, make: ViewFactory) {

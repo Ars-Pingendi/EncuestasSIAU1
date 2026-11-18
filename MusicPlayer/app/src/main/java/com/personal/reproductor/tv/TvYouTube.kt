@@ -97,10 +97,17 @@ object TvYouTube {
      */
     fun plan(app: ReproductorApp, videoId: String, token: String, maxHeight: Int, forceDirect: Boolean = false): JSONObject {
         val o = optionsWithTimeout(app, videoId)
-        val audio = o.audio
-        val canAdapt = !forceDirect && o.adaptive.isNotEmpty() && audio != null && audio.extension == "m4a"
+        // Audio para la TV: M4A si existe (todas lo entienden); si no, WebM/Opus. Se mandan ambos si hay.
+        val m4a = o.audioM4a
+        val webm = o.audioWebm
+        val canAdapt = !forceDirect && o.adaptive.isNotEmpty() && (m4a != null || webm != null)
         val muxed = o.muxed.lastOrNull()
-        if (!canAdapt && muxed == null) throw IOException("YouTube no ofreció video para ver en la TV")
+        if (!canAdapt && muxed == null) {
+            throw IOException(
+                "YouTube no ofreció un formato para la TV (imagen ${o.adaptive.size}, audio M4A ${if (m4a != null) "sí" else "no"}, " +
+                    "Opus ${if (webm != null) "sí" else "no"}, video con audio ${o.muxed.size})",
+            )
+        }
 
         val out = JSONObject()
             .put("id", "yt:$videoId")
@@ -132,14 +139,17 @@ object TvYouTube {
             )
             if (maxHeight <= 0 || r.height <= maxHeight) selected = i
         }
+        val m4aJson = m4a?.let { JSONObject().put("url", path(videoId, "a", 0, token)).put("mime", "audio/mp4; codecs=\"mp4a.40.2\"").put("bytes", it.contentLength) }
+        val webmJson = webm?.let { JSONObject().put("url", path(videoId, "aw", 0, token)).put("mime", "audio/webm; codecs=\"opus\"").put("bytes", it.contentLength) }
         val adaptive = JSONObject()
-            .put("audio", JSONObject().put("url", path(videoId, "a", 0, token)).put("mime", "audio/mp4; codecs=\"mp4a.40.2\"").put("bytes", audio!!.contentLength))
+            .put("audio", m4aJson ?: webmJson)
             .put("videos", videos)
             .put("selected", selected)
+        if (m4aJson != null && webmJson != null) adaptive.put("audioAlt", webmJson)
         val chosen = o.adaptive[selected]
         return out.put("mode", "adaptive")
             .put("reason", "Imagen y audio de YouTube por separado")
-            .put("info", "${label(chosen.height)}${if (chosen.fps > 30) chosen.fps else ""} · H264 · AAC")
+            .put("info", "${label(chosen.height)}${if (chosen.fps > 30) chosen.fps else ""} · H264 · ${if (m4a != null) "AAC" else "Opus"}")
             .put("adaptive", adaptive)
     }
 
@@ -149,7 +159,8 @@ object TvYouTube {
         return when (kind) {
             "v" -> o.adaptive.firstOrNull { it.height == height }?.source
             "m" -> o.muxed.firstOrNull { it.height == height }?.source
-            "a" -> o.audio
+            "a" -> o.audioM4a ?: o.audio
+            "aw" -> o.audioWebm
             else -> null
         }
     }

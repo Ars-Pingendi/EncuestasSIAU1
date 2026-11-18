@@ -135,7 +135,8 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   const badge = h('div', { class: 'vp-badge' });
   const centerMsg = h('div', { class: 'vp-msg' });
   const subMsg = h('div', { class: 'vp-sub' });
-  const spinner = h('div', { class: 'vp-center hidden' }, h('div', { class: 'spinner' }), centerMsg, subMsg);
+  const circle = h('div', { class: 'spinner' });
+  const spinner = h('div', { class: 'vp-center hidden' }, circle, centerMsg, subMsg);
   const buffered = h('div', { class: 'vp-buffered' });
   const played = h('div', { class: 'vp-played' });
   const knob = h('div', { class: 'vp-knob' });
@@ -191,7 +192,8 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   /** Mensaje en el centro; con `spin` en falso es un error definitivo y no se muestra el círculo de carga. */
   const setBusy = (text: string | null, spin = true) => {
     if (text === null || !spin) stopWatch(text === null);
-    spinner.classList.toggle('hidden', text === null || !spin);
+    spinner.classList.toggle('hidden', text === null);
+    circle.style.display = spin ? '' : 'none';
     centerMsg.textContent = text || '';
   };
 

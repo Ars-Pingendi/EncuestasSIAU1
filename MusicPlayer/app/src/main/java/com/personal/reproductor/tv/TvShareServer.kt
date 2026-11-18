@@ -328,12 +328,16 @@ class TvShareServer(private val context: Context, port: Int) : NanoHTTPD(port) {
                     YouTubeLog.add("TV", "plan $videoId${if (forceDirect) " (con audio incluido)" else ""}: ${plan.getString("mode")} ${plan.getString("info")} en ${System.currentTimeMillis() - t0} ms")
                     json(Response.Status.OK, plan)
                 }
-                "v", "m", "a" -> {
+                "v", "m", "a", "aw" -> {
                     val height = parts.getOrNull(4)?.toIntOrNull() ?: 0
                     proxyStream(
                         "$videoId/$kind${if (height > 0) height else ""}",
                         { TvYouTube.source(app, videoId, kind, height) },
-                        if (kind == "a") "audio/mp4" else "video/mp4",
+                        when (kind) {
+                            "a" -> "audio/mp4"
+                            "aw" -> "audio/webm"
+                            else -> "video/mp4"
+                        },
                         session.headers["range"],
                     )
                 }
