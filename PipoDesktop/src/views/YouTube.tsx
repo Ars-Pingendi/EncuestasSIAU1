@@ -51,6 +51,8 @@ export function YouTubeView() {
   const downloads = useStore(lib, (s) => s.downloads);
   const videoCount = useStore(videos, (s) => s.downloads.size);
   const input = useRef<HTMLInputElement>(null);
+  // Solo cuenta la última búsqueda: una anterior más lenta no debe pisar los resultados nuevos.
+  const seq = useRef(0);
   // «En la TV»: el doble clic manda la canción o el video a la TV en vez de reproducirlo aquí.
   const [toTv, setToTv] = useState(false);
 
@@ -66,10 +68,12 @@ export function YouTubeView() {
   const search = async (text: string, k: 'songs' | 'videos') => {
     const query = text.trim();
     if (!query) return;
+    const my = ++seq.current;
     setLoading(true);
     setError(null);
     try {
       const items = await api.ytSearch(query, k);
+      if (my !== seq.current) return;
       const tracks = items.map(toTrack);
       lastQuery = query;
       lastResults = tracks;
@@ -77,9 +81,10 @@ export function YouTubeView() {
       setResults(tracks);
       if (!tracks.length) setError('No hubo resultados.');
     } catch (err) {
+      if (my !== seq.current) return;
       setError((err as Error).message?.replace(/^Error invoking remote method '[^']+': (Error: )?/, '') || 'No se pudo buscar en YouTube.');
     } finally {
-      setLoading(false);
+      if (my === seq.current) setLoading(false);
     }
   };
 
