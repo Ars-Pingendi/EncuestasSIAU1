@@ -34,6 +34,11 @@ export function platformName(): string {
   return `Android TV${v ? ` (app ${v})` : ''}`;
 }
 
+/** Marca en el registro de Android (logcat) para diagnóstico y para la prueba en el emulador. */
+export function trace(message: string) {
+  if (w.PipoAndroid) console.log(`pipo:${message}`);
+}
+
 export function exitApp() {
   if (w.PipoAndroid) w.PipoAndroid.exit();
   else window.close();

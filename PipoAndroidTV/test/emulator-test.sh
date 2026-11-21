@@ -90,11 +90,13 @@ key KEYCODE_MEDIA_PLAY_PAUSE 2
 if keep_on; then ok "Play/Pausa reanuda"; else bad "Play/Pausa no reanudó"; fi
 
 # Atrás hasta la raíz: pregunta si salir; OK en «Salir» cierra la app.
-# (Desde «Reproduciendo»: el 1.º cierra esa pantalla y el 2.º pregunta si salir.)
-key KEYCODE_BACK 1
-key KEYCODE_BACK 1.5
+asked=0
+for i in 1 2 3 4 5; do
+  key KEYCODE_BACK 1.2
+  if console | grep -q "pipo:menu-salir"; then asked=1; break; fi
+done
 shot 6-salir
-if menu_visible; then ok "Atrás en la raíz pregunta «¿Salir de Pipo?»"; else echo "(no se pudo leer el texto de la pantalla; se sigue)" | tee -a "$REPORT"; fi
+if [ "$asked" = 1 ]; then ok "Atrás en la raíz pregunta «¿Salir de Pipo?» (tras $i pulsaciones)"; else bad "Atrás nunca preguntó si salir"; fi
 key KEYCODE_DPAD_CENTER 2
 if top_app | grep -q pipotv; then bad "«Salir» no cerró la app: $(top_app)"; else ok "Atrás › «Salir» cierra la app"; fi
 shot 7-lanzador
