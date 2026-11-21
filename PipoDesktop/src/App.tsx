@@ -16,6 +16,7 @@ import { AlbumsView, AlbumView, ArtistsView, ArtistView, GroupsView, GroupView, 
 import { SearchView } from './views/Search';
 import { SettingsView } from './views/Settings';
 import { initTv } from './lib/tv';
+import { YtVideosView } from './views/YtVideos';
 import { YouTubeView } from './views/YouTube';
 
 function View({ route }: { route: Route }) {
@@ -35,6 +36,7 @@ function View({ route }: { route: Route }) {
     case 'smart': return <SmartView id={route.id} />;
     case 'search': return <SearchView q={route.q} />;
     case 'youtube': return <YouTubeView />;
+    case 'ytvideos': return <YtVideosView />;
     case 'equalizer': return <EqualizerView />;
     case 'settings': return <SettingsView />;
   }

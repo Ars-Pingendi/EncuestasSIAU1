@@ -316,6 +316,31 @@ kbd {
 .yt-search { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
 .yt-count { margin: 6px 0 10px; }
 
+/* Cuadrícula de videos de YouTube */
+.vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px 16px; padding-bottom: 12px; }
+.vcard { display: flex; flex-direction: column; border-radius: 14px; padding: 8px; background: transparent; outline: none; transition: background 0.15s; min-width: 0; }
+.vcard:hover, .vcard:focus-visible { background: var(--hover); }
+.vcard:focus-visible { box-shadow: 0 0 0 2px var(--primary); }
+.vcard-thumb { position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden; background: var(--surface-3); display: flex; align-items: center; justify-content: center; }
+.vcard-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.vcard-ph { color: var(--muted); opacity: 0.6; }
+.vcard-dur { position: absolute; right: 6px; bottom: 6px; background: rgba(0, 0, 0, 0.78); color: #fff; font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.vcard-badge { position: absolute; left: 6px; top: 6px; display: inline-flex; align-items: center; gap: 4px; background: var(--primary); color: var(--on-primary); font-size: 11.5px; font-weight: 700; padding: 3px 8px 3px 6px; border-radius: 999px; }
+.vcard-play { position: absolute; inset: 0; margin: auto; width: 58px; height: 58px; border-radius: 50%; border: none; background: rgba(0, 0, 0, 0.62); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transform: scale(0.9); transition: opacity 0.15s, transform 0.15s; }
+.vcard:hover .vcard-play, .vcard:focus-within .vcard-play { opacity: 1; transform: none; }
+.vcard-play:hover { background: var(--primary); color: var(--on-primary); }
+.vcard-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(0, 0, 0, 0.5); }
+.vcard-progress > div { height: 100%; background: var(--primary); transition: width 0.3s; }
+.vcard-info { padding: 8px 2px 2px; min-width: 0; }
+.vcard-title { font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.vcard-sub { color: var(--muted); font-size: 12.5px; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vcard-actions { display: flex; align-items: center; gap: 2px; margin-top: auto; padding-top: 4px; color: var(--muted); }
+.vcard-actions .icon-btn { width: 34px; height: 34px; color: var(--muted); }
+.vcard-actions .icon-btn:hover:not(:disabled) { color: var(--text); }
+.vcard-dl { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 8px 0 10px; border-radius: 999px; border: 1px solid var(--primary); background: transparent; color: var(--primary); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
+.vcard-dl:hover { background: var(--primary); color: var(--on-primary); }
+.spinner.small { width: 14px; height: 14px; border-width: 2px; }
+
 /* ── Barra de reproducción ── */
 .player-bar {
   grid-column: 1 / -1; grid-row: 2;

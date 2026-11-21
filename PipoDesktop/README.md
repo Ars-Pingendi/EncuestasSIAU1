@@ -14,7 +14,7 @@ Versión de escritorio de Pipo Music Player, con las mismas funciones que la app
 - **Cola editable** (arrastrar para reordenar, guardar como lista), aleatorio, repetir y **temporizador de apagado** con desvanecimiento.
 - **Retoma donde lo dejaste**: cola, canción y posición se conservan al cerrar.
 - **Integración con Windows**: teclas multimedia, panel multimedia del sistema, botones en la miniatura de la barra de tareas, tema claro u oscuro según Windows y atajos de teclado.
-- **YouTube sin anuncios**: búsqueda de canciones (YouTube Music) o videos, reproducción del audio con el ecualizador, listas, favoritos y **descargas** para escuchar sin internet. En *Videos* (o clic derecho › *Ver video*) el video se **ve dentro de la app** hasta en 1080p, con selector de calidad y pantalla completa; si la imagen y el audio por separado fallan, se usa el video con audio incluido. Usa [yt-dlp](https://github.com/yt-dlp/yt-dlp) (incluido y actualizable desde *Ajustes*). Incumple los términos de uso de YouTube y puede dejar de funcionar si YouTube cambia algo.
+- **YouTube sin anuncios**: búsqueda de canciones (YouTube Music) o videos, reproducción del audio con el ecualizador, listas, favoritos y **descargas** para escuchar sin internet. En *Videos* los resultados salen en una cuadrícula con miniaturas: clic en la imagen (o clic derecho › *Ver video*) y el video se **ve dentro de la app** hasta en 1080p, con selector de calidad y pantalla completa; si la imagen y el audio por separado fallan, se usa el video con audio incluido. El botón de descarga de cada video (o *Descargar* en el visor) lo **guarda en MP4 hasta 1080p** en *Videos › Pipo Music Player* para verlo sin internet: la sección **Videos descargados** los reúne (ver, mostrar en la carpeta, eliminar) y la TV también los muestra en *Películas*. Usa [yt-dlp](https://github.com/yt-dlp/yt-dlp) (incluido y actualizable desde *Ajustes*). Incumple los términos de uso de YouTube y puede dejar de funcionar si YouTube cambia algo.
 
 ## Instalar
 
@@ -39,7 +39,7 @@ Para YouTube, coloca `yt-dlp.exe` en `resources/bin/` antes de empaquetar (el fl
 
 ## Estructura
 
-- `electron/`: proceso principal — biblioteca (`library.ts`), YouTube (`youtube.ts`), videos de YouTube por partes para el visor y la TV (`ytVideo.ts`), órdenes para la TV (`tvRemote.ts`), protocolo `pipo://` con soporte de rangos (`protocol.ts`), almacenamiento (`store.ts`).
+- `electron/`: proceso principal — biblioteca (`library.ts`), YouTube y descargas de audio y video (`youtube.ts`), videos de YouTube por partes para el visor y la TV (`ytVideo.ts`), órdenes para la TV (`tvRemote.ts`), protocolo `pipo://` con soporte de rangos (`protocol.ts`), almacenamiento (`store.ts`).
 - `src/`: interfaz en React — motor de audio Web Audio (`audio/engine.ts`), estado (`state/`), vistas y componentes.
 - `scripts/smoke.mjs`: prueba automática del ejecutable de Windows con capturas (`capturas/`).
 

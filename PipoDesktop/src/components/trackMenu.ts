@@ -9,6 +9,7 @@ import { navigate, toast, type MenuItem } from '../state/ui';
 import { openAddToPlaylist } from './Dialogs';
 import { sendToTv, tvSharing } from '../lib/tv';
 import { openVideo } from './VideoPlayer';
+import { downloadVideo, videoBusy, videoDownloaded } from '../state/videos';
 
 export interface TrackContext {
   list?: Track[];
@@ -22,7 +23,7 @@ export function trackMenuItems(t: Track, ctx: TrackContext = {}): MenuItem[] {
   if (ctx.queueIndex === undefined) {
     items.push({ label: 'Reproducir', icon: 'play', run: () => playTracks(ctx.list ?? [t], ctx.list ? ctx.index ?? 0 : 0) });
   }
-  if (t.videoId) items.push({ label: 'Ver video', icon: 'youtube', run: () => openVideo(t) });
+  if (t.videoId) items.push({ label: videoDownloaded(t.videoId) ? 'Ver video (descargado, sin internet)' : 'Ver video', icon: 'youtube', run: () => openVideo(t) });
   if (tvSharing()) {
     items.push(
       { label: 'Reproducir en la TV', icon: 'tv', run: () => void sendToTv('play', [t]) },
@@ -60,11 +61,22 @@ export function trackMenuItems(t: Track, ctx: TrackContext = {}): MenuItem[] {
     const downloaded = isDownloaded(t);
     const st = lib.get().dlState[t.videoId]?.state;
     if (downloaded) {
-      items.push({ label: 'Eliminar la descarga', icon: 'delete', danger: true, run: () => void api.ytDeleteDownload(t.videoId!) });
+      items.push({ label: 'Eliminar el audio descargado', icon: 'delete', danger: true, run: () => void api.ytDeleteDownload(t.videoId!) });
     } else if (st === 'queued' || st === 'running') {
-      items.push({ label: 'Cancelar la descarga', icon: 'close', run: () => void api.ytCancelDownload(t.videoId!) });
+      items.push({ label: 'Cancelar la descarga del audio', icon: 'close', run: () => void api.ytCancelDownload(t.videoId!) });
     } else {
-      items.push({ label: 'Descargar para escuchar sin internet', icon: 'download', run: () => void api.ytDownload(t) });
+      items.push({ label: 'Descargar el audio para escuchar sin internet', icon: 'download', run: () => void api.ytDownload(t) });
+    }
+    const vid = t.videoId;
+    if (videoDownloaded(vid)) {
+      items.push(
+        { label: 'Mostrar el video en la carpeta', icon: 'folder', run: () => void api.ytShowVideoInFolder(vid) },
+        { label: 'Eliminar el video descargado', icon: 'delete', danger: true, run: () => void api.ytDeleteVideoDownload(vid) },
+      );
+    } else if (videoBusy(vid)) {
+      items.push({ label: 'Cancelar la descarga del video', icon: 'close', run: () => void api.ytCancelVideoDownload(vid) });
+    } else {
+      items.push({ label: 'Descargar el video (MP4 hasta 1080p)', icon: 'movie', run: () => downloadVideo(t) });
     }
     items.push({ label: 'Abrir en YouTube', icon: 'openNew', run: () => void api.openExternal(`https://www.youtube.com/watch?v=${t.videoId}`) });
   }

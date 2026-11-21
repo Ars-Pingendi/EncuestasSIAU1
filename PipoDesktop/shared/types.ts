@@ -62,6 +62,35 @@ export interface DownloadInfo {
 
 export type DownloadState = 'queued' | 'running' | 'done' | 'error' | 'removed';
 
+/** Video de YouTube descargado (MP4 con imagen y audio) en la carpeta Videos de Windows. */
+export interface VideoDownloadInfo {
+  videoId: string;
+  title: string;
+  channel: string;
+  durationMs: number;
+  thumbnail: string;
+  file: string;
+  size: number;
+  downloadedAt: number;
+}
+
+export interface VideoDownloadRequest {
+  videoId: string;
+  title: string;
+  channel: string;
+  durationMs: number;
+  thumbnail: string;
+}
+
+export interface VideoDownloadEvent {
+  videoId: string;
+  state: DownloadState;
+  /** 0..1 */
+  progress?: number;
+  message?: string;
+  info?: VideoDownloadInfo;
+}
+
 export interface DownloadEvent {
   videoId: string;
   state: DownloadState;
@@ -132,6 +161,14 @@ export interface PipoApi {
   ytCancelDownload(videoId: string): Promise<void>;
   ytDeleteDownload(videoId: string): Promise<void>;
   ytDownloads(): Promise<DownloadInfo[]>;
+  /** Descargar el video completo (MP4 hasta 1080p) a la carpeta Videos de Windows. */
+  ytDownloadVideo(req: VideoDownloadRequest): Promise<void>;
+  ytCancelVideoDownload(videoId: string): Promise<void>;
+  ytDeleteVideoDownload(videoId: string): Promise<void>;
+  ytVideoDownloads(): Promise<VideoDownloadInfo[]>;
+  onYtVideoDownload(cb: (e: VideoDownloadEvent) => void): () => void;
+  ytShowVideoInFolder(videoId: string): Promise<void>;
+  ytOpenVideosFolder(): Promise<void>;
   onYtDownload(cb: (e: DownloadEvent) => void): () => void;
   ytUpdate(): Promise<string>;
   ytVersion(): Promise<string>;

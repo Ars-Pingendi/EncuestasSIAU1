@@ -1,6 +1,7 @@
 import { useStore } from '../lib/store';
 import { data } from '../state/data';
 import { lib } from '../state/library';
+import { videos } from '../state/videos';
 import { currentRoute, navigate, ui, type Route } from '../state/ui';
 import { openNewPlaylist } from './Dialogs';
 import { Icon } from './Icon';
@@ -26,6 +27,7 @@ function Item({ route, icon, label, extra }: { route: Route; icon: string; label
 export function Sidebar() {
   const playlists = useStore(data, (s) => s.user.playlists);
   const progress = useStore(lib, (s) => s.progress);
+  const videoCount = useStore(videos, (s) => s.downloads.size);
   return (
     <nav className="sidebar">
       <div className="brand">
@@ -60,6 +62,7 @@ export function Sidebar() {
 
         <div className="nav-section">Más</div>
         <Item route={{ view: 'youtube' }} icon="youtube" label="YouTube" />
+        <Item route={{ view: 'ytvideos' }} icon="movie" label="Videos descargados" extra={videoCount ? String(videoCount) : undefined} />
         <Item route={{ view: 'equalizer' }} icon="equalizer" label="Ecualizador" />
         <Item route={{ view: 'settings' }} icon="settings" label="Ajustes" />
       </div>

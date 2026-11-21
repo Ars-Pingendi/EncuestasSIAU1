@@ -19,6 +19,7 @@ export type Route =
   | { view: 'smart'; id: SmartId }
   | { view: 'search'; q: string }
   | { view: 'youtube' }
+  | { view: 'ytvideos' }
   | { view: 'equalizer' }
   | { view: 'settings' };
 

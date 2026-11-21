@@ -6,7 +6,7 @@ import {
   app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, session, shell,
   type IpcMainInvokeEvent, type ThumbarButton,
 } from 'electron';
-import type { DownloadEvent, LibrarySnapshot, PlayerStateMsg, ScanProgress, TitleBarColors, Track, YtSearchKind } from '../shared/types';
+import type { DownloadEvent, LibrarySnapshot, PlayerStateMsg, ScanProgress, TitleBarColors, Track, VideoDownloadEvent, VideoDownloadRequest, YtSearchKind } from '../shared/types';
 import { freePath, niceFileName } from './files';
 import { Ffmpeg } from './ffmpeg';
 import { Library } from './library';
@@ -38,6 +38,7 @@ let store: JsonStore;
 let library: Library;
 let youtube: YouTube;
 let ytVideo: YtVideo;
+let ffmpegTool: Ffmpeg | null = null;
 const tvRemote = new TvRemote();
 let tvServer: TvServer;
 let videoLibrary: VideoLibrary;
@@ -168,6 +169,11 @@ app.whenReady().then(() => {
     logFile: path.join(app.getPath('userData'), 'youtube.log'),
     nodeRuntime: process.platform === 'win32' ? process.execPath : undefined,
     onDownload: (e: DownloadEvent) => send('yt:download', e),
+    // Videos descargados: en la carpeta Videos de Windows (así la TV también los ve en «Películas»).
+    videosDir: path.join(app.getPath('videos'), 'Pipo Music Player'),
+    videoTmpDir: path.join(app.getPath('userData'), 'descargas-video'),
+    ffmpeg: () => ffmpegTool?.path() ?? null,
+    onVideoDownload: (e: VideoDownloadEvent) => send('yt:videoDownload', e),
   });
 
   // Videos de YouTube (visor de la app y TV): yt-dlp da los archivos y se piden por partes.
@@ -224,6 +230,19 @@ app.whenReady().then(() => {
   handle('yt:update', () => youtube.update());
   handle('yt:version', () => youtube.version());
   handle('yt:openFolder', () => shell.openPath(path.join(app.getPath('userData'), 'descargas')).then(() => undefined));
+  handle('yt:downloadVideo', (req: VideoDownloadRequest) => youtube.enqueueVideoDownload(req));
+  handle('yt:cancelVideo', (id: string) => youtube.cancelVideoDownload(id));
+  handle('yt:deleteVideo', (id: string) => youtube.deleteVideoDownload(id));
+  handle('yt:videoDownloads', () => youtube.listVideoDownloads());
+  handle('yt:showVideo', (id: string) => {
+    const file = youtube.videoDownloadFile(id);
+    if (file) shell.showItemInFolder(file);
+  });
+  handle('yt:openVideosFolder', async () => {
+    const dir = path.join(app.getPath('videos'), 'Pipo Music Player');
+    fs.mkdirSync(dir, { recursive: true });
+    await shell.openPath(dir);
+  });
 
   // Compartir: archivos con nombre legible para WhatsApp, Bluetooth, correo, USB…
   const shareDir = path.join(app.getPath('userData'), 'compartir');
@@ -298,6 +317,7 @@ app.whenReady().then(() => {
 
   // Películas y series: se leen con ffmpeg y se entregan a la TV (directo o convertidas al vuelo).
   const ffmpeg = new Ffmpeg(path.join(resourcesDir, 'bin'));
+  ffmpegTool = ffmpeg;
   const videoDirs = process.env.PIPO_VIDEO_DIR ? process.env.PIPO_VIDEO_DIR.split(path.delimiter) : [app.getPath('videos')];
   videoLibrary = new VideoLibrary({
     store,

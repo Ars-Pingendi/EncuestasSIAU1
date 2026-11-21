@@ -33,6 +33,15 @@ if (fs.existsSync(ffmpegExe)) {
     make('Series/Serie Prueba/Temporada 1/Serie Prueba S01E01 Piloto.mp4', ['-c:a', 'aac']);
     make('Series/Serie Prueba/Temporada 1/Serie Prueba S01E02.mp4', ['-c:a', 'aac']);
     videosOk = true;
+    // Un video «descargado de YouTube» ya registrado, para ver la sección «Videos descargados» sin internet.
+    const ytFile = path.join(userData, 'Videos YouTube', 'Video de prueba [pipoPrueba1].mp4');
+    fs.mkdirSync(path.dirname(ytFile), { recursive: true });
+    execFileSync(ffmpegExe, ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=30', '-f', 'lavfi', '-i', 'sine=frequency=660:sample_rate=44100', '-t', '12', '-pix_fmt', 'yuv420p', '-c:v', 'libx264', '-c:a', 'aac', '-movflags', '+faststart', ytFile], { stdio: 'pipe' });
+    fs.mkdirSync(path.join(userData, 'datos'), { recursive: true });
+    fs.writeFileSync(
+      path.join(userData, 'datos', 'descargasVideo.json'),
+      JSON.stringify([{ videoId: 'pipoPrueba1', title: 'Video de prueba', channel: 'Pipo', durationMs: 12000, thumbnail: '', file: ytFile, size: fs.statSync(ytFile).size, downloadedAt: Date.now() }]),
+    );
   } catch (err) {
     console.log('No se pudieron generar los videos de prueba:', String(err.stderr ?? err.message).slice(0, 300));
   }
@@ -186,7 +195,7 @@ if (ytOk) {
 
   await step('YouTube: descargar para escuchar sin internet', async () => {
     await page.locator('.main-scroll .track-row').nth(1).click({ button: 'right' });
-    await page.getByText('Descargar para escuchar sin internet').click();
+    await page.getByText('Descargar el audio para escuchar sin internet').click();
     const start = Date.now();
     while (Date.now() - start < 150_000) {
       await page.waitForTimeout(2000);
@@ -205,8 +214,9 @@ if (ytOk) {
     await page.locator('.yt-search .segmented button', { hasText: 'Videos' }).click();
     await page.fill('.yt-search input', 'Linkin Park Given Up');
     await page.locator('.yt-search button[type=submit]').click();
-    await page.waitForSelector('.main-scroll .track-row', { timeout: 90_000 });
-    await page.locator('.main-scroll .track-row').first().dblclick();
+    await page.waitForSelector('.main-scroll .vcard', { timeout: 90_000 });
+    await shot('11a-youtube-videos');
+    await page.locator('.main-scroll .vcard').first().dblclick();
     await page.waitForSelector('.video-overlay', { timeout: 10_000 });
     const start = Date.now();
     while (Date.now() - start < 120_000) {
@@ -227,7 +237,46 @@ if (ytOk) {
     throw new Error('el video no empezó a reproducirse');
   });
   await page.keyboard.press('Escape').catch(() => undefined);
+
+  await step('YouTube: descargar un video (MP4)', async () => {
+    await page.locator('.main-scroll .vcard').first().getByRole('button', { name: /Descargar el video/ }).click();
+    const start = Date.now();
+    while (Date.now() - start < 300_000) {
+      await page.waitForTimeout(3000);
+      const toast = (await page.locator('.toast').allTextContents()).join(' | ');
+      if (/Video descargado:/.test(toast)) return toast;
+      if (/No se pudo descargar el video/.test(toast)) throw new Error(toast);
+    }
+    throw new Error('la descarga del video no terminó a tiempo');
+  });
 }
+
+await step('Videos descargados: ver sin internet', async () => {
+  if (!videosOk) return 'sin ffmpeg para generar el video de prueba';
+  await nav('Videos descargados');
+  await page.waitForSelector('.main-scroll .vcard', { timeout: 10_000 });
+  const n = await page.locator('.main-scroll .vcard').count();
+  await page.locator('.main-scroll .vcard', { hasText: 'Video de prueba' }).first().dblclick();
+  await page.waitForSelector('.video-overlay', { timeout: 10_000 });
+  const start = Date.now();
+  while (Date.now() - start < 30_000) {
+    await page.waitForTimeout(1000);
+    const s = await page.evaluate(() => {
+      const v = document.querySelector('.video-el');
+      return { t: v?.currentTime ?? 0, paused: v?.paused ?? true, w: v?.videoWidth ?? 0, h: v?.videoHeight ?? 0, src: v?.currentSrc ?? '' };
+    });
+    if (!s.paused && s.t > 2 && s.w > 0) {
+      await shot('12b-video-descargado');
+      const info = (await page.locator('.video-head .muted').textContent()) ?? '';
+      await page.keyboard.press('Escape');
+      if (!s.src.startsWith('pipo://media/vfile/')) throw new Error(`no se vio desde el archivo (${s.src})`);
+      return `${n} video(s); imagen ${s.w}x${s.h}, ${s.t.toFixed(1)} s desde el MP4 · ${info}`;
+    }
+  }
+  await shot('12b-video-descargado');
+  await page.keyboard.press('Escape').catch(() => undefined);
+  throw new Error('el video descargado no se reprodujo');
+});
 
 await step('Ajustes', async () => {
   await nav('Ajustes');

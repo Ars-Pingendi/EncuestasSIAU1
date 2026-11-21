@@ -50,6 +50,14 @@ export function handleProtocol(distDir: string, library: Library, youtube: YouTu
           const file = youtube.downloadArt(id);
           return file ? fileResponse(file, null, true) : new Response('No encontrado', { status: 404, headers: corsHeaders() });
         }
+        if (kind === 'vfile') {
+          // Video de YouTube descargado: se ve sin internet.
+          const file = youtube.videoDownloadFile(id);
+          if (!file) return new Response('No encontrado', { status: 404, headers: corsHeaders() });
+          const res = fileResponse(file, range);
+          res.headers.set('Content-Type', file.toLowerCase().endsWith('.webm') ? 'video/webm' : 'video/mp4');
+          return res;
+        }
         if (kind === 'yt') {
           if (!/^[\w-]{11}$/.test(id)) return new Response('Id no válido', { status: 400, headers: corsHeaders() });
           const local = youtube.downloadFile(id);

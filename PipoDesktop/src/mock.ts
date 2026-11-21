@@ -1,5 +1,5 @@
 // API simulada para probar la interfaz en un navegador (sin Electron).
-import type { DownloadEvent, DownloadInfo, LibrarySnapshot, PipoApi, Track, YtItem } from '../shared/types';
+import type { DownloadEvent, DownloadInfo, LibrarySnapshot, PipoApi, Track, VideoDownloadEvent, VideoDownloadInfo, YtItem } from '../shared/types';
 
 const ARTISTS = [
   { name: 'Los Faroles del Sur', genre: 'Cumbia', albums: ['Noches de puerto', 'Brisa'] },
@@ -84,6 +84,9 @@ export function createMockApi(): PipoApi {
   let folders = ['C:\\Users\\Pipo\\Music'];
   const dlListeners = new Set<(e: DownloadEvent) => void>();
   const downloads: DownloadInfo[] = [];
+  const vListeners = new Set<(e: VideoDownloadEvent) => void>();
+  const vDownloads: VideoDownloadInfo[] = [];
+  const vTimers = new Map<string, ReturnType<typeof setInterval>>();
   const snap = (): LibrarySnapshot => ({ tracks, folders, scannedAt: Date.now() });
   const read = (k: string) => {
     try {
@@ -148,6 +151,42 @@ export function createMockApi(): PipoApi {
       dlListeners.add(cb);
       return () => dlListeners.delete(cb);
     },
+    ytDownloadVideo: async (req) => {
+      const { videoId } = req;
+      if (vTimers.has(videoId) || vDownloads.some((d) => d.videoId === videoId)) return;
+      let p = 0;
+      vListeners.forEach((l) => l({ videoId, state: 'queued', progress: 0 }));
+      vTimers.set(
+        videoId,
+        setInterval(() => {
+          p += 0.125;
+          if (p >= 1) {
+            clearInterval(vTimers.get(videoId));
+            vTimers.delete(videoId);
+            const info: VideoDownloadInfo = { ...req, file: `C:\\Users\\Pipo\\Videos\\Pipo Music Player\\${req.title} [${videoId}].mp4`, size: 48_000_000, downloadedAt: Date.now() };
+            vDownloads.unshift(info);
+            vListeners.forEach((l) => l({ videoId, state: 'done', progress: 1, info }));
+          } else vListeners.forEach((l) => l({ videoId, state: 'running', progress: p }));
+        }, 300),
+      );
+    },
+    ytCancelVideoDownload: async (id) => {
+      clearInterval(vTimers.get(id));
+      vTimers.delete(id);
+      vListeners.forEach((l) => l({ videoId: id, state: 'removed' }));
+    },
+    ytDeleteVideoDownload: async (id) => {
+      const i = vDownloads.findIndex((d) => d.videoId === id);
+      if (i >= 0) vDownloads.splice(i, 1);
+      vListeners.forEach((l) => l({ videoId: id, state: 'removed' }));
+    },
+    ytVideoDownloads: async () => [...vDownloads],
+    onYtVideoDownload: (cb) => {
+      vListeners.add(cb);
+      return () => vListeners.delete(cb);
+    },
+    ytShowVideoInFolder: async () => undefined,
+    ytOpenVideosFolder: async () => undefined,
     ytUpdate: async () => 'El componente de YouTube ya está al día.',
     ytVersion: async () => '2026.10.26',
     openDownloadsFolder: async () => undefined,

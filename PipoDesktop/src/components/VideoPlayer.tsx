@@ -1,5 +1,6 @@
 // Visor de videos de YouTube (sin anuncios): imagen hasta 1080p y audio por separado, unidos con
 // el mismo reproductor adaptativo que usa la app de la TV. Si eso falla, video con audio incluido.
+// Si el video ya se descargó, se ve desde el archivo MP4, sin internet.
 import { useEffect, useRef, useState } from 'react';
 import type { Track } from '../../shared/types';
 import { api } from '../api';
@@ -8,6 +9,8 @@ import { errorText, request } from '../lib/net';
 import { sendToTv, tvSharing } from '../lib/tv';
 import { pausePlayback, playTracks } from '../state/player';
 import { closeDialog, openDialog } from '../state/ui';
+import { downloadVideo, videoDownloaded, videos as videoStore } from '../state/videos';
+import { useStore } from '../lib/store';
 import { Icon } from './Icon';
 
 interface Plan {
@@ -37,6 +40,9 @@ export function VideoPlayer({ track }: { track: Track }) {
   const [error, setError] = useState<string | null>(null);
   const [quality, setQuality] = useState(-1);
   const videoId = track.videoId!;
+  const local = useRef(false);
+  const downloaded = useStore(videoStore, (s) => s.downloads.get(videoId));
+  const dl = useStore(videoStore, (s) => s.state[videoId]);
 
   useEffect(() => {
     let dead = false;
@@ -63,36 +69,58 @@ export function VideoPlayer({ track }: { track: Track }) {
         if (!dead) setError(`No se pudo reproducir: ${why}${(err as Error).message !== why ? ` · ${(err as Error).message}` : ''}`);
       }
     };
-    const req = fetchPlan(videoId, false);
-    req.promise
-      .then((r) => {
-        if (r.status !== 200) throw new Error(errorText(r) || `Error ${r.status}`);
-        const p = JSON.parse(r.body as string) as Plan;
-        if (dead) return;
-        setPlan(p);
-        if (p.mode === 'adaptive' && p.adaptive) {
-          setStatus('Cargando imagen y audio…');
-          const ap = new AdaptivePlayer(v, (path) => path, p.adaptive, p.durationMs / 1000, 0, (msg) => {
-            if (!dead) void fallback(msg, v.currentTime || 0);
-          });
-          adaptive.current = ap;
-          setQuality(p.adaptive.selected);
-          ap.attach();
-        } else {
-          v.src = p.url;
-        }
-        void v.play().catch(() => undefined);
-      })
-      .catch((err: Error) => {
-        if (!dead && err.message !== 'Cancelada') setError(err.message);
-      });
+    let req: ReturnType<typeof fetchPlan> | null = null;
+    const stream = () => {
+      if (local.current) setPlan(null);
+      local.current = false;
+      setStatus('Consultando a YouTube…');
+      req = fetchPlan(videoId, false);
+      req.promise
+        .then((r) => {
+          if (r.status !== 200) throw new Error(errorText(r) || `Error ${r.status}`);
+          const p = JSON.parse(r.body as string) as Plan;
+          if (dead) return;
+          setPlan(p);
+          if (p.mode === 'adaptive' && p.adaptive) {
+            setStatus('Cargando imagen y audio…');
+            const ap = new AdaptivePlayer(v, (path) => path, p.adaptive, p.durationMs / 1000, 0, (msg) => {
+              if (!dead) void fallback(msg, v.currentTime || 0);
+            });
+            adaptive.current = ap;
+            setQuality(p.adaptive.selected);
+            ap.attach();
+          } else {
+            v.src = p.url;
+          }
+          void v.play().catch(() => undefined);
+        })
+        .catch((err: Error) => {
+          if (!dead && err.message !== 'Cancelada') setError(err.message);
+        });
+    };
+    const file = videoDownloaded(videoId);
+    if (file) {
+      // Descargado: se ve desde el MP4. Si el archivo ya no está (lo borraron), se pide a YouTube.
+      local.current = true;
+      setStatus('Abriendo el video descargado…');
+      setPlan({ title: file.title, mode: 'direct', url: '', durationMs: file.durationMs, info: 'Descargado · sin internet' });
+      v.addEventListener(
+        'error',
+        () => {
+          if (!dead && local.current) stream();
+        },
+        { once: true },
+      );
+      v.src = `pipo://media/vfile/${encodeURIComponent(videoId)}`;
+      void v.play().catch(() => undefined);
+    } else stream();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !document.fullscreenElement) closeDialog();
     };
     window.addEventListener('keydown', onKey);
     return () => {
       dead = true;
-      req.abort();
+      req?.abort();
       window.removeEventListener('keydown', onKey);
       stopAdaptive();
       v.pause();
@@ -122,7 +150,7 @@ export function VideoPlayer({ track }: { track: Track }) {
             autoPlay
             onPlaying={() => setStatus(null)}
             onError={() => {
-              if (!adaptive.current && plan?.mode === 'direct') setError('No se pudo reproducir el video.');
+              if (!adaptive.current && !local.current && plan?.mode === 'direct' && plan.url) setError('No se pudo reproducir el video.');
             }}
           />
           {(status || error) && (
@@ -154,6 +182,19 @@ export function VideoPlayer({ track }: { track: Track }) {
             </label>
           )}
           <div className="grow" />
+          {downloaded ? (
+            <button type="button" className="btn outline" title="Mostrar el archivo MP4 en la carpeta" onClick={() => void api.ytShowVideoInFolder(videoId)}>
+              <Icon name="downloadDone" size={20} /> Descargado
+            </button>
+          ) : dl?.state === 'queued' || dl?.state === 'running' ? (
+            <button type="button" className="btn outline" title="Cancelar la descarga" onClick={() => void api.ytCancelVideoDownload(videoId)}>
+              <div className="spinner small" /> {dl.state === 'queued' ? 'En espera…' : `Descargando ${Math.round((dl.progress ?? 0) * 100)} %`}
+            </button>
+          ) : (
+            <button type="button" className="btn outline" title="Guardar el video en MP4 (hasta 1080p) para verlo sin internet" onClick={() => downloadVideo(track)}>
+              <Icon name="download" size={20} /> Descargar
+            </button>
+          )}
           {tvSharing() && (
             <button
               type="button"

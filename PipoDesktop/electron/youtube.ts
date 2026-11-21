@@ -6,7 +6,7 @@ import { Readable } from 'node:stream';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import type { DownloadEvent, DownloadInfo, ResolveResult, Track, YtItem, YtSearchKind } from '../shared/types';
+import type { DownloadEvent, DownloadInfo, ResolveResult, Track, VideoDownloadEvent, VideoDownloadInfo, VideoDownloadRequest, YtItem, YtSearchKind } from '../shared/types';
 import type { JsonStore } from './store';
 import { corsHeaders, fileResponse } from './files';
 
@@ -46,6 +46,13 @@ export interface YouTubeOptions {
   logFile?: string;
   nodeRuntime?: string;
   onDownload: (e: DownloadEvent) => void;
+  /** Carpeta para los videos descargados (p. ej. Videos\\Pipo Music Player). */
+  videosDir?: string;
+  /** Carpeta de trabajo de las descargas de video (fuera de Videos, para que la TV no vea archivos a medias). */
+  videoTmpDir?: string;
+  /** ffmpeg para unir imagen y audio de los videos (sin él se baja el video con audio incluido, 360p). */
+  ffmpeg?: () => string | null;
+  onVideoDownload?: (e: VideoDownloadEvent) => void;
 }
 
 export function ytTrack(item: YtItem): Track {
@@ -78,6 +85,9 @@ export class YouTube {
   private dlActive: { videoId: string; proc: ChildProcess | null; cancelled: boolean } | null = null;
   private exe: string | null = null;
   private jsArgs: string[] | null = null;
+  private videoDls = new Map<string, VideoDownloadInfo>();
+  private vQueue: VideoDownloadRequest[] = [];
+  private vActive: { videoId: string; proc: ChildProcess | null; cancelled: boolean } | null = null;
 
   constructor(private readonly o: YouTubeOptions) {
     fs.mkdirSync(o.downloadsDir, { recursive: true });
@@ -88,6 +98,13 @@ export class YouTube {
     fs.mkdirSync(this.streamDir, { recursive: true });
     const saved = o.store.get<DownloadInfo[]>('descargas') ?? [];
     for (const d of saved) if (fs.existsSync(d.file)) this.downloads.set(d.videoId, d);
+    if (o.videoTmpDir) {
+      // Lo que quedó a medias de una descarga de video anterior ya no sirve.
+      fs.rmSync(o.videoTmpDir, { recursive: true, force: true });
+      fs.mkdirSync(o.videoTmpDir, { recursive: true });
+    }
+    const savedVideos = o.store.get<VideoDownloadInfo[]>('descargasVideo') ?? [];
+    for (const d of savedVideos) if (fs.existsSync(d.file)) this.videoDls.set(d.videoId, d);
   }
 
   // ───────────────────────────── yt-dlp ─────────────────────────────
@@ -598,8 +615,127 @@ export class YouTube {
     }
   }
 
+  // ───────────────────────────── Descargas de video (MP4) ─────────────────────────────
+  //
+  // yt-dlp baja la imagen (H.264 hasta 1080p) y el audio (AAC) y ffmpeg los une en un MP4 que
+  // abre cualquier reproductor. Se guardan con nombre legible en la carpeta Videos de Windows,
+  // así también aparecen en «Películas» de la TV.
+
+  listVideoDownloads(): VideoDownloadInfo[] {
+    return [...this.videoDls.values()].sort((a, b) => b.downloadedAt - a.downloadedAt);
+  }
+
+  videoDownloadFile(videoId: string): string | undefined {
+    const d = this.videoDls.get(videoId);
+    return d && fs.existsSync(d.file) ? d.file : undefined;
+  }
+
+  enqueueVideoDownload(req: VideoDownloadRequest) {
+    const { videoId } = req;
+    if (!/^[\w-]{11}$/.test(videoId)) return;
+    if (this.videoDownloadFile(videoId) || this.vQueue.some((r) => r.videoId === videoId) || this.vActive?.videoId === videoId) return;
+    this.vQueue.push(req);
+    this.o.onVideoDownload?.({ videoId, state: 'queued', progress: 0 });
+    void this.pumpVideo();
+  }
+
+  cancelVideoDownload(videoId: string) {
+    this.vQueue = this.vQueue.filter((r) => r.videoId !== videoId);
+    if (this.vActive?.videoId === videoId) {
+      this.vActive.cancelled = true;
+      this.vActive.proc?.kill();
+    }
+    this.o.onVideoDownload?.({ videoId, state: 'removed' });
+  }
+
+  async deleteVideoDownload(videoId: string) {
+    const d = this.videoDls.get(videoId);
+    this.videoDls.delete(videoId);
+    this.o.store.set('descargasVideo', this.listVideoDownloads(), 0);
+    if (d) await fsp.rm(d.file, { force: true }).catch(() => undefined);
+    this.o.onVideoDownload?.({ videoId, state: 'removed' });
+  }
+
+  /** Borra lo que haya quedado a medias de un video (partes .f137.mp4, .temp, etc.). */
+  private async cleanPartial(dir: string, videoId: string) {
+    for (const f of await fsp.readdir(dir).catch(() => [] as string[])) {
+      if (f.includes(`[${videoId}]`)) await fsp.rm(path.join(dir, f), { force: true }).catch(() => undefined);
+    }
+  }
+
+  private async pumpVideo() {
+    if (this.vActive || !this.o.videosDir) return;
+    const req = this.vQueue.shift();
+    if (!req) return;
+    const { videoId } = req;
+    const dir = this.o.videosDir;
+    const work = this.o.videoTmpDir ?? dir;
+    this.vActive = { videoId, proc: null, cancelled: false };
+    const active = this.vActive;
+    const emit = (e: Omit<VideoDownloadEvent, 'videoId'>) => this.o.onVideoDownload?.({ videoId, ...e });
+    try {
+      await fsp.mkdir(dir, { recursive: true });
+      await fsp.mkdir(work, { recursive: true });
+      emit({ state: 'running', progress: 0 });
+      const js = await this.jsRuntimeArgs();
+      const ff = this.o.ffmpeg?.() ?? null;
+      const format = ff
+        ? 'bv*[height<=1080][vcodec^=avc1][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]/bv*[height<=1080]+ba/b'
+        : 'b[ext=mp4]/b';
+      // Progreso: primero la imagen (la mayor parte) y luego el audio.
+      let part = 0;
+      let lastDone = 0;
+      let lastEmit = 0;
+      const r = await this.run(
+        [...js, '-f', format, ...(ff ? ['--merge-output-format', 'mp4', '--ffmpeg-location', ff] : []),
+          '--no-playlist', '--no-part', '--no-mtime', '--newline', '--progress', '--no-warnings',
+          '-o', path.join(work, '%(title).90B [%(id)s].%(ext)s'),
+          '--progress-template', 'download:PIPO %(progress.downloaded_bytes)s %(progress.total_bytes)s %(progress.total_bytes_estimate)s',
+          `https://www.youtube.com/watch?v=${videoId}`],
+        (line) => {
+          const m = /^PIPO (\S+) (\S+) (\S+)/.exec(line);
+          if (!m) return;
+          const done = Number(m[1]) || 0;
+          const total = Number(m[2]) || Number(m[3]) || 0;
+          if (lastDone > 0 && done < lastDone * 0.5) part++;
+          lastDone = done;
+          if (!total || Date.now() - lastEmit < 300) return;
+          lastEmit = Date.now();
+          const frac = Math.min(1, done / total);
+          emit({ state: 'running', progress: part === 0 ? frac * 0.88 : Math.min(0.99, 0.88 + frac * 0.12) });
+        },
+        3 * 60 * 60_000,
+        (p) => (active.proc = p),
+      );
+      if (active.cancelled) {
+        await this.cleanPartial(work, videoId);
+        return;
+      }
+      if (r.code !== 0) {
+        this.log(`descargar video ${videoId}: código ${r.code}\n${r.stderr.split('\n').slice(-25).join('\n')}`);
+        throw new Error(friendlyError(r.stderr) ?? 'La descarga del video no se completó.');
+      }
+      const name = (await fsp.readdir(work)).find((f) => f.includes(`[${videoId}]`) && /\.(mp4|mkv|webm)$/i.test(f) && !/\.f\d+\./.test(f));
+      if (!name) throw new Error('No se encontró el video descargado.');
+      const file = path.join(dir, name);
+      if (work !== dir) await moveFile(path.join(work, name), file);
+      const info: VideoDownloadInfo = { ...req, file, size: (await fsp.stat(file)).size, downloadedAt: Date.now() };
+      this.videoDls.set(videoId, info);
+      this.o.store.set('descargasVideo', this.listVideoDownloads(), 0);
+      emit({ state: 'done', progress: 1, info });
+    } catch (err) {
+      await this.cleanPartial(work, videoId);
+      emit({ state: 'error', message: (err as Error).message });
+    } finally {
+      this.vActive = null;
+      void this.pumpVideo();
+    }
+  }
+
   stopAll() {
     this.dlQueue = [];
+    this.vQueue = [];
+    this.vActive?.proc?.kill();
     this.dlActive?.proc?.kill();
     for (const e of this.streams.values()) e.proc?.kill();
   }
@@ -642,4 +778,16 @@ function friendlyError(text: string): string | undefined {
   if (/Unable to download|getaddrinfo|timed out|Connection|network/i.test(text)) return 'No hay conexión con YouTube. Revisa tu internet.';
   const err = text.split('\n').find((l) => l.startsWith('ERROR:'));
   return err ? err.replace(/^ERROR:\s*(\[[^\]]+\]\s*)?/, '') : undefined;
+}
+
+/** Mueve un archivo; si está en otra unidad (Videos redirigida a D:, por ejemplo), lo copia y borra el original. */
+async function moveFile(from: string, to: string) {
+  await fsp.rm(to, { force: true });
+  try {
+    await fsp.rename(from, to);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== 'EXDEV') throw err;
+    await fsp.copyFile(from, to);
+    await fsp.rm(from, { force: true });
+  }
 }

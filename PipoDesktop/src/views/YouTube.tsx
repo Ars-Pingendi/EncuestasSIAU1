@@ -4,13 +4,14 @@ import { api } from '../api';
 import { Empty, Segmented, ViewTitle } from '../components/Common';
 import { Icon } from '../components/Icon';
 import { TrackList } from '../components/TrackList';
+import { VideoGrid } from '../components/VideoGrid';
 import { plural } from '../lib/format';
 import { useStore } from '../lib/store';
 import { data, updateSettings } from '../state/data';
 import { lib } from '../state/library';
+import { videos } from '../state/videos';
 import { playTracks } from '../state/player';
 import { navigate } from '../state/ui';
-import { openVideo } from '../components/VideoPlayer';
 import { sendToTv, tvSharing } from '../lib/tv';
 
 function toTrack(item: YtItem): Track {
@@ -48,6 +49,7 @@ export function YouTubeView() {
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState(true);
   const downloads = useStore(lib, (s) => s.downloads);
+  const videoCount = useStore(videos, (s) => s.downloads.size);
   const input = useRef<HTMLInputElement>(null);
   // «En la TV»: el doble clic manda la canción o el video a la TV en vez de reproducirlo aquí.
   const [toTv, setToTv] = useState(false);
@@ -82,14 +84,20 @@ export function YouTubeView() {
   };
 
   const dlCount = downloads.size;
-  const hint = useMemo(() => (kind === 'songs' ? 'Canciones de YouTube Music' : 'Videos de YouTube (doble clic para verlos)'), [kind]);
+  const hint = useMemo(() => (kind === 'songs' ? 'Canciones de YouTube Music' : 'Videos de YouTube: míralos aquí o descárgalos'), [kind]);
 
   return (
     <div className="view">
       <ViewTitle title="YouTube" count={hint}>
-        <button type="button" className="btn outline" onClick={() => navigate({ view: 'smart', id: 'downloads' })}>
-          <Icon name="downloadDone" size={20} /> Descargadas ({dlCount})
-        </button>
+        {kind === 'videos' ? (
+          <button type="button" className="btn outline" onClick={() => navigate({ view: 'ytvideos' })}>
+            <Icon name="movie" size={20} /> Videos descargados ({videoCount})
+          </button>
+        ) : (
+          <button type="button" className="btn outline" onClick={() => navigate({ view: 'smart', id: 'downloads' })}>
+            <Icon name="downloadDone" size={20} /> Descargadas ({dlCount})
+          </button>
+        )}
       </ViewTitle>
       <form
         className="yt-search"
@@ -129,25 +137,34 @@ export function YouTubeView() {
         <div className="loading-block"><div className="spinner" /> Buscando en YouTube…</div>
       ) : results.length ? (
         <>
-          <div className="muted small yt-count">
-            {plural(results.length, 'resultado', 'resultados')} · doble clic para {kind === 'videos' ? 'ver el video' : 'escuchar'}{toTv ? ' en la TV' : ''} · clic derecho para ver el video, descargar, agregar a una lista o mandar a la TV
-          </div>
-          <TrackList
-            tracks={results}
-            onPlay={(i) => {
-              const t = results[i];
-              if (kind === 'videos') return toTv ? void sendToTv('video', [t]) : openVideo(t);
-              if (toTv) return void sendToTv('play', results, i);
-              playTracks(results, i);
-            }}
-          />
+          {kind === 'videos' ? (
+            <>
+              <div className="muted small yt-count">
+                {plural(results.length, 'video', 'videos')} · clic en la imagen para verlo{toTv ? ' en la TV' : ''} · botón de descarga para guardarlo en MP4 (hasta 1080p) y verlo sin internet · clic derecho para más opciones
+              </div>
+              <VideoGrid tracks={results} toTv={toTv} label="Resultados de YouTube" />
+            </>
+          ) : (
+            <>
+              <div className="muted small yt-count">
+                {plural(results.length, 'resultado', 'resultados')} · doble clic para escuchar{toTv ? ' en la TV' : ''} · clic derecho para ver el video, descargar, agregar a una lista o mandar a la TV
+              </div>
+              <TrackList
+                tracks={results}
+                onPlay={(i) => {
+                  if (toTv) return void sendToTv('play', results, i);
+                  playTracks(results, i);
+                }}
+              />
+            </>
+          )}
         </>
       ) : (
         !error && (
           <Empty
             icon="youtube"
             title="Escucha YouTube sin anuncios"
-            text="Busca canciones o videos sin anuncios. Las canciones suenan en segundo plano y con tu ecualizador; los videos se ven aquí (hasta 1080p) o en la TV. Puedes guardarlas en listas y favoritos o descargarlas para escuchar sin internet."
+            text="Busca canciones o videos sin anuncios. Las canciones suenan en segundo plano y con tu ecualizador; los videos se ven aquí (hasta 1080p) o en la TV, y puedes descargarlos en MP4 para verlos sin internet. Las canciones se guardan en listas y favoritos o se descargan para escuchar sin conexión."
           />
         )
       )}
