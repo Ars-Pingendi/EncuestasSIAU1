@@ -1,5 +1,5 @@
 --------- beginning of main
 --------- beginning of system
-11-21 16:24:04.428  3007  3007 D PipoTV  : LOG pipo:teclado true (file:///android_asset/www/app.js:1)
-11-21 16:24:09.871  3007  3007 D PipoTV  : LOG pipo:teclado false (file:///android_asset/www/app.js:1)
-11-21 16:24:52.355  3007  3007 D PipoTV  : LOG pipo:menu-salir (file:///android_asset/www/app.js:1)
+11-21 17:41:04.474  2988  2988 D PipoTV  : LOG pipo:teclado true (file:///android_asset/www/app.js:1)
+11-21 17:41:09.367  2988  2988 D PipoTV  : LOG pipo:teclado false (file:///android_asset/www/app.js:1)
+11-21 17:41:50.755  2988  2988 D PipoTV  : LOG pipo:menu-salir (file:///android_asset/www/app.js:1)

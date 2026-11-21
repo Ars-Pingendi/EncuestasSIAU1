@@ -9,8 +9,8 @@ Starting: Intent { cmp=com.personal.pipotv/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: com.personal.pipotv/.MainActivity
-TotalTime: 889
-WaitTime: 893
+TotalTime: 735
+WaitTime: 748
 Complete
 OK    la app abre a pantalla completa
 OK    OK abre el teclado de la TV y el formulario sube para quedar a la vista
