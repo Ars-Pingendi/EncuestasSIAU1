@@ -106,7 +106,7 @@ jobs:
           if-no-files-found: ignore
 
       - name: Guardar capturas en el repositorio
-        if: always() && github.event_name == 'push'
+        if: always()
         run: |
           rm -rf PipoAndroidTV/capturas && mkdir -p PipoAndroidTV/capturas
           for f in capturas-androidtv/*.png; do
@@ -117,7 +117,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A PipoAndroidTV/capturas
           if git commit -m "docs(PipoAndroidTV): capturas de la prueba en el emulador"; then
-            git pull --rebase origin "${GITHUB_REF_NAME}"
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
             git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
 
@@ -128,5 +128,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -f PipoAndroidTV/dist/PipoMusicPlayer-AndroidTV.apk
           git commit -m "build(PipoAndroidTV): APK compilado por CI"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
