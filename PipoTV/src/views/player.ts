@@ -4,6 +4,7 @@ import { absoluteUrl, fetchPlan, fetchText, isYoutubeId, subtitleUrl, Unauthoriz
 import { detectCaps } from '../caps';
 import { clear, formatTime, h, icon } from '../dom';
 import { focus, KEY, setKeyOwner, type Dir } from '../nav';
+import { setPlaying, STOP_EVENT } from '../platform';
 import { app, releaseMusic, toast } from '../state';
 import { closeOverlay, openOverlay, setBackHook, type View } from '../ui';
 import { getPrefs, resumable, saveProgress, setPrefs } from '../videostate';
@@ -349,6 +350,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     fail(`error de reproducción (código ${video.error ? video.error.code : '?'})`);
   });
   video.addEventListener('playing', () => {
+    setPlaying('video', true);
     started = true;
     if (watchdog) clearTimeout(watchdog);
     setBusy(null);
@@ -357,6 +359,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     showControls();
   });
   video.addEventListener('pause', () => {
+    setPlaying('video', false);
     renderPlayState();
     showControls();
     persist();
@@ -370,6 +373,7 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
   video.addEventListener('canplay', () => setBusy(null));
   video.addEventListener('seeked', () => setBusy(null));
   video.addEventListener('ended', () => {
+    setPlaying('video', false);
     if (destroyed) return;
     const d = duration();
     // Una conversión que se corta antes de tiempo no es el final: se reintenta donde quedó.
@@ -726,6 +730,12 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
     if (e.target === root || e.target === video || e.target === subs) toggle();
   });
   document.addEventListener('keydown', onKey, true);
+  // Android TV: al salir de la app (Inicio o se apaga la TV) el video se pausa y se guarda dónde quedó.
+  const onStop = () => {
+    if (!video.paused) video.pause();
+    persist();
+  };
+  window.addEventListener(STOP_EVENT, onStop);
   setBackHook(onBack);
   renderPlayState();
   renderProgress();
@@ -746,6 +756,8 @@ function createPlayer(startItem: TvVideo, startMs: number): View {
       if (hideTimer) clearTimeout(hideTimer);
       if (watchdog) clearTimeout(watchdog);
       document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener(STOP_EVENT, onStop);
+      setPlaying('video', false);
       setBackHook(null);
       // Soltar el video corta la conexión y el PC detiene la conversión.
       video.pause();

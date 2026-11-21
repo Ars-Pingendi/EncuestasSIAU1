@@ -1,4 +1,5 @@
 // Estructura de la app: menú lateral, contenido, barra de reproducción, avisos y menús.
+import { exitApp } from './platform';
 import type { TvTrack } from './api';
 import { lazyImage } from './components/images';
 import { clear, formatTime, h, icon } from './dom';
@@ -263,7 +264,7 @@ export function openTrackMenu(t: TvTrack) {
 
 export function confirmExit() {
   openMenu('¿Salir de Pipo?', [
-    { label: 'Salir', icon: 'check', run: () => window.close() },
+    { label: 'Salir', icon: 'check', run: () => exitApp() },
     { label: 'Seguir escuchando', icon: 'play', run: () => undefined },
   ]);
 }

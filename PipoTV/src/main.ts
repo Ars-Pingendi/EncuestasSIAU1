@@ -4,6 +4,7 @@ import { forgetConnection, loadLibrary, loadVideos, savedConnection, Unauthorize
 import { engine } from './audio';
 import { h } from './dom';
 import { installKeys } from './nav';
+import { exitApp, installPlatform, isAndroidTv } from './platform';
 import { app, applyEq, emit, eq, initPlayer, next, onChange, previous, restoreQueue, seekBy, setMode, togglePlay } from './state';
 import { back, confirmExit, homeView, mountShell, navigate, openNowPlaying, setNowPlayingFactory, update, type Route, type View } from './ui';
 import { connectScreen } from './views/connect';
@@ -130,7 +131,8 @@ function boot() {
   });
   installKeys({
     back: () => {
-      if (!shellReady) return;
+      // En Android TV, Atrás en la pantalla de conexión sale de la app (en webOS lo hace la TV).
+      if (!shellReady) return isAndroidTv ? exitApp() : undefined;
       if (!back()) confirmExit();
     },
     playPause: () => togglePlay(),
@@ -148,6 +150,8 @@ function boot() {
       openNowPlaying();
     }
   });
+  // Android TV: si la app pasa a segundo plano (Inicio, otra app o se apaga la TV), se pausa.
+  installPlatform(() => engine.pause());
   void eq;
   const conn = savedConnection();
   if (conn) void start(conn);

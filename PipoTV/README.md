@@ -1,6 +1,6 @@
 # Pipo Music Player para TV LG (webOS)
 
-App para televisores LG con webOS 4.0 o posterior (2018 en adelante) que reproduce en la TV:
+App para televisores LG con webOS 4.0 o posterior (2018 en adelante) que reproduce en la TV (para televisores con **Android TV / Google TV** está la misma app en `PipoAndroidTV/`):
 
 - **Música** de **Pipo para Windows** o de **Pipo para Android**: canciones, álbumes, artistas, géneros, listas, favoritos y descargas de YouTube, con el mismo **ecualizador de 10 bandas** (13 preajustes, graves, sonido envolvente y amplificación).
 - **Videos de YouTube en la TV** (con **Pipo para Android 1.8.0** o **Pipo para Windows 1.3.0** o posterior): en el modo **Video** aparece **YouTube**. Escribe la búsqueda con el teclado de la TV (o dicta con el control mágico) y elige un video; o, en Pipo del teléfono, abre un video y pulsa **«Ver en la TV»**. Se ve **hasta en 1080p** (imagen H.264 y audio AAC u Opus por separado, que la TV une; si la TV no admite Opus en ese modo, lo reproduce aparte sincronizado) con selector de **Calidad**, sin anuncios; si algo falla, usa el video con audio incluido (360p). El teléfono hace de puente: debe seguir encendido, con Internet y en el mismo Wi-Fi.

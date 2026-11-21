@@ -1,5 +1,6 @@
 // Navegación con el control remoto: flechas (navegación espacial), OK, Atrás y teclas multimedia.
 // El Magic Remote (puntero) también funciona: el elemento bajo el puntero toma el foco.
+import { showKeyboard } from './platform';
 
 export const KEY = {
   LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, OK: 13,
@@ -139,6 +140,18 @@ export interface KeyHandlers {
   seek(deltaMs: number): void;
 }
 
+function atTextEdge(input: HTMLInputElement, dir: 'left' | 'right'): boolean {
+  try {
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    // Los campos numéricos no tienen cursor accesible: se tratan como si estuviera en el borde.
+    if (start === null || start === undefined || end === null || end === undefined) return true;
+    return dir === 'left' ? start === 0 && end === 0 : start === input.value.length && end === input.value.length;
+  } catch {
+    return true;
+  }
+}
+
 export function installKeys(handlers: KeyHandlers) {
   document.addEventListener('keydown', (e) => {
     const k = e.keyCode;
@@ -146,8 +159,9 @@ export function installKeys(handlers: KeyHandlers) {
     const typing = !!target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
     const dir: Dir | null = k === KEY.LEFT ? 'left' : k === KEY.RIGHT ? 'right' : k === KEY.UP ? 'up' : k === KEY.DOWN ? 'down' : null;
     if (dir) {
-      // En un campo de texto, izquierda/derecha mueven el cursor.
-      if (typing && (dir === 'left' || dir === 'right')) return;
+      // En un campo de texto, izquierda/derecha mueven el cursor; en el borde del texto pasan al
+      // elemento de al lado (así se llega del campo «Dirección» al «Código» solo con las flechas).
+      if (typing && (dir === 'left' || dir === 'right') && !atTextEdge(target as HTMLInputElement, dir)) return;
       e.preventDefault();
       move(dir);
       return;
@@ -157,6 +171,7 @@ export function installKeys(handlers: KeyHandlers) {
       target.click();
       return;
     }
+    if (k === KEY.OK && typing) showKeyboard();
     if (k === KEY.BACK || k === KEY.ESC || (k === KEY.BACKSPACE && !typing)) {
       e.preventDefault();
       handlers.back();

@@ -1,4 +1,5 @@
 import { fetchText } from '../api';
+import { platformName } from '../platform';
 import { h, icon, plural } from '../dom';
 import { app } from '../state';
 import type { View } from '../ui';
@@ -64,7 +65,7 @@ export function settingsView(actions: { reload(): void; forget(): void }): View 
       'div',
       { class: 'panel' },
       h('h2', null, 'Acerca de'),
-      h('p', null, 'Pipo Music Player 1.5.3 para LG webOS · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».'),
+      h('p', null, `Pipo Music Player 1.5.3 para ${platformName()} · Licencia GPL-3.0. Para crear listas, marcar favoritos o descargar de YouTube usa Pipo en el PC o en el teléfono: la TV se actualiza con «Actualizar biblioteca».`),
     ),
   );
   return { el };

@@ -1,4 +1,5 @@
 // Estado de la app de TV: conexión, biblioteca, reproductor y ecualizador.
+import { setPlaying } from './platform';
 import { artUrl, fetchText, mediaUrl, type Connection, type TvTrack } from './api';
 import { engine } from './audio';
 import { BUILT_IN_PRESETS, type EqParams } from './presets';
@@ -380,10 +381,12 @@ export function initPlayer() {
   el.addEventListener('playing', () => {
     errorStreak = 0;
     player.playing = true;
+    setPlaying('audio', true);
     emit();
   });
   el.addEventListener('pause', () => {
     player.playing = false;
+    setPlaying('audio', false);
     saveQueue();
     emit();
   });
