@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { Track, YtItem } from '../../shared/types';
+import type { Track } from '../../shared/types';
 import { api } from '../api';
 import { Empty, Segmented, ViewTitle } from '../components/Common';
 import { Icon } from '../components/Icon';
@@ -13,28 +13,8 @@ import { videos } from '../state/videos';
 import { playTracks } from '../state/player';
 import { navigate } from '../state/ui';
 import { sendToTv, tvSharing } from '../lib/tv';
+import { ytItemToTrack } from '../lib/yt';
 
-function toTrack(item: YtItem): Track {
-  return {
-    id: `yt:${item.videoId}`,
-    source: 'youtube',
-    videoId: item.videoId,
-    title: item.title,
-    artist: item.artist,
-    album: item.album || (item.kind === 'video' ? 'YouTube' : ''),
-    albumArtist: '',
-    genre: '',
-    trackNo: 0,
-    discNo: 0,
-    year: 0,
-    durationMs: item.durationMs,
-    folder: '',
-    fileName: '',
-    addedAt: Date.now(),
-    size: 0,
-    artworkUrl: item.thumbnail || `https://i.ytimg.com/vi/${item.videoId}/hqdefault.jpg`,
-  };
-}
 
 // Los resultados se conservan al cambiar de pantalla.
 let lastQuery = '';
@@ -74,7 +54,7 @@ export function YouTubeView() {
     try {
       const items = await api.ytSearch(query, k);
       if (my !== seq.current) return;
-      const tracks = items.map(toTrack);
+      const tracks = items.map(ytItemToTrack);
       lastQuery = query;
       lastResults = tracks;
       lastKind = k;

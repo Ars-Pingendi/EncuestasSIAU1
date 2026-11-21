@@ -12,6 +12,7 @@ import { navigate, goBack, ui, type Route } from './state/ui';
 import { next, player, previous, seekBy, setVolume, toggleMute, togglePlay } from './state/player';
 import { FavoritesView, PlaylistsView, PlaylistView, SmartView } from './views/Collections';
 import { EqualizerView } from './views/Equalizer';
+import { HomeView, MixView } from './views/Home';
 import { AlbumsView, AlbumView, ArtistsView, ArtistView, GroupsView, GroupView, SongsView } from './views/Library';
 import { SearchView } from './views/Search';
 import { SettingsView } from './views/Settings';
@@ -21,6 +22,8 @@ import { YouTubeView } from './views/YouTube';
 
 function View({ route }: { route: Route }) {
   switch (route.view) {
+    case 'home': return <HomeView />;
+    case 'mix': return <MixView id={route.id} />;
     case 'songs': return <SongsView />;
     case 'albums': return <AlbumsView />;
     case 'album': return <AlbumView albumKey={route.key} />;

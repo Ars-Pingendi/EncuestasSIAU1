@@ -6,7 +6,7 @@ import {
   app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, net, session, shell,
   type IpcMainInvokeEvent, type ThumbarButton,
 } from 'electron';
-import type { DownloadEvent, LibrarySnapshot, PlayerStateMsg, ScanProgress, TitleBarColors, Track, VideoDownloadEvent, VideoDownloadRequest, YtSearchKind } from '../shared/types';
+import type { DownloadEvent, LibrarySnapshot, PlayerStateMsg, RadioSeedRequest, ScanProgress, TitleBarColors, Track, VideoDownloadEvent, VideoDownloadRequest, YtSearchKind } from '../shared/types';
 import { freePath, niceFileName } from './files';
 import { Ffmpeg } from './ffmpeg';
 import { Library } from './library';
@@ -216,6 +216,7 @@ app.whenReady().then(() => {
 
   // YouTube
   handle('yt:search', (q: string, kind: YtSearchKind) => youtube.search(q, kind));
+  handle('yt:radio', (seed: RadioSeedRequest) => youtube.radio({ videoId: seed?.videoId && /^[\w-]{11}$/.test(seed.videoId) ? seed.videoId : undefined, title: String(seed?.title ?? '').slice(0, 200), artist: String(seed?.artist ?? '').slice(0, 200) }));
   handle('yt:prepare', (videoId: string) => youtube.prepare(videoId));
   handle('yt:lastError', (videoId: string) => youtube.lastError(videoId));
   handle('yt:openLog', async () => {

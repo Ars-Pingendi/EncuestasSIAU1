@@ -316,6 +316,43 @@ kbd {
 .yt-search { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
 .yt-count { margin: 6px 0 10px; }
 
+/* Inicio */
+.home .home-greet { font-size: 30px; font-weight: 800; letter-spacing: -0.02em; margin: 10px 0 18px; }
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px 14px; margin-bottom: 26px; }
+.quick-tile { position: relative; display: flex; align-items: center; gap: 14px; height: 64px; padding-right: 56px; border-radius: 10px; background: var(--surface-2); overflow: hidden; cursor: pointer; transition: background 0.15s; outline: none; }
+.quick-tile:hover, .quick-tile:focus-visible { background: var(--surface-3); }
+.quick-tile:focus-visible { box-shadow: 0 0 0 2px var(--primary); }
+.quick-tile > .art, .quick-tile > .mix-art { width: 64px; height: 64px; border-radius: 0; flex: none; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); }
+.quick-tile .mix-band { display: none; }
+.quick-fav { display: flex; align-items: center; justify-content: center; color: #fff; background: linear-gradient(135deg, #6b4ee6, #9b7bff 60%, #c5b8ff); }
+.quick-title { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.quick-play { position: absolute; right: 12px; top: 50%; width: 40px; height: 40px; margin-top: -20px; border-radius: 50%; border: 0; background: var(--primary); color: var(--on-primary); display: flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0; transform: scale(0.9); transition: opacity 0.15s, transform 0.15s; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); }
+.quick-tile:hover .quick-play, .quick-tile:focus-within .quick-play { opacity: 1; transform: none; }
+.shelf { margin: 6px 0 26px; }
+.shelf-head { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 10px; }
+.shelf-head h2 { font-size: 21px; font-weight: 800; margin: 0; letter-spacing: -0.01em; }
+.shelf-arrow { opacity: 0; transition: opacity 0.15s; }
+.shelf:hover .shelf-arrow, .shelf-arrow:focus-visible { opacity: 1; }
+.link-btn { border: 0; background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; padding: 4px 8px; border-radius: 6px; }
+.link-btn:hover { color: var(--text); text-decoration: underline; }
+.shelf-row { display: grid; grid-auto-flow: column; grid-auto-columns: 172px; gap: 6px; overflow-x: auto; overflow-y: hidden; padding-bottom: 6px; scroll-snap-type: x proximity; overscroll-behavior-x: contain; }
+.shelf-row > * { scroll-snap-align: start; min-width: 0; }
+.shelf-row { scrollbar-width: none; }
+.shelf-row::-webkit-scrollbar { display: none; }
+.mix-art { position: relative; width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25); background: var(--surface-3); }
+.mix-art > .art { width: 100%; height: 100%; border-radius: 0; }
+.mix-mosaic { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; width: 100%; height: 100%; }
+.mix-mosaic .art { width: 100%; height: 100%; border-radius: 0; box-shadow: none; }
+.mix-band { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 10px 8px; background: linear-gradient(transparent, rgba(10, 6, 24, 0.85)); color: #fff; display: flex; flex-direction: column; line-height: 1.15; }
+.mix-band span { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.12em; color: #c5b8ff; }
+.mix-band b { font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-header .mix-art { flex: none; aspect-ratio: auto; }
+.card.skeleton { pointer-events: none; }
+.card.skeleton .card-art { aspect-ratio: 1; border-radius: 12px; background: var(--surface-2); animation: pulse 1.4s ease-in-out infinite; }
+.sk-line { height: 12px; border-radius: 6px; background: var(--surface-2); margin-top: 12px; width: 85%; animation: pulse 1.4s ease-in-out infinite; }
+.sk-line.short { width: 55%; margin-top: 8px; }
+@keyframes pulse { 50% { opacity: 0.55; } }
+
 /* Cuadrícula de videos de YouTube */
 .vgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px 16px; padding-bottom: 12px; }
 .vcard { display: flex; flex-direction: column; border-radius: 14px; padding: 8px; background: transparent; outline: none; transition: background 0.15s; min-width: 0; }

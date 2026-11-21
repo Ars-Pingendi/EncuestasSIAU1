@@ -63,6 +63,13 @@ export interface DownloadInfo {
 export type DownloadState = 'queued' | 'running' | 'done' | 'error' | 'removed';
 
 /** Video de YouTube descargado (MP4 con imagen y audio) en la carpeta Videos de Windows. */
+/** Canción de la que se buscan otras parecidas en YouTube (con videoId si ya es de YouTube). */
+export interface RadioSeedRequest {
+  videoId?: string;
+  title: string;
+  artist: string;
+}
+
 export interface VideoDownloadInfo {
   videoId: string;
   title: string;
@@ -154,6 +161,8 @@ export interface PipoApi {
 
   // YouTube
   ytSearch(query: string, kind: YtSearchKind): Promise<YtItem[]>;
+  /** Canciones parecidas (radio de YouTube Music). */
+  ytRadio(seed: RadioSeedRequest): Promise<YtItem[]>;
   ytPrepare(videoId: string): Promise<ResolveResult>;
   ytLastError(videoId: string): Promise<string | null>;
   ytOpenLog(): Promise<void>;

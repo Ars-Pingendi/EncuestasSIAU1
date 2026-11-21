@@ -73,7 +73,7 @@ export function SongsView() {
   );
 }
 
-function albumMenu(e: React.MouseEvent, a: Album) {
+export function albumMenu(e: React.MouseEvent, a: Album) {
   const fav = data.get().user.favAlbums.includes(a.key);
   openMenu(e, [
     { label: 'Reproducir', icon: 'play', run: () => playTracks(a.tracks, 0, { shuffle: false }) },

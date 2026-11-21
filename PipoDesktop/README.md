@@ -4,6 +4,7 @@ Versión de escritorio de Pipo Music Player, con las mismas funciones que la app
 
 ## Qué incluye
 
+- **Inicio al estilo de Spotify**: saludo, accesos rápidos, *Escuchado recientemente*, **mixes diarios** (tus artistas más escuchados con otros parecidos por género, listas y colaboraciones), *Canciones para ti* y *Álbumes que podrían gustarte* (lo que aún no has escuchado de tus artistas y géneros), *Tus artistas*, *Para volver a escuchar*, *Agregadas recientemente* y **canciones parecidas de YouTube** (radio de YouTube Music a partir de lo último que escuchaste y de tu artista favorito). Todo se calcula en el equipo con tu historial; cualquier mix o lista se puede guardar como lista propia.
 - **Biblioteca automática**: busca música en la carpeta *Música* de Windows y en las carpetas que agregues (también discos externos o USB). Se actualiza sola al copiar o borrar archivos. Formatos: MP3, M4A/AAC, FLAC, OGG, Opus, WAV y WebM.
 - **Clasificación**: Canciones (orden por título, artista, álbum, recientes o duración), Álbumes, Artistas, Géneros y Carpetas; búsqueda sin importar tildes.
 - **Ecualizador de 10 bandas** (31 Hz – 16 kHz, ±12 dB) con curva en vivo, los mismos 13 preajustes de Android, preajustes propios, refuerzo de graves, sonido envolvente y amplificación con limitador. **Cada salida de audio (altavoces, audífonos, Bluetooth) recuerda su propio ajuste** y se cambia sola.

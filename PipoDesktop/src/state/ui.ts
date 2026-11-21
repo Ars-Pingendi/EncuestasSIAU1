@@ -4,6 +4,8 @@ import type { Track } from '../../shared/types';
 import { createStore } from '../lib/store';
 
 export type Route =
+  | { view: 'home' }
+  | { view: 'mix'; id: string }
   | { view: 'songs' }
   | { view: 'albums' }
   | { view: 'album'; key: string }
@@ -52,7 +54,7 @@ export interface UiState {
 }
 
 export const ui = createStore<UiState>({
-  stack: [{ view: 'songs' }],
+  stack: [{ view: 'home' }],
   nowPlaying: false,
   queueOpen: false,
   toasts: [],
@@ -67,7 +69,7 @@ export function currentRoute(): Route {
   return s[s.length - 1];
 }
 
-const ROOTS = new Set(['songs', 'albums', 'artists', 'genres', 'folders', 'favorites', 'playlists', 'youtube', 'equalizer', 'settings']);
+const ROOTS = new Set(['home', 'songs', 'albums', 'artists', 'genres', 'folders', 'favorites', 'playlists', 'youtube', 'equalizer', 'settings']);
 
 export function navigate(route: Route) {
   ui.set((s) => {

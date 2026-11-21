@@ -75,7 +75,13 @@ const step = async (name, fn) => {
 const timeText = () => page.locator('.player-bar .seek-row .time').first().textContent();
 const toSec = (t) => (t ?? '0:00').split(':').reduce((a, n) => a * 60 + Number(n), 0);
 
+await step('La app abre en Inicio', async () => {
+  await page.waitForSelector('.home-greet', { timeout: 60_000 });
+  return (await page.locator('.home-greet').textContent()) ?? '';
+});
+
 await step('La biblioteca carga la música de ejemplo', async () => {
+  await nav('Canciones');
   await page.waitForSelector('.main-scroll .track-row', { timeout: 90_000 });
   await page.waitForTimeout(1500);
   const count = await page.locator('.view-title .count').textContent();
@@ -155,6 +161,25 @@ await step('Pantalla «Reproduciendo» y cola', async () => {
   await page.waitForTimeout(500);
   await shot('09-cola');
   await page.locator('.queue-panel [title="Cerrar"]').click();
+});
+
+await step('Inicio: recientes, mixes y recomendaciones', async () => {
+  await nav('Inicio');
+  await page.waitForSelector('.home-greet', { timeout: 10_000 });
+  await page.waitForTimeout(1500);
+  await shot('00-inicio');
+  const shelves = await page.locator('.shelf-head h2').allTextContents();
+  if (!shelves.length) throw new Error('Inicio no muestra ninguna fila');
+  let mix = '';
+  const firstMix = page.locator('.shelf', { hasText: /mixes/i }).locator('.card').first();
+  if (await firstMix.count()) {
+    await firstMix.click();
+    await page.waitForSelector('.main-scroll .track-row', { timeout: 10_000 });
+    mix = ` · abre «${await page.locator('.page-header h1').textContent()}» con ${await page.locator('.main-scroll .track-row').count()} canciones`;
+    await shot('00b-mix');
+    await nav('Inicio');
+  }
+  return `${shelves.join(' / ')}${mix}`;
 });
 
 let ytOk = false;

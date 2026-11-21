@@ -124,6 +124,19 @@ export function createMockApi(): PipoApi {
         kind: kind === 'songs' ? 'song' : 'video',
       }));
     },
+    ytRadio: async (seed) => {
+      await new Promise((r) => setTimeout(r, 400));
+      const base = seed.videoId ?? seed.title;
+      return Array.from({ length: 14 }, (_, i): YtItem => ({
+        videoId: `r${base}${i}`.replace(/[^\w-]/g, '').padEnd(11, 'x').slice(0, 11),
+        title: ['Tu Recuerdo', 'La Gota Fría', 'Fruta Fresca', 'Volví a Nacer', 'Bonita', 'El Mismo Aire', 'Robarte un Beso'][i % 7],
+        artist: ARTISTS[(i + 3) % ARTISTS.length].name,
+        album: '',
+        durationMs: 200_000 + i * 5000,
+        thumbnail: '',
+        kind: 'song',
+      }));
+    },
     ytPrepare: async () => ({ ok: true }),
     ytLastError: async () => null,
     ytOpenLog: async () => undefined,

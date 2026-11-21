@@ -6,7 +6,7 @@ import { Readable } from 'node:stream';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
-import type { DownloadEvent, DownloadInfo, ResolveResult, Track, VideoDownloadEvent, VideoDownloadInfo, VideoDownloadRequest, YtItem, YtSearchKind } from '../shared/types';
+import type { DownloadEvent, DownloadInfo, RadioSeedRequest, ResolveResult, Track, VideoDownloadEvent, VideoDownloadInfo, VideoDownloadRequest, YtItem, YtSearchKind } from '../shared/types';
 import type { JsonStore } from './store';
 import { corsHeaders, fileResponse } from './files';
 
@@ -232,8 +232,8 @@ export class YouTube {
     return this.searchWithYtdlp(q, kind);
   }
 
-  private async innertube(host: string, client: string, version: string, clientId: string, body: object) {
-    const res = await this.o.fetch(`https://${host}/youtubei/v1/search?prettyPrint=false`, {
+  private async innertube(host: string, client: string, version: string, clientId: string, body: object, endpoint: 'search' | 'next' = 'search') {
+    const res = await this.o.fetch(`https://${host}/youtubei/v1/${endpoint}?prettyPrint=false`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -312,6 +312,84 @@ export class YouTube {
       });
     }
     return out;
+  }
+
+  // ───────────────────────────── Canciones parecidas (radio) ─────────────────────────────
+  //
+  // Para «Inicio»: la radio de YouTube Music de una canción (lo que suena después en YouTube Music).
+  // Si la canción es de la biblioteca, primero se busca en YouTube Music por artista y título.
+
+  private radios: Record<string, { at: number; items: YtItem[] }> | null = null;
+
+  async radio(seed: RadioSeedRequest): Promise<YtItem[]> {
+    const key = (seed.videoId ?? `${seed.artist}|${seed.title}`).toLowerCase();
+    this.radios ??= this.o.store.get<Record<string, { at: number; items: YtItem[] }>>('radios') ?? {};
+    const cached = this.radios[key];
+    if (cached && Date.now() - cached.at < 12 * 3600_000) return cached.items;
+    try {
+      let videoId = seed.videoId;
+      if (!videoId) {
+        const found = await this.search(`${seed.artist} ${seed.title}`.trim(), 'songs');
+        videoId = found[0]?.videoId;
+        if (!videoId) return cached?.items ?? [];
+      }
+      let items: YtItem[] = [];
+      try {
+        items = await this.radioMusic(videoId);
+      } catch (err) {
+        this.log(`radio ${videoId} (YouTube Music): ${(err as Error).message}`);
+      }
+      if (!items.length) items = await this.radioYtdlp(videoId);
+      const seen = new Set([videoId]);
+      items = items.filter((i) => !seen.has(i.videoId) && seen.add(i.videoId)).slice(0, 25);
+      if (items.length) {
+        this.radios[key] = { at: Date.now(), items };
+        // Solo se guardan las 30 más recientes.
+        const keep = Object.entries(this.radios).sort((a, b) => b[1].at - a[1].at).slice(0, 30);
+        this.radios = Object.fromEntries(keep);
+        this.o.store.set('radios', this.radios, 2000);
+      }
+      return items.length ? items : cached?.items ?? [];
+    } catch (err) {
+      this.log(`radio ${key}: ${(err as Error).message}`);
+      if (cached) return cached.items;
+      throw err;
+    }
+  }
+
+  private async radioMusic(videoId: string): Promise<YtItem[]> {
+    const data = await this.innertube(
+      'music.youtube.com',
+      'WEB_REMIX',
+      WEB_REMIX_VERSION,
+      '67',
+      {
+        videoId,
+        playlistId: `RDAMVM${videoId}`,
+        isAudioOnly: true,
+        enablePersistentPlaylistPanel: true,
+        tunerSettingValue: 'AUTOMIX_SETTING_NORMAL',
+        watchEndpointMusicSupportedConfigs: { watchEndpointMusicConfig: { hasPersistentPlaylistPanel: true, musicVideoType: 'MUSIC_VIDEO_TYPE_ATV' } },
+      },
+      'next',
+    );
+    return parseRadioPanel(data);
+  }
+
+  private async radioYtdlp(videoId: string): Promise<YtItem[]> {
+    const r = await this.run(
+      ['--flat-playlist', '-J', '--playlist-end', '30', '--no-warnings', `https://www.youtube.com/watch?v=${videoId}&list=RD${videoId}`],
+      undefined,
+      60_000,
+    );
+    if (r.code !== 0) throw new Error(friendlyError(r.stderr) ?? 'YouTube no dio canciones parecidas.');
+    const data = JSON.parse(r.stdout);
+    return (data.entries ?? [])
+      .filter((e: any) => e?.id && String(e.id).length === 11)
+      .map((e: any) => {
+        const { artist, title } = splitVideoTitle(e.title ?? '', e.channel ?? e.uploader ?? '');
+        return { videoId: e.id, title, artist, album: '', durationMs: Math.round((e.duration ?? 0) * 1000), thumbnail: `https://i.ytimg.com/vi/${e.id}/hqdefault.jpg`, kind: 'song' as const };
+      });
   }
 
   private async searchWithYtdlp(query: string, kind: YtSearchKind): Promise<YtItem[]> {
@@ -741,6 +819,49 @@ export class YouTube {
   }
 }
 
+
+/** Canciones de la cola de la radio de YouTube Music (respuesta de /next). */
+export function parseRadioPanel(data: unknown): YtItem[] {
+  const out: YtItem[] = [];
+  for (const r of findAll(data, 'playlistPanelVideoRenderer')) {
+    const videoId: string | undefined = r?.videoId ?? r?.navigationEndpoint?.watchEndpoint?.videoId;
+    if (!videoId) continue;
+    const title = (r.title?.runs ?? []).map((x: any) => x.text).join('').trim() || r.title?.simpleText || '';
+    const runs: any[] = r.longBylineText?.runs ?? r.shortBylineText?.runs ?? [];
+    const pageType = (x: any) => x?.navigationEndpoint?.browseEndpoint?.browseEndpointContextSupportedConfigs
+      ?.browseEndpointContextMusicConfig?.pageType as string | undefined;
+    const artists = runs.filter((x) => pageType(x) === 'MUSIC_PAGE_TYPE_ARTIST' || pageType(x) === 'MUSIC_PAGE_TYPE_USER_CHANNEL').map((x) => x.text);
+    const albumRun = runs.find((x) => pageType(x) === 'MUSIC_PAGE_TYPE_ALBUM');
+    const parts = runs.map((x) => x.text).join('').split(' • ').map((s: string) => s.trim()).filter(Boolean);
+    const thumbs = r.thumbnail?.thumbnails ?? [];
+    let thumb: string = thumbs.length ? thumbs[thumbs.length - 1].url : '';
+    thumb = thumb ? thumb.replace(/=w\d+-h\d+/, '=w544-h544') : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+    if (!title) continue;
+    out.push({
+      videoId,
+      title,
+      artist: artists.length ? artists.join(', ') : parts[0] ?? '',
+      album: albumRun?.text ?? '',
+      durationMs: parseDuration(r.lengthText?.runs?.[0]?.text ?? r.lengthText?.simpleText),
+      thumbnail: thumb,
+      kind: 'song',
+    });
+  }
+  return out;
+}
+
+/** «Artista - Canción (Video Oficial)» → artista y título limpios. */
+export function splitVideoTitle(raw: string, channel: string): { artist: string; title: string } {
+  const clean = (s: string) =>
+    s
+      .replace(/\s*[([](?:official|oficial|video|lyric|letra|audio|visualizer|hd|4k|en vivo|live)[^)\]]*[)\]]/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  const ch = channel.replace(/\s*-\s*Topic$|VEVO$|\s+Oficial$|\s+Official$/i, '').trim();
+  const m = /^(.+?)\s+[-–—|]\s+(.+)$/.exec(raw);
+  if (m) return { artist: m[1].trim(), title: clean(m[2]) || m[2].trim() };
+  return { artist: ch, title: clean(raw) || raw };
+}
 
 function parseDuration(text?: string): number {
   if (!text) return 0;

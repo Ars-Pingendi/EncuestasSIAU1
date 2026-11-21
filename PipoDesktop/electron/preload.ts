@@ -21,6 +21,7 @@ const api: PipoApi = {
   storeSet: (key, value) => ipcRenderer.invoke('store:set', key, value),
 
   ytSearch: (q, kind) => ipcRenderer.invoke('yt:search', q, kind),
+  ytRadio: (seed) => ipcRenderer.invoke('yt:radio', seed),
   ytPrepare: (id) => ipcRenderer.invoke('yt:prepare', id),
   ytLastError: (id) => ipcRenderer.invoke('yt:lastError', id),
   ytOpenLog: () => ipcRenderer.invoke('yt:openLog'),

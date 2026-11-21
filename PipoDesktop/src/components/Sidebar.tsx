@@ -11,6 +11,7 @@ function Item({ route, icon, label, extra }: { route: Route; icon: string; label
   const cur = currentRoute();
   const active =
     JSON.stringify(cur) === JSON.stringify(route) ||
+    (route.view === 'home' && cur.view === 'mix') ||
     (route.view === 'albums' && cur.view === 'album') ||
     (route.view === 'artists' && cur.view === 'artist') ||
     (route.view === 'genres' && cur.view === 'genre') ||
@@ -35,6 +36,8 @@ export function Sidebar() {
         <span>Pipo Music Player</span>
       </div>
       <div className="nav-scroll scroll-thin">
+        <Item route={{ view: 'home' }} icon="home" label="Inicio" />
+
         <div className="nav-section">Biblioteca</div>
         <Item route={{ view: 'songs' }} icon="note" label="Canciones" />
         <Item route={{ view: 'albums' }} icon="album" label="Álbumes" />
