@@ -1,6 +1,11 @@
 {
   "steps": [
     {
+      "name": "La app abre en Inicio",
+      "ok": true,
+      "detail": "Buenas tardes"
+    },
+    {
       "name": "La biblioteca carga la música de ejemplo",
       "ok": true,
       "detail": "13 canciones"
@@ -36,6 +41,11 @@
       "detail": ""
     },
     {
+      "name": "Inicio: recientes, mixes y recomendaciones",
+      "ok": true,
+      "detail": "Mixes de tu biblioteca / Descubre tu música / Álbumes que podrían gustarte / Tus artistas / Para volver a escuchar / Agregadas recientemente · abre «Mix de Luna Cumbiambera» con 13 canciones"
+    },
+    {
       "name": "YouTube: búsqueda de canciones",
       "ok": true,
       "detail": "20 resultados; primero: La BicicletaYouTubeCarlos Vives, Shakira"
@@ -48,7 +58,7 @@
     {
       "name": "YouTube: descargar para escuchar sin internet",
       "ok": false,
-      "detail": "No se pudo reproducir «Clandestino»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo reproducir «La Foto de los Dos»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo descargar: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
+      "detail": "No se pudo reproducir «La Bicicleta»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo reproducir «Clandestino»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo descargar: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
     },
     {
       "name": "YouTube: ver un video en la app",
@@ -58,7 +68,7 @@
     {
       "name": "YouTube: descargar un video (MP4)",
       "ok": false,
-      "detail": "Descargando el video «Given Up [Official Music Video] - Linkin Park»… | No se pudo descargar el video: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
+      "detail": "Descargando el video «Given Up»… | No se pudo descargar el video: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
     },
     {
       "name": "Videos descargados: ver sin internet",
