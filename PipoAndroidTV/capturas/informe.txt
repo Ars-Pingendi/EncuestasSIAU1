@@ -9,16 +9,19 @@ Starting: Intent { cmp=com.personal.pipotv/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: com.personal.pipotv/.MainActivity
-TotalTime: 718
-WaitTime: 726
+TotalTime: 572
+WaitTime: 576
 Complete
 OK    la app abre a pantalla completa
-FALLA no se emparejó: ["GET /pipo/info"]
-FALLA no pide órdenes al PC
-FALLA no pidió el audio
-FALLA la pantalla no se mantiene encendida mientras suena
+OK    OK abre el teclado de la TV y el formulario sube para quedar a la vista
+OK    al cerrar el teclado vuelve la pantalla completa
+OK    Atrás con el teclado abierto solo cierra el teclado
+OK    se empareja y carga la biblioteca con el control remoto
+OK    escucha las órdenes «Reproducir en la TV»
+OK    reproduce la canción enviada (pide el audio al PC)
+OK    mientras suena, la pantalla se mantiene encendida
 OK    Play/Pausa del control pausa
-FALLA Play/Pausa no reanudó
+OK    Play/Pausa reanuda
 (no se pudo leer el texto de la pantalla; se sigue)
-OK    Atrás › «Salir» cierra la app
-5 correctas, 5 con fallas
+FALLA «Salir» no cerró la app:     mResumedActivity: ActivityRecord{decf8ae u0 com.personal.pipotv/.MainActivity t5}
+12 correctas, 1 con fallas
