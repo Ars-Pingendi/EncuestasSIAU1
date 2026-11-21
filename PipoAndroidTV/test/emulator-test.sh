@@ -41,6 +41,26 @@ sleep 10
 shot 1-conexion
 if top_app | grep -q pipotv; then ok "la app abre a pantalla completa"; else bad "la app no quedó abierta: $(top_app)"; fi
 
+# Teclado en pantalla: OK sobre «Dirección» lo abre y el formulario debe quedar a la vista.
+console() { adb logcat -d -s PipoTV:* 2>/dev/null; }
+key KEYCODE_DPAD_CENTER 3
+shot 1b-teclado
+if console | grep -q "pipo:teclado true"; then
+  ok "OK abre el teclado de la TV y el formulario sube para quedar a la vista"
+  adb shell input text 10.0.2.2
+  sleep 1
+  shot 1c-escribiendo
+  key KEYCODE_BACK 2   # cierra el teclado (lo atiende el teclado, no la app)
+  if console | grep -q "pipo:teclado false"; then ok "al cerrar el teclado vuelve la pantalla completa"; else bad "no volvió a la pantalla completa"; fi
+  if top_app | grep -q pipotv; then ok "Atrás con el teclado abierto solo cierra el teclado"; else bad "Atrás con el teclado cerró la app"; fi
+else
+  bad "OK sobre el campo no abrió el teclado en pantalla"
+fi
+
+# El resto con «teclado físico» (sin teclado en pantalla) para escribir de forma predecible.
+for imeid in $(adb shell ime list -s | tr -d '\r'); do adb shell ime disable "$imeid" > /dev/null 2>&1; done
+adb shell input keyevent KEYCODE_MOVE_END
+adb shell input keyevent $(printf 'KEYCODE_DEL %.0s' $(seq 1 24))
 # Conectar solo con el control: escribir la dirección, → Código, escribir 1234, → Conectar, OK.
 adb shell input text 10.0.2.2
 sleep 0.5
@@ -79,6 +99,6 @@ key KEYCODE_DPAD_CENTER 2
 if top_app | grep -q pipotv; then bad "«Salir» no cerró la app: $(top_app)"; else ok "Atrás › «Salir» cierra la app"; fi
 shot 7-lanzador
 
-adb logcat -d -s PipoTV:* chromium:* > "$OUT/logcat.txt" 2>/dev/null || true
+adb logcat -d -s PipoTV:* AndroidRuntime:E > "$OUT/logcat.txt" 2>/dev/null || true
 echo "$PASS correctas, $FAIL con fallas" | tee -a "$REPORT"
 [ "$FAIL" -eq 0 ]

@@ -9,7 +9,6 @@ import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.KeyEvent
-import android.view.View
 import android.view.WindowManager
 import android.view.inputmethod.InputMethodManager
 import android.webkit.ConsoleMessage
@@ -30,6 +29,8 @@ import android.webkit.WebViewClient
  * - `PipoAndroid` (puente JavaScript): salir, mantener la pantalla encendida mientras suena algo,
  *   abrir el teclado en pantalla y la versión de la app.
  * - Al pasar a segundo plano (Inicio, otra app o se apaga la TV) la música y el video se pausan.
+ * - Con el teclado en pantalla la ventana se achica (adjustResize) y la interfaz sube el formulario.
+ *   Por eso la ventana no usa el modo «pantalla completa» de Android (en la TV no hay barras).
  */
 class MainActivity : Activity() {
 
@@ -38,7 +39,6 @@ class MainActivity : Activity() {
     @SuppressLint("SetJavaScriptEnabled", "AddJavascriptInterface")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        hideSystemBars()
         web = WebView(this)
         web.setBackgroundColor(Color.parseColor("#12101A"))
         setContentView(web)
@@ -94,19 +94,6 @@ class MainActivity : Activity() {
     private fun initialScale(): Int {
         val width = resources.displayMetrics.widthPixels.coerceAtLeast(1)
         return (width * 100f / DESIGN_WIDTH).toInt().coerceAtLeast(1)
-    }
-
-    private fun hideSystemBars() {
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility = (
-            View.SYSTEM_UI_FLAG_FULLSCREEN or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-            )
-    }
-
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (hasFocus) hideSystemBars()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

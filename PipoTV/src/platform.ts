@@ -65,6 +65,18 @@ export const STOP_EVENT = 'pipo:stop';
 export function installPlatform(onStop: () => void) {
   if (!w.PipoAndroid) return;
   document.documentElement.className += ' android-tv';
+  // Con el teclado en pantalla la ventana se achica: la interfaz acomoda lo que se está escribiendo.
+  let kb = false;
+  const onResize = () => {
+    const open = window.innerHeight > 0 && window.innerHeight < 860;
+    if (open === kb) return;
+    kb = open;
+    const html = document.documentElement;
+    html.className = html.className.replace(/\s*kb-open/g, '') + (open ? ' kb-open' : '');
+    console.log(`pipo:teclado ${open}`);
+  };
+  window.addEventListener('resize', onResize);
+  onResize();
   w.__pipoKey = (code: number) => {
     const target = (document.activeElement as HTMLElement | null) || document.body;
     let e: KeyboardEvent;

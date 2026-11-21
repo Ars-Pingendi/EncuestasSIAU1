@@ -184,6 +184,12 @@ svg { flex: none; }
 .input:focus { border-color: var(--focus); box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2); }
 .connect-status { margin-top: 30px; font-size: 28px; color: var(--muted); max-width: 1300px; min-height: 40px; }
 .connect-status.error { color: #ff9e9e; }
+/* Android TV con el teclado en pantalla abierto: el formulario sube y se ocultan las instrucciones. */
+.kb-open .connect { height: auto; min-height: 100%; justify-content: flex-start; padding-top: 28px; box-sizing: border-box; }
+.kb-open .connect .lead, .kb-open .connect .steps { display: none; }
+.kb-open .connect-logo { width: 96px; height: 96px; border-radius: 22px; margin-bottom: 10px; }
+.kb-open .connect h1 { margin: 0 0 20px; }
+.kb-open .connect-status { margin-top: 18px; }
 .spinner { width: 64px; height: 64px; border-radius: 50%; border: 6px solid var(--surface-3); border-top-color: var(--primary); animation: spin 0.9s linear infinite; margin-bottom: 20px; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
