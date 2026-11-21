@@ -1,4 +1,5 @@
 // Estado de la app de TV: conexión, biblioteca, reproductor y ecualizador.
+import { countPlay } from './history';
 import { setPlaying } from './platform';
 import { artUrl, fetchText, mediaUrl, type Connection, type TvTrack } from './api';
 import { engine } from './audio';
@@ -394,9 +395,21 @@ export function initPlayer() {
     if (isFinite(el.duration)) player.duration = el.duration * 1000;
   });
   let lastEmit = 0;
+  // Historial para «Inicio»: cuenta la canción a los 30 s o a la mitad (una vez por reproducción).
+  let seenId: string | null = null;
+  let counted = false;
   el.addEventListener('timeupdate', () => {
     if (!el.getAttribute('src')) return; // la música se soltó para ver un video: se conserva la posición
     player.position = el.currentTime * 1000;
+    const t = current();
+    if (t && t.id !== seenId) {
+      seenId = t.id;
+      counted = false;
+    }
+    if (t && !counted && isFinite(el.duration) && el.duration > 0 && el.currentTime >= Math.min(30, el.duration * 0.5)) {
+      counted = true;
+      countPlay(t.id);
+    }
     const now = Date.now();
     if (now - lastEmit > 500) {
       lastEmit = now;
@@ -404,6 +417,7 @@ export function initPlayer() {
     }
   });
   el.addEventListener('ended', () => {
+    seenId = null;
     if (player.repeat === 'one') {
       el.currentTime = 0;
       engine.play().catch(() => undefined);

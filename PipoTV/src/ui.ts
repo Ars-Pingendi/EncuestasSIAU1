@@ -42,6 +42,7 @@ let barEl: HTMLElement;
 let overlay: HTMLElement;
 
 const NAV_MUSIC: { view: string; label: string; icon: string }[] = [
+  { view: 'mhome', label: 'Inicio', icon: 'home' },
   { view: 'songs', label: 'Canciones', icon: 'note' },
   { view: 'albums', label: 'Álbumes', icon: 'album' },
   { view: 'artists', label: 'Artistas', icon: 'person' },
@@ -65,7 +66,7 @@ function navVideo(): { view: string; label: string; icon: string }[] {
 
 /** Pantalla con la que empieza cada modo. */
 export function homeView(): string {
-  return app.mode === 'video' ? (app.hasLocalVideos ? 'vhome' : 'youtube') : 'songs';
+  return app.mode === 'video' ? (app.hasLocalVideos ? 'vhome' : 'youtube') : 'mhome';
 }
 
 function renderSidebar() {

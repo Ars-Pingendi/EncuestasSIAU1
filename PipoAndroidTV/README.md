@@ -4,6 +4,7 @@ App para televisores y reproductores con **Android TV** o **Google TV** (Sony, T
 
 Es la misma app de la TV LG (carpeta `PipoTV/`), empaquetada como app nativa de Android TV:
 
+- **Inicio al estilo de Spotify** (desde la 1.1.0): escuchado recientemente, mixes diarios, canciones y álbumes para ti, tus artistas, para volver a escuchar y agregadas recientemente.
 - **Música** de **Pipo para Windows** o de **Pipo para Android**: canciones, álbumes, artistas, géneros, listas, favoritos, descargas de YouTube y el **ecualizador de 10 bandas**.
 - **«Reproducir en la TV» / «Ver en la TV»** desde el teléfono o el PC, **videos de YouTube** hasta 1080p sin anuncios, **películas y series** del PC y **videos del teléfono**.
 - Aparece en el menú de apps de la TV con su banner; se maneja con el control remoto: flechas, OK, **Atrás**, **Play/Pausa**, adelantar/retroceder y **canal +/−** (siguiente/anterior).

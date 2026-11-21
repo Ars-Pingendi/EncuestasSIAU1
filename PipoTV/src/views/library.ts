@@ -17,7 +17,7 @@ function playButtons(tracks: TvTrack[]) {
   );
 }
 
-function listView(title: string, subtitle: string, tracks: TvTrack[], opts: { numbered?: boolean; art?: string | null; empty?: string } = {}): View {
+export function listView(title: string, subtitle: string, tracks: TvTrack[], opts: { numbered?: boolean; art?: string | null; empty?: string } = {}): View {
   const list = new TrackList(tracks, {
     numbered: opts.numbered,
     onPlay: (i) => playTracks(tracks, i, false),

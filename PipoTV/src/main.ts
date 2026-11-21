@@ -15,12 +15,15 @@ import { nowPlayingView, queueView } from './views/now';
 import { settingsView } from './views/settings';
 import { movieDetailView, moviesView, showDetailView, showsView, videoHomeView } from './views/video';
 import { youtubeView } from './views/youtube';
+import { musicHomeView, mixView } from './views/home';
 
 const root = document.getElementById('app')!;
 let shellReady = false;
 
 function makeView(route: Route): View {
   switch (route.view) {
+    case 'mhome': return musicHomeView();
+    case 'mix': return mixView(route.key || '');
     case 'songs': return songsView();
     case 'albums': return albumsView();
     case 'artists': return artistsView();

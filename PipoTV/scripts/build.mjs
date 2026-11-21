@@ -14,6 +14,7 @@ await build({
   minify: true,
   legalComments: 'none',
   loader: { '.css': 'css' },
+  define: { __PIPO_VERSION__: JSON.stringify(JSON.parse(fs.readFileSync('package.json', 'utf8')).version) },
 });
 for (const f of fs.readdirSync('public')) fs.copyFileSync(`public/${f}`, `dist/${f}`);
 console.log('dist listo:', fs.readdirSync('dist').join(', '));
