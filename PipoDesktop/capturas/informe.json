@@ -48,7 +48,7 @@
     {
       "name": "YouTube: descargar para escuchar sin internet",
       "ok": false,
-      "detail": "No se pudo reproducir «La Bicicleta»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo reproducir «Clandestino»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo descargar: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
+      "detail": "No se pudo reproducir «Clandestino»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo reproducir «La Foto de los Dos»: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes. | No se pudo descargar: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
     },
     {
       "name": "YouTube: ver un video en la app",
@@ -58,12 +58,12 @@
     {
       "name": "YouTube: descargar un video (MP4)",
       "ok": false,
-      "detail": "No se pudo descargar el video: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
+      "detail": "Descargando el video «Given Up [Official Music Video] - Linkin Park»… | No se pudo descargar el video: YouTube pidió confirmar que no eres un robot. Suele pasar con VPN o redes compartidas: prueba más tarde o actualiza el componente de YouTube en Ajustes."
     },
     {
       "name": "Videos descargados: ver sin internet",
       "ok": true,
-      "detail": "1 video(s); imagen 1280x720, 3.0 s desde el MP4 · Pipo · Descargado · sin internet"
+      "detail": "1 video(s); imagen 1280x720, 2.9 s desde el MP4 · Pipo · Descargado · sin internet"
     },
     {
       "name": "Ajustes",
