@@ -21,6 +21,9 @@ import org.schabi.newpipe.extractor.exceptions.ReCaptchaException
 import org.schabi.newpipe.extractor.localization.ContentCountry
 import org.schabi.newpipe.extractor.localization.Localization
 import org.schabi.newpipe.extractor.search.SearchInfo
+import org.schabi.newpipe.extractor.playlist.PlaylistInfo
+import okhttp3.MediaType.Companion.toMediaType
+import org.json.JSONObject
 import org.schabi.newpipe.extractor.linkhandler.SearchQueryHandler
 import org.schabi.newpipe.extractor.services.youtube.YoutubeParsingHelper
 import org.schabi.newpipe.extractor.stream.AudioStream
@@ -136,6 +139,76 @@ class YouTubeRepository {
             handler = previous.handler,
             next = if (page.hasNextPage()) page.nextPage else null,
         )
+    }
+
+    // ------------------------------------------------------------------ canciones parecidas (radio)
+
+    private class CachedRadio(val tracks: List<Track>, val at: Long)
+
+    private val radioCache = ConcurrentHashMap<String, CachedRadio>()
+
+    /**
+     * Canciones parecidas a [seed] para «Inicio»: la radio de YouTube Music (lo que suena después en
+     * YouTube Music). Si la canción es del teléfono, primero se busca en YouTube Music por artista y
+     * título. Respaldo: la mezcla de YouTube y luego los videos relacionados.
+     */
+    suspend fun radio(seed: Track): List<Track> = withContext(Dispatchers.IO) {
+        val key = (seed.remoteId ?: "${seed.artist}|${seed.title}").lowercase()
+        val cached = radioCache[key]
+        if (cached != null && System.currentTimeMillis() - cached.at < 12 * 3600_000L) return@withContext cached.tracks
+        ensureInit()
+        val videoId = seed.remoteId
+            ?: search("${seed.artist} ${seed.title}".trim(), "music_songs").tracks.firstOrNull()?.remoteId
+            ?: return@withContext cached?.tracks.orEmpty()
+        fun attempt(name: String, block: () -> List<Track>): List<Track> = try {
+            block()
+        } catch (e: Exception) {
+            YouTubeLog.add("Radio", "$videoId $name: ${e.javaClass.simpleName} ${e.message.orEmpty().take(120)}")
+            emptyList()
+        }
+        var tracks = attempt("YouTube Music") { radioMusic(videoId) }
+        if (tracks.size < 3) tracks = attempt("mezcla") {
+            PlaylistInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId&list=RD$videoId")
+                .relatedItems.mapNotNull { item -> toTrack(item)?.let { cleanVideo(it, item) } }
+        }
+        if (tracks.size < 3) tracks = attempt("relacionados") {
+            StreamInfo.getInfo(ServiceList.YouTube, "https://www.youtube.com/watch?v=$videoId")
+                .relatedItems.mapNotNull { item -> toTrack(item)?.let { cleanVideo(it, item) } }
+        }
+        tracks = tracks.filter { it.remoteId != videoId }.distinctBy { it.id }.take(25)
+        if (tracks.isEmpty()) return@withContext cached?.tracks.orEmpty()
+        radioCache[key] = CachedRadio(tracks, System.currentTimeMillis())
+        YouTubeLog.add("Radio", "$videoId: ${tracks.size} canciones parecidas")
+        tracks
+    }
+
+    private fun cleanVideo(t: Track, item: InfoItem): Track {
+        val (artist, title) = RadioParser.splitVideoTitle(item.name.orEmpty(), (item as? StreamInfoItem)?.uploaderName.orEmpty())
+        return t.copy(title = title.ifBlank { t.title }, artist = artist.ifBlank { t.artist })
+    }
+
+    private fun radioMusic(videoId: String): List<Track> {
+        val body = JSONObject()
+            .put("context", JSONObject().put("client", JSONObject().put("clientName", "WEB_REMIX").put("clientVersion", WEB_REMIX_VERSION).put("hl", "es").put("gl", "CO")))
+            .put("videoId", videoId)
+            .put("playlistId", "RDAMVM$videoId")
+            .put("isAudioOnly", true)
+            .put("enablePersistentPlaylistPanel", true)
+            .put("tunerSettingValue", "AUTOMIX_SETTING_NORMAL")
+        val request = okhttp3.Request.Builder()
+            .url("https://music.youtube.com/youtubei/v1/next?prettyPrint=false")
+            .post(body.toString().toRequestBody("application/json".toMediaType()))
+            .header("User-Agent", PipoDownloader.USER_AGENT)
+            .header("Origin", "https://music.youtube.com")
+            .header("Referer", "https://music.youtube.com/")
+            .header("X-YouTube-Client-Name", "67")
+            .header("X-YouTube-Client-Version", WEB_REMIX_VERSION)
+            .build()
+        val text = client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("YouTube Music respondió ${response.code}")
+            response.body?.string().orEmpty()
+        }
+        return RadioParser.parse(JSONObject(text))
     }
 
     private fun toTrack(item: InfoItem): Track? {
@@ -516,6 +589,8 @@ class YouTubeRepository {
     }
 
     companion object {
+        private const val WEB_REMIX_VERSION = "1.20260707.12.00"
+
         /** Tipo MIME según la extensión elegida por [resolveForDownload] / [resolveForTv]. */
         fun mimeFor(extension: String): String = when (extension) {
             "m4a" -> "audio/mp4"

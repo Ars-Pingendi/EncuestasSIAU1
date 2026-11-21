@@ -74,7 +74,7 @@ import com.personal.reproductor.data.SongSort
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.size
 
-private val TAB_TITLES = listOf("Canciones", "Álbumes", "Artistas", "Géneros", "Carpetas", "Listas", "Favoritos", "YouTube")
+private val TAB_TITLES = listOf("Inicio", "Canciones", "Álbumes", "Artistas", "Géneros", "Carpetas", "Listas", "Favoritos", "YouTube")
 
 @Composable
 fun HomeScreen(vm: MainViewModel) {
@@ -135,13 +135,17 @@ fun HomeScreen(vm: MainViewModel) {
             modifier = Modifier.weight(1f).fillMaxWidth(),
         ) { page ->
             when (page) {
-                0 -> SongsTab(vm)
-                1 -> AlbumsTab(vm)
-                2 -> ArtistsTab(vm)
-                3 -> GenresTab(vm)
-                4 -> FoldersTab(vm)
-                5 -> PlaylistsTab(vm)
-                6 -> FavoritesTab(vm)
+                0 -> InicioTab(vm) { name ->
+                    val i = TAB_TITLES.indexOf(name)
+                    if (i >= 0) scope.launch { pagerState.animateScrollToPage(i) }
+                }
+                1 -> SongsTab(vm)
+                2 -> AlbumsTab(vm)
+                3 -> ArtistsTab(vm)
+                4 -> GenresTab(vm)
+                5 -> FoldersTab(vm)
+                6 -> PlaylistsTab(vm)
+                7 -> FavoritesTab(vm)
                 else -> YouTubeTab(vm)
             }
         }

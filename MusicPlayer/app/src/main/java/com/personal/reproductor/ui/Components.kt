@@ -298,7 +298,6 @@ fun TrackRow(
     val isCurrent = track.id == currentId
     val isFavorite = track.id in favorites
     var menu by remember { mutableStateOf(false) }
-    val context = LocalContext.current
     val dl = rememberDownloadUi(vm, track.remoteId)
     val tvOn = vm.tvStatus.collectAsStateWithLifecycle().value.running
     val dragged = reorder != null && reorder.draggedKey == track.id
@@ -370,103 +369,110 @@ fun TrackRow(
             }
             DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
                 val close = { menu = false }
-                if (track.isRemote) {
-                    DropdownMenuItem(
-                        text = { Text("Ver video") },
-                        leadingIcon = { Icon(Icons.Filled.Videocam, null) },
-                        onClick = { close(); vm.openVideo(track) },
-                    )
-                    if (tvOn) {
-                        DropdownMenuItem(
-                            text = { Text("Ver video en la TV") },
-                            leadingIcon = { Icon(Icons.Filled.Tv, null) },
-                            onClick = { close(); vm.tvWatch(track) },
-                        )
-                    }
-                }
-                if (tvOn) {
-                    DropdownMenuItem(
-                        text = { Text("Reproducir en la TV") },
-                        leadingIcon = { Icon(Icons.Filled.Tv, null) },
-                        onClick = { close(); vm.tvPlay(listOf(track)) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Añadir a la cola de la TV") },
-                        leadingIcon = { Icon(Icons.Filled.Tv, null) },
-                        onClick = { close(); vm.tvEnqueue(listOf(track)) },
-                    )
-                }
-                DropdownMenuItem(
-                    text = { Text("Reproducir a continuación") },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, null) },
-                    onClick = { close(); vm.playNext(listOf(track)) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Añadir a la cola") },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null) },
-                    onClick = { close(); vm.enqueue(listOf(track)) },
-                )
-                DropdownMenuItem(
-                    text = { Text("Añadir a una lista…") },
-                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
-                    onClick = { close(); vm.showDialog(DialogState.AddToPlaylist(listOf(track))) },
-                )
-                DropdownMenuItem(
-                    text = { Text(if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos") },
-                    leadingIcon = {
-                        Icon(if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, null)
-                    },
-                    onClick = { close(); vm.toggleFavorite(track) },
-                )
-                DropdownMenuItem(
-                    text = { Text(if (track.isRemote && dl.kind != DownloadUiKind.DONE) "Compartir enlace" else "Compartir") },
-                    leadingIcon = { Icon(Icons.Filled.Share, null) },
-                    onClick = { close(); vm.share(context, listOf(track)) },
-                )
-                if (track.isRemote && dl.kind == DownloadUiKind.DONE) {
-                    DropdownMenuItem(
-                        text = { Text("Compartir enlace de YouTube") },
-                        leadingIcon = { Icon(Icons.Filled.Link, null) },
-                        onClick = { close(); vm.shareLink(context, track) },
-                    )
-                }
-                if (track.isRemote) {
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                when (dl.kind) {
-                                    DownloadUiKind.DONE -> "Quitar descarga"
-                                    DownloadUiKind.QUEUED, DownloadUiKind.RUNNING -> "Descargando…"
-                                    DownloadUiKind.FAILED -> "Reintentar descarga"
-                                    DownloadUiKind.NONE -> "Descargar"
-                                },
-                            )
-                        },
-                        leadingIcon = {
-                            Icon(if (dl.kind == DownloadUiKind.DONE) Icons.Filled.Delete else Icons.Filled.Download, null)
-                        },
-                        enabled = !dl.busy,
-                        onClick = {
-                            close()
-                            if (dl.kind == DownloadUiKind.DONE) vm.deleteDownload(track) else vm.download(listOf(track))
-                        },
-                    )
-                }
-                if (!track.isRemote) {
-                    DropdownMenuItem(
-                        text = { Text("Ir al álbum") },
-                        leadingIcon = { Icon(Icons.Filled.AlbumIcon, null) },
-                        onClick = { close(); vm.navigate(Route.AlbumRoute(track.albumId)) },
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Ir al artista") },
-                        leadingIcon = { Icon(Icons.Filled.Person, null) },
-                        onClick = { close(); vm.goToArtist(track.artist) },
-                    )
-                }
+                TrackMenuItems(track, vm, isFavorite, dl, tvOn, close)
                 extraMenu?.invoke(track, close)
             }
         }
+    }
+}
+
+/** Opciones de una canción (menú ⋮ o mantener presionado). */
+@Composable
+fun TrackMenuItems(track: Track, vm: MainViewModel, isFavorite: Boolean, dl: DownloadUi, tvOn: Boolean, close: () -> Unit) {
+    val context = LocalContext.current
+    if (track.isRemote) {
+        DropdownMenuItem(
+            text = { Text("Ver video") },
+            leadingIcon = { Icon(Icons.Filled.Videocam, null) },
+            onClick = { close(); vm.openVideo(track) },
+        )
+        if (tvOn) {
+            DropdownMenuItem(
+                text = { Text("Ver video en la TV") },
+                leadingIcon = { Icon(Icons.Filled.Tv, null) },
+                onClick = { close(); vm.tvWatch(track) },
+            )
+        }
+    }
+    if (tvOn) {
+        DropdownMenuItem(
+            text = { Text("Reproducir en la TV") },
+            leadingIcon = { Icon(Icons.Filled.Tv, null) },
+            onClick = { close(); vm.tvPlay(listOf(track)) },
+        )
+        DropdownMenuItem(
+            text = { Text("Añadir a la cola de la TV") },
+            leadingIcon = { Icon(Icons.Filled.Tv, null) },
+            onClick = { close(); vm.tvEnqueue(listOf(track)) },
+        )
+    }
+    DropdownMenuItem(
+        text = { Text("Reproducir a continuación") },
+        leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistPlay, null) },
+        onClick = { close(); vm.playNext(listOf(track)) },
+    )
+    DropdownMenuItem(
+        text = { Text("Añadir a la cola") },
+        leadingIcon = { Icon(Icons.AutoMirrored.Filled.QueueMusic, null) },
+        onClick = { close(); vm.enqueue(listOf(track)) },
+    )
+    DropdownMenuItem(
+        text = { Text("Añadir a una lista…") },
+        leadingIcon = { Icon(Icons.AutoMirrored.Filled.PlaylistAdd, null) },
+        onClick = { close(); vm.showDialog(DialogState.AddToPlaylist(listOf(track))) },
+    )
+    DropdownMenuItem(
+        text = { Text(if (isFavorite) "Quitar de favoritos" else "Añadir a favoritos") },
+        leadingIcon = {
+            Icon(if (isFavorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, null)
+        },
+        onClick = { close(); vm.toggleFavorite(track) },
+    )
+    DropdownMenuItem(
+        text = { Text(if (track.isRemote && dl.kind != DownloadUiKind.DONE) "Compartir enlace" else "Compartir") },
+        leadingIcon = { Icon(Icons.Filled.Share, null) },
+        onClick = { close(); vm.share(context, listOf(track)) },
+    )
+    if (track.isRemote && dl.kind == DownloadUiKind.DONE) {
+        DropdownMenuItem(
+            text = { Text("Compartir enlace de YouTube") },
+            leadingIcon = { Icon(Icons.Filled.Link, null) },
+            onClick = { close(); vm.shareLink(context, track) },
+        )
+    }
+    if (track.isRemote) {
+        DropdownMenuItem(
+            text = {
+                Text(
+                    when (dl.kind) {
+                        DownloadUiKind.DONE -> "Quitar descarga"
+                        DownloadUiKind.QUEUED, DownloadUiKind.RUNNING -> "Descargando…"
+                        DownloadUiKind.FAILED -> "Reintentar descarga"
+                        DownloadUiKind.NONE -> "Descargar"
+                    },
+                )
+            },
+            leadingIcon = {
+                Icon(if (dl.kind == DownloadUiKind.DONE) Icons.Filled.Delete else Icons.Filled.Download, null)
+            },
+            enabled = !dl.busy,
+            onClick = {
+                close()
+                if (dl.kind == DownloadUiKind.DONE) vm.deleteDownload(track) else vm.download(listOf(track))
+            },
+        )
+    }
+    if (!track.isRemote) {
+        DropdownMenuItem(
+            text = { Text("Ir al álbum") },
+            leadingIcon = { Icon(Icons.Filled.AlbumIcon, null) },
+            onClick = { close(); vm.navigate(Route.AlbumRoute(track.albumId)) },
+        )
+        DropdownMenuItem(
+            text = { Text("Ir al artista") },
+            leadingIcon = { Icon(Icons.Filled.Person, null) },
+            onClick = { close(); vm.goToArtist(track.artist) },
+        )
     }
 }
 

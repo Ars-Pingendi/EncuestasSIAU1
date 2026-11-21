@@ -121,6 +121,7 @@ private fun RouteContent(vm: MainViewModel, route: Route) {
         is Route.FolderRoute -> FolderScreen(vm, route.path)
         is Route.PlaylistRoute -> PlaylistScreen(vm, route.id)
         is Route.SmartRoute -> SmartListScreen(vm, route.kind)
+        is Route.MixRoute -> MixScreen(vm, route.id)
         Route.SearchRoute -> SearchScreen(vm)
         Route.EqualizerRoute -> EqualizerScreen(vm)
         Route.SettingsRoute -> SettingsScreen(vm)

@@ -26,6 +26,7 @@ import com.personal.reproductor.tv.TvShare
 import com.personal.reproductor.tv.TvShareService
 import com.personal.reproductor.tv.TvShareStatus
 import com.personal.reproductor.data.LibraryBuilder
+import com.personal.reproductor.data.Recommendations
 import com.personal.reproductor.data.YouTubeIds
 import com.personal.reproductor.data.toTrack
 import com.personal.reproductor.data.youTubeTrack
@@ -50,7 +51,9 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.isActive
@@ -181,6 +184,69 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     .sortedWith(compareBy(LibraryBuilder.collator) { it.title }),
             )
         }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    // ------------------------------------------------------------------ Inicio (recomendaciones)
+
+    /** Cambia una vez al día para renovar los mixes. */
+    private val dayTick = flow {
+        while (true) {
+            val c = java.util.Calendar.getInstance()
+            emit(c.get(java.util.Calendar.YEAR) * 1000 + c.get(java.util.Calendar.DAY_OF_YEAR))
+            delay(10 * 60_000L)
+        }
+    }.distinctUntilChanged()
+
+    private val homeInputs = combine(library, userData.stats, remoteTracks) { lib, stats, remote ->
+        val played = stats.filter { it.playCount > 0 }.mapNotNull { s ->
+            resolveAny(lib, remote, s.trackId, s.path)?.let { it to Recommendations.Stat(s.playCount, s.lastPlayed) }
+        }
+        lib to played
+    }
+
+    val home: StateFlow<Recommendations.Home> =
+        combine(homeInputs, favoriteTracks, playlists, dayTick) { (lib, played), favs, lists, _ ->
+            if (!lib.loaded) Recommendations.Home()
+            else Recommendations.build(lib, played, favs, lists.map { it.tracks }, System.currentTimeMillis())
+        }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Recommendations.Home())
+
+    /** Canciones parecidas de YouTube para cada semilla de Inicio. */
+    data class RadioUi(val label: String, val seed: Track, val loading: Boolean, val tracks: List<Track>)
+
+    private val _radios = MutableStateFlow<Map<String, RadioUi>>(emptyMap())
+    val radios: StateFlow<Map<String, RadioUi>> = _radios.asStateFlow()
+
+    fun radioKey(seed: Track): String = seed.remoteId ?: "${seed.artist}|${seed.title}".lowercase()
+
+    fun loadRadios(seeds: List<Recommendations.RadioSeed>) {
+        for (s in seeds) {
+            val key = radioKey(s.track)
+            val current = _radios.value[key]
+            if (current != null && (current.loading || current.tracks.isNotEmpty())) continue
+            _radios.update { it + (key to RadioUi(s.label, s.track, loading = true, tracks = emptyList())) }
+            viewModelScope.launch {
+                val tracks = try {
+                    youtubeRepo.radio(s.track)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w("Inicio", "Radio de ${s.track.title}", e)
+                    emptyList()
+                }
+                _radios.update { it + (key to RadioUi(s.label, s.track, loading = false, tracks = tracks)) }
+            }
+        }
+    }
+
+    fun mixTracks(id: String): Pair<String, List<Track>>? {
+        val h = home.value
+        return when {
+            id.startsWith("mix:") -> h.mixes.firstOrNull { it.id == id }?.let { it.title to it.tracks }
+            id == "foryou" -> (if (h.hasHistory) "Canciones para ti" else "Descubre tu música") to h.forYou
+            id == "again" -> "Para volver a escuchar" to h.again
+            id.startsWith("radio:") -> _radios.value[id.removePrefix("radio:")]?.let { it.label to it.tracks }
+            else -> null
+        }
+    }
 
     fun toggleFavorite(track: Track) {
         viewModelScope.launch {

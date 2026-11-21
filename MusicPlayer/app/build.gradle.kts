@@ -13,8 +13,8 @@ android {
         applicationId = "com.personal.reproductor"
         minSdk = 26
         targetSdk = 34
-        versionCode = 15
-        versionName = "1.8.3"
+        versionCode = 16
+        versionName = "1.9.0"
     }
 
     // Firma estable (keystore del repositorio) para poder actualizar el APK sin desinstalar.

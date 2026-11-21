@@ -4,6 +4,7 @@ Reproductor de música personal para Android (minSdk 26, Android 8.0+). Kotlin +
 
 ## Qué incluye
 
+- **Inicio al estilo de Spotify** (primera pestaña): saludo, accesos rápidos, *Escuchado recientemente*, **mixes diarios** (tus artistas más escuchados con otros parecidos por género, listas y colaboraciones), *Canciones para ti* y *Álbumes que podrían gustarte* (lo que aún no has escuchado de tus artistas y géneros), *Tus artistas*, *Para volver a escuchar*, *Agregadas recientemente* y **canciones parecidas de YouTube** (radio de YouTube Music a partir de lo último que escuchaste y de tu artista favorito). Todo se calcula en el teléfono con tu historial; cualquier mix se puede guardar como lista.
 - **Biblioteca automática**: lee el índice de audio de Android (memoria interna y tarjeta SD) y se actualiza solo cuando agregas música. Opción «Buscar música de nuevo» para forzar el escaneo.
 - **Clasificación**: Canciones (con orden por título, artista, álbum, recientes, duración), Álbumes, Artistas, Géneros, Carpetas, Listas y Favoritos. Listas automáticas: agregadas recientemente, más reproducidas, reproducidas recientemente.
 - **Ecualizador**: propio de 10 bandas (31 Hz – 16 kHz, ±12 dB, con reducción automática de ganancia y limitador suave) o el integrado de Android, con curva en vivo, 13 preajustes y preajustes propios. Refuerzo de graves, sonido envolvente y amplificación de volumen. **Cada salida de audio (altavoz, cable, Bluetooth) recuerda su propio ajuste** y se cambia sola.

@@ -18,6 +18,8 @@ sealed interface Route {
     data class FolderRoute(val path: String) : Route
     data class PlaylistRoute(val id: Long) : Route
     data class SmartRoute(val kind: SmartList) : Route
+    /** Mix diario o lista de Inicio («mix:…», «foryou», «again», «radio:…»). */
+    data class MixRoute(val id: String) : Route
     data object SearchRoute : Route
     data object EqualizerRoute : Route
     data object SettingsRoute : Route
