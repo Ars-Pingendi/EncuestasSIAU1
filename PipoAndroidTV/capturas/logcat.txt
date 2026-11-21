@@ -1,0 +1,431 @@
+--------- beginning of main
+11-21 16:03:01.595  2488  2488 I chromium: [2488:2488:INFO:cast_power_manager_provider.cc(26)] Creating DummyCastPowerManagerProvider
+11-21 16:03:01.595  2488  2488 I chromium: [2488:2488:INFO:gcm_manager.cc(140)] GCM Dir = /data/user/0/com.google.android.apps.mediashell/cache/gcm
+11-21 16:03:01.595  2488  2488 I chromium: [2488:2488:INFO:gcm_manager.cc(257)] Enabling GCM Driver
+11-21 16:03:01.596  2488  2488 I chromium: [2488:2488:INFO:cast_certificate_grpc_service_dummy.cc(14)] Dummy CastCertificateGrpcService constructed.
+11-21 16:03:01.596  2488  2488 I chromium: [2488:2488:INFO:uds_peercred_filter.cc(165)] Performing one-time injection of UdsPeercredFilter into GRPC.
+11-21 16:03:01.596  2488  2488 I chromium: [2488:2488:INFO:grpc_completion_queue_wrapper.cc(44)] New CQ is set: id=0
+11-21 16:03:01.596  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(818)] GRPC[uri=]: num_pending_calls=0, num_active_handlers=0, num_free_handlers=0
+11-21 16:03:01.596  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(427)] GRPC[uri=]: Can't start server yet, missing URI.
+11-21 16:03:01.596  2488  2488 I chromium: [2488:2488:INFO:lycra_gcm.cc(112)] Deferring GCM registration until connectivity is up.
+11-21 16:03:01.597  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_IDLE
+11-21 16:03:01.597  2488  2488 I chromium: [2488:2488:INFO:grpc_completion_queue_wrapper.cc(44)] New CQ is set: id=0
+11-21 16:03:01.597  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(818)] GRPC[uri=[::]:0]: num_pending_calls=0, num_active_handlers=0, num_free_handlers=0
+11-21 16:03:01.597  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(432)] GRPC[uri=[::]:0]: Can't start server yet, missing start_requsted_
+11-21 16:03:01.597  2488  2488 I chromium: [2488:2488:INFO:cast_power_manager_provider.cc(26)] Creating DummyCastPowerManagerProvider
+11-21 16:03:01.597  2488  2488 I chromium: [2488:2488:INFO:cast_cloud_settings.cc(119)] Presence settings is: 0
+11-21 16:03:01.597  2488  2488 I chromium: [2488:2488:INFO:cast_cloud_settings.cc(137)] Presence radar settings is: 0
+11-21 16:03:01.611  2488  2565 I chromium: [2488:2565:INFO:grpc_manager_impl.cc(661)] GRPC[uri=[::]:0]: Started processing completion queue: id=0
+11-21 16:03:01.612  2488  2488 W chromium: [2488:2488:WARNING:cloud_settings_manager_impl.cc(576)] Cannot initialize device settings config: /data/user/0/com.google.android.apps.mediashell/cache/cloud_settings/cloud_settings.prefs, pref_error=6
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:cloud_settings_manager_impl.cc(220)] Cloud settings is disabled.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_metrics_manager.cc(67)] PrefMetricsManager started.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(191)] Postponing RPC call because current channel state is GRPC_CHANNEL_IDLE
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(191)] Postponing RPC call because current channel state is GRPC_CHANNEL_IDLE
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_debug_manager.cc(77)] DebugInterface registered.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(151)] Loading prefs from /data/user/0/com.google.android.apps.mediashell/cache/pref_control/pref_control.prefs
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(621)] Registering pref Pref [Name:motion_sensing_pref,RestoreValue:1,ForceEnableParent:1,Value:1,Optin:1]
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(621)] Registering pref Pref [Name:sleep_sensing_pref,RestoreValue:1,ForceEnableParent:1,Value:1,Optin:0]
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(621)] Registering pref Pref [Name:sleep_disturbance_pref,RestoreValue:1,ForceEnableParent:0,Value:1,Optin:0]
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(621)] Registering pref Pref [Name:sleep_coaching_pref,RestoreValue:1,ForceEnableParent:0,Value:1,Optin:0]
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(621)] Registering pref Pref [Name:gesture_sensing_pref,RestoreValue:1,ForceEnableParent:1,Value:1,Optin:0]
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(621)] Registering pref Pref [Name:play_and_pause_gesture_pref,RestoreValue:1,ForceEnableParent:0,Value:1,Optin:0]
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(621)] Registering pref Pref [Name:alarms_and_timers_gesture_pref,RestoreValue:1,ForceEnableParent:0,Value:1,Optin:0]
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_metrics_manager.cc(97)] Adding motion_sensing_pref to PrefMetricsManager.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_metrics_manager.cc(97)] Adding sleep_sensing_pref to PrefMetricsManager.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_metrics_manager.cc(97)] Adding sleep_disturbance_pref to PrefMetricsManager.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_metrics_manager.cc(97)] Adding sleep_coaching_pref to PrefMetricsManager.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_metrics_manager.cc(97)] Adding gesture_sensing_pref to PrefMetricsManager.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_metrics_manager.cc(97)] Adding play_and_pause_gesture_pref to PrefMetricsManager.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_metrics_manager.cc(97)] Adding alarms_and_timers_gesture_pref to PrefMetricsManager.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:pref_control_service_impl.cc(115)] PrefControlService constructed.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:sensor_pref_manager.cc(221)] SensorPrefManager is disabled.
+11-21 16:03:01.612  2488  2488 I chromium: [2488:2488:INFO:remote_ducking_receiver.cc(182)] remote ducking: starting receiver.
+11-21 16:03:01.614  2488  2488 I chromium: [2488:2488:INFO:cast_power_manager_provider.cc(26)] Creating DummyCastPowerManagerProvider
+11-21 16:03:01.614  2488  2488 I chromium: [2488:2488:INFO:cast_power_manager_provider.cc(26)] Creating DummyCastPowerManagerProvider
+11-21 16:03:01.615  2488  2488 E chromium: [2488:2488:ERROR:timezone_settings.cc(200)] Got an empty string for timezone, default to 'America/New_York
+11-21 16:03:01.615  2488  2488 I chromium: [2488:2488:INFO:timezone_settings.cc(288)] Setting system timezone to America/New_York
+11-21 16:03:01.615  2488  2488 I chromium: [2488:2488:INFO:api_reboot_idle_checker.cc(104)] active_activities count=1
+11-21 16:03:01.615  2488  2488 I chromium: [2488:2488:INFO:daily_reboot_impl.cc(167)] Daily reboot is disabled
+11-21 16:03:01.615  2488  2564 I chromium: [2488:2564:INFO:grpc_manager_impl.cc(661)] GRPC[uri=]: Started processing completion queue: id=0
+11-21 16:03:01.617  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(413)] Using trusted devices API for Usonia.
+11-21 16:03:01.624  2488  2571 I chromium: [2488:2571:INFO:services_layer_impl.cc(58)] Service layer is instantiated: debug_string=Main
+11-21 16:03:01.624  2488  2571 I chromium: [2488:2571:INFO:services_layer_impl.cc(65)] Register usonia.EchoMain.Do rpc.
+11-21 16:03:01.624  2488  2571 I chromium: [2488:2571:INFO:distributed_service_registrar_impl.cc(182)] A new service is registered: usonia.EchoMain
+11-21 16:03:01.630  2488  2571 I chromium: [2488:2571:INFO:grpc_completion_queue_wrapper.cc(44)] New CQ is set: id=0
+11-21 16:03:01.630  2488  2571 I chromium: [2488:2571:INFO:grpc_manager_impl.cc(818)] GRPC[uri=binder:com.google.android.apps.mediashell:usonia-ipc-socket]: num_pending_calls=0, num_active_handlers=0, num_free_handlers=0
+11-21 16:03:01.632  2488  2572 I chromium: [2488:2572:INFO:common_time_impl.cc(137)] New common clock leader [REDACTED], is_this_device=1, IP=[REDACTED], quality=500
+11-21 16:03:01.632  2488  2572 I chromium: [2488:2572:INFO:common_time_impl.cc(169)] Set this device as common time source
+11-21 16:03:01.634  2488  2571 I chromium: [2488:2571:INFO:distributed_service_registrar_impl.cc(182)] A new service is registered: usonia.SynchronousSoundPlayerService
+11-21 16:03:01.634  2488  2571 I chromium: [2488:2571:INFO:distributed_call_agent_impl.cc(85)] Added a service observer on the main thread.
+11-21 16:03:01.634  2488  2571 I chromium: [2488:2571:INFO:distributed_service_registrar_impl.cc(182)] A new service is registered: usonia.DeviceInfoTrait
+11-21 16:03:01.634  2488  2571 I chromium: [2488:2571:INFO:trait_manager_impl.cc(515)] Registered a trait publisher: trait=usonia.DeviceInfoTrait
+11-21 16:03:01.634  2488  2571 I chromium: [2488:2571:INFO:usonia_main_process.cc(191)] Usonia main process is instantiated: server_uri=[::]:8012, ipc_uri=
+11-21 16:03:01.634  2488  2571 E chromium: [2488:2571:ERROR:structure_info_from_trusted_devices_update_trigger_impl.cc(225)] Failed to read Usonia trusted devices trigger file.
+11-21 16:03:01.634  2488  2571 E chromium: [2488:2571:ERROR:structure_storage.cc(229)] Failed to read Usonia trusted devices file.
+11-21 16:03:01.634  2488  2571 W chromium: [2488:2571:WARNING:structure_info_from_trusted_devices.cc(153)] Failed to restore structure info
+11-21 16:03:01.634  2488  2488 I chromium: [2488:2488:INFO:cast_power_manager_provider.cc(26)] Creating DummyCastPowerManagerProvider
+11-21 16:03:01.634  2488  2488 I chromium: [2488:2488:INFO:capture_service_dummy.cc(12)] Dummy CaptureService.
+11-21 16:03:01.634  2488  2488 I chromium: [2488:2488:INFO:setup_api_registry.cc(193)] Register external API: auto_media_volume
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:grpc_completion_queue_wrapper.cc(44)] New CQ is set: id=0
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(818)] GRPC[uri=]: num_pending_calls=0, num_active_handlers=0, num_free_handlers=0
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:grpc_completion_queue_wrapper.cc(44)] New CQ is set: id=0
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(818)] GRPC[uri=]: num_pending_calls=0, num_active_handlers=0, num_free_handlers=0
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:grpc_completion_queue_wrapper.cc(44)] New CQ is set: id=0
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(818)] GRPC[uri=]: num_pending_calls=0, num_active_handlers=0, num_free_handlers=0
+11-21 16:03:01.635  2488  2488 E chromium: [2488:2488:ERROR:socket_manifest_android_things.cc(29)] Socket config not found for service google.cast
+11-21 16:03:01.635  2488  2488 W chromium: [2488:2488:WARNING:service_manager_android_things.cc(28)] No socket entry found for google.cast. Ignore if service was not intended to run on this OS.
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:cast_thread_health_check.cc(53)] Receiver health check timeout: 15 seconds.
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:file_util.cc(28)] base_assistant_dir = /data/user/0/com.google.android.apps.mediashell/cache
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:pl_framework_dummy.cc(14)] PlFrameworkDummy constructed.
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(191)] Postponing RPC call because current channel state is GRPC_CHANNEL_IDLE
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:pl_framework_demo.cc(41)] [PlssDemo] PlFrameworkDemo created.
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(1958)] Geolocation changed to: 0
+11-21 16:03:01.635  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(2085)] Playback disruption feature is: 0
+11-21 16:03:01.635  2488  2541 W chromium: [2488:2541:WARNING:tuning_manager.cc(99)] No mixer control available
+11-21 16:03:01.635  2488  2541 I chromium: [2488:2541:INFO:auto_volume.cc(134)] Auto volume is disabled
+11-21 16:03:01.637  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(1168)] auto-accepting ToS
+11-21 16:03:01.637  2488  2542 E chromium: [2488:2542:ERROR:mixer_connection.cc(91)] Failed to connect to mixer service: -102
+11-21 16:03:01.638  2488  2571 E chromium: [2488:2571:ERROR:structure_info_from_trusted_devices.cc(409)] Failed to read fetch in progress storage, assume no fetch.
+11-21 16:03:01.638  2488  2557 I chromium: [2488:2557:INFO:media_manager_impl.cc(1166)]  ScreenInfo changed: HDCP version=99 supported EOTFs=0 DolbyVision flags=0 Size(mm): 0x0 cur mode HDR=0 cur mode DV=0
+11-21 16:03:01.638  2488  2557 I chromium: [2488:2557:INFO:media_caps.cc(54)] ScreenInfoChanged HDCP version=99 Supported EOTFs=0 DolbyVision flags=0 Screen size(mm): 0x0 cur mode HDR=0 cur mode DV=0
+11-21 16:03:01.639  2488  2557 I chromium: [2488:2557:INFO:media_manager_impl.cc(1212)] New screen resolution: new=(1920x1080), old=(0x0)
+11-21 16:03:01.639  2488  2557 I chromium: [2488:2557:INFO:media_caps.cc(24)] ScreenResolutionChanged resolution=1920x1080
+11-21 16:03:01.649  2488  2577 I chromium: [2488:2577:INFO:grpc_manager_impl.cc(661)] GRPC[uri=]: Started processing completion queue: id=0
+11-21 16:03:01.649  2488  2574 I chromium: [2488:2574:INFO:grpc_manager_impl.cc(661)] GRPC[uri=binder:com.google.android.apps.mediashell:usonia-ipc-socket]: Started processing completion queue: id=0
+11-21 16:03:01.649  2488  2557 I chromium: [2488:2557:INFO:media_manager_impl.cc(957)] New device volume control type: new_type=1, old_type=0
+11-21 16:03:01.650  2488  2557 I chromium: [2488:2557:INFO:media_manager_impl.cc(980)] New device volume step interval: new_interval=0.0666667, old_interval=0
+11-21 16:03:01.661  2488  2578 I chromium: [2488:2578:INFO:grpc_manager_impl.cc(661)] GRPC[uri=]: Started processing completion queue: id=0
+11-21 16:03:01.661  2488  2576 I chromium: [2488:2576:INFO:grpc_manager_impl.cc(661)] GRPC[uri=]: Started processing completion queue: id=0
+11-21 16:03:01.664  2488  2575 I chromium: [2488:2575:INFO:audio_socket_service_tcp.cc(47)] Using port 12854
+11-21 16:03:01.665  2488  2557 I chromium: [2488:2557:INFO:media_manager_impl.cc(355)] Media manager is initialized.
+11-21 16:03:01.666  2488  2488 I chromium: [2488:2488:INFO:media_manager_impl.cc(272)] IsHdmiPlatform: 0
+11-21 16:03:01.666  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(191)] Postponing RPC call because current channel state is GRPC_CHANNEL_IDLE
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:hds_settings.cc(139)] HdsSettings using HDS url https://home-devices.googleapis.com/
+11-21 16:03:01.685  2488  2488 W chromium: [2488:2488:WARNING:application_config_manager_impl.cc(253)] Cannot read application config file: /system/bin/app.conf
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(404)] Application manager is initialized.
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:mdns_cast_service.cc(152)] Device discovery state is idle
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:mdns_manager_impl.cc(176)] MdnsManager is initialized
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:config_downloader.cc(243)] Set config periodic interval: min=300, max=420
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:crl_downloader.cc(274)] Set CRL periodic interval: min=2160, max=2880
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:hds_broker_impl.cc(121)] HDS type registered type.googleapis.com/home.hds.proto.device.relayedcasting.RelayedCastingPleaseConnectRequest
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:virtual_device_manager.cc(155)] Added virtual device: id=[REDACTED]
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(491)] Added CCS device
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:dial_request_handler.cc(198)] DIAL request handler is initialized.
+11-21 16:03:01.685  2488  2488 I chromium: [2488:2488:INFO:dial_request_handler.cc(212)] SSDP device description request handler is initialized.
+11-21 16:03:01.685  2488  2540 W chromium: [2488:2540:WARNING:crl_downloader.cc(136)] CRL failed to restore.
+11-21 16:03:01.686  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(807)] Device model revision set to 0
+11-21 16:03:01.686  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(2100)] Usonia GRPC feature is: 0
+11-21 16:03:01.686  2488  2488 W chromium: [2488:2488:WARNING:setup_manager_impl.cc(612)] Clearing empty virtual channel
+11-21 16:03:01.686  2488  2488 I chromium: [2488:2488:INFO:setup_manager_impl.cc(616)] release channel: 
+11-21 16:03:01.686  2488  2488 I chromium: [2488:2488:INFO:locale_manager.cc(245)] No timezone yet.
+11-21 16:03:01.686  2488  2488 I chromium: [2488:2488:INFO:locale_manager.cc(274)] Current time format: 12-hour
+11-21 16:03:01.686  2488  2488 I chromium: [2488:2488:INFO:locale_manager.cc(295)] No locale. Set default from factory: en-US
+11-21 16:03:01.687  2488  2488 I chromium: [2488:2488:INFO:locale_manager.cc(327)] Use default country code: US
+11-21 16:03:01.687  2488  2488 I chromium: [2488:2488:INFO:locale_manager.cc(639)] New country code: US
+11-21 16:03:01.687  2488  2488 I chromium: [2488:2488:INFO:setup_manager_impl.cc(650)] Initial activation date cached value: 
+11-21 16:03:01.687  2488  2488 I chromium: [2488:2488:INFO:hds_broker_impl.cc(121)] HDS type registered type.googleapis.com/google.internal.home.foyer.v1.resources.IsDeviceReadyRequest
+11-21 16:03:01.687  2488  2488 I chromium: [2488:2488:INFO:hds_broker_impl.cc(121)] HDS type registered type.googleapis.com/home.cloud.biz.EnterWeavePairingModeRequest
+11-21 16:03:01.687  2488  2488 I chromium: [2488:2488:INFO:api_reboot_idle_checker.cc(104)] active_activities count=1
+11-21 16:03:01.687  2488  2488 I chromium: [2488:2488:INFO:setup_api_registry.cc(193)] Register external API: reboot
+11-21 16:03:01.687  2488  2488 W chromium: [2488:2488:WARNING:cast_crypto_keys_openssl_shlib.cc(70)] No valid ESN read.
+11-21 16:03:01.687  2488  2488 W chromium: [2488:2488:WARNING:cast_crypto_keys_openssl_shlib.cc(83)] Invalid or no DKE value read.
+11-21 16:03:01.687  2488  2488 W chromium: [2488:2488:WARNING:cast_crypto_keys_openssl_shlib.cc(95)] Invalid or no DKH value read.
+11-21 16:03:01.687  2488  2488 W chromium: [2488:2488:WARNING:cast_crypto_keys_openssl_shlib.cc(151)] Invalid or no DKW value read/computed.
+11-21 16:03:01.687  2488  2488 I chromium: [2488:2488:INFO:persistent_logging_dummy.cc(11)] Persistent logging is disabled.
+11-21 16:03:01.687  2488  2571 E chromium: [2488:2571:ERROR:usonia_main_process.cc(79)] Failed to publish device info trait: [error_code=NOT_FOUND, error_message=No subscribers.]
+11-21 16:03:01.687  2488  2571 I chromium: [2488:2571:INFO:usonia_main_process.cc(219)] Ignoring stop when not started.
+11-21 16:03:01.687  2488  2570 I chromium: [2488:2570:INFO:setup_manager_impl.cc(733)] Initially set Google DNS servers: enable
+11-21 16:03:01.687  2488  2570 I chromium: [2488:2570:INFO:setup_api_registry.cc(193)] Register external API: eureka_info
+11-21 16:03:01.687  2488  2570 I chromium: [2488:2570:INFO:setup_api_registry.cc(193)] Register external API: set_eureka_info
+11-21 16:03:01.687  2488  2570 I chromium: [2488:2570:INFO:setup_api_registry.cc(193)] Register external API: get_app_device_id
+11-21 16:03:01.687  2488  2570 I chromium: [2488:2570:INFO:setup_api_registry.cc(193)] Register external API: send_log_report
+11-21 16:03:01.687  2488  2570 I chromium: [2488:2570:INFO:setup_manager_impl.cc(805)] Initially Set WPA3 support: disable
+11-21 16:03:01.687  2488  2550 I chromium: [2488:2550:INFO:hotspot_manager.cc(97)] Stop zombie hotspot if there is one
+11-21 16:03:01.687  2488  2550 I chromium: [2488:2550:INFO:net_util_impl.cc(496)] IP address: [REDACTED] MAC address: [REDACTED]
+11-21 16:03:01.687  2488  2550 I chromium: [2488:2550:INFO:local_network_info_impl.cc(347)] LNID changed:
+11-21 16:03:01.689  2488  2488 I chromium: [2488:2488:INFO:robot_account_auth_manager.cc(304)] No backend type specified. Getting COS URL based on the build type instead.
+11-21 16:03:01.689  2488  2488 I chromium: [2488:2488:INFO:robot_account_auth_manager.cc(321)] Auth url: https://clients3.google.com/cast/orchestration/googleoauthtoken?rt=b
+11-21 16:03:01.689  2488  2488 W chromium: [2488:2488:WARNING:robot_account_auth_manager.cc(472)] Failed to initialize JWT for 38579375
+11-21 16:03:01.689  2488  2488 I chromium: [2488:2488:INFO:queryable_data_registrar.cc(52)] Registering queryable data for managed mode as: 0
+11-21 16:03:01.689  2488  2488 I chromium: [2488:2488:INFO:queryable_data_registrar.cc(59)] Registering enable_hls_sample_aes=1
+11-21 16:03:01.689  2488  2488 I chromium: [2488:2488:INFO:queryable_data_registrar.cc(64)] Registering hls_sample_aes_init_segment
+11-21 16:03:01.689  2488  2488 I chromium: [2488:2488:INFO:queryable_data_registrar.cc(70)] Registering visual-punt-on-platform-supported
+--------- beginning of system
+11-21 16:03:01.691  2488  2570 I chromium: [2488:2570:INFO:local_network_info_impl.cc(436)] LNID_W changed:
+11-21 16:03:01.691  2488  2570 I chromium: [2488:2570:INFO:wifi_proximity.cc(177)] Request scan.
+11-21 16:03:01.698  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(641)] MdnsAppFilter initialized
+11-21 16:03:01.698  2488  2586 I chromium: [2488:2586:INFO:discovered_service_client.cc(102)] Registering new service PTR listener: _googlecast._tcp.local
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:v2_transport.cc(462)] Added Cast V2 endpoint: id=Tr@n$p0rt-0, socket_factory_id=[REDACTED]
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=Tr@n$p0rt-0, namespace=urn:x-cast:com.google.cast.tp.connection
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=Tr@n$p0rt-0, namespace=urn:x-cast:com.google.cast.tp.heartbeat
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=Tr@n$p0rt-0, namespace=urn:x-cast:com.google.cast.tp.deviceauth
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=Tr@n$p0rt-0, namespace=urn:x-cast:com.google.cast.localauth
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:v2_transport.cc(337)] V2Transport initialized.
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:v2_transport.cc(415)] Added socket factory: id=opencast-socket
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:v2_transport.cc(462)] Added Cast V2 endpoint: id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, socket_factory_id=[REDACTED]
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, namespace=urn:x-cast:com.google.cast.receiver
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, namespace=urn:x-cast:com.google.cast.receiver.discovery
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:v2_transport.cc(415)] Added socket factory: id=2074c090-b644-b623-15a2-8bbaa18a1c84
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, namespace=urn:x-cast:com.google.cast.receiver.key_exchange
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, namespace=urn:x-cast:com.google.cast.broadcast
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, namespace=urn:x-cast:com.google.cast.proximity
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, namespace=urn:x-cast:com.google.cast.resource
+11-21 16:03:01.701  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, namespace=urn:x-cast:com.google.cast.assistant
+11-21 16:03:01.709  2488  2488 E chromium: [2488:2488:ERROR:jni_client_auth_creds_mediadrm.cc(292)] certs_ref is null
+11-21 16:03:01.709  2488  2488 E chromium: [2488:2488:ERROR:client_auth_creds.cc(219)] Empty certs string.
+11-21 16:03:01.709  2488  2488 E chromium: [2488:2488:ERROR:client_auth_signer.cc(150)] Failed to get key and cert from ClientAuthCreds.
+11-21 16:03:01.709  2488  2488 W chromium: [2488:2488:WARNING:client_auth_manager.cc(128)] Certificate is empty. Do not store.
+11-21 16:03:01.710  2488  2547 I chromium: [2488:2547:INFO:cast_media_android.cc(44)] Initialize:
+11-21 16:03:01.715  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(17)] Build volume cache for type 0:
+11-21 16:03:01.715  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(28)]      0(0) -> 1
+11-21 16:03:01.715  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(28)]      1(1) -> 1
+11-21 16:03:01.716  2488  2590 I chromium: [2488:2590:INFO:audio_sink_manager.cc(78)] SetTypeVolumeDb: level_db=1 type=MEDIA
+11-21 16:03:01.718  2488  2488 I chromium: [2488:2488:INFO:supported_codec_finder.cc(28)] Adding 14 supported codec profiles/levels
+11-21 16:03:01.720  2488  2488 W chromium: [2488:2488:WARNING:cast_metrics_service_client.cc(136)] Empty client id from platform, assuming this is the first boot up of a new device.
+11-21 16:03:01.720  2488  2488 I chromium: [2488:2488:INFO:cast_metrics_service_client.cc(95)] Metrics client ID set: 3e4b18e4-2cf0-44ec-ad4f-39aad6ae099c
+11-21 16:03:01.720  2488  2488 I chromium: [2488:2488:INFO:device_info_impl.cc(933)] Metrics client ID: 3e4b18e4-2cf0-44ec-ad4f-39aad6ae099c
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_control_android.cc(192)] InitializeOnThread: Initial values for type=0:  volume=0.2 (1) mute=0
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(17)] Build volume cache for type 1:
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(28)]      0(0) -> 1
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(28)]      1(1) -> 1
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:audio_sink_manager.cc(78)] SetTypeVolumeDb: level_db=1 type=ALARM
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_control_android.cc(192)] InitializeOnThread: Initial values for type=1:  volume=0.285714 (1) mute=0
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(17)] Build volume cache for type 2:
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(28)]      0(0) -> 1
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(28)]      1(1) -> 1
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:audio_sink_manager.cc(78)] SetTypeVolumeDb: level_db=1 type=COMMUNICATION
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_control_android.cc(192)] InitializeOnThread: Initial values for type=2:  volume=0.142857 (1) mute=0
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(17)] Build volume cache for type 3:
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(28)]      0(0) -> 1
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_cache.cc(28)]      1(1) -> 1
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:audio_sink_manager.cc(78)] SetTypeVolumeDb: level_db=1 type=OTHER
+11-21 16:03:01.721  2488  2590 I chromium: [2488:2590:INFO:volume_control_android.cc(192)] InitializeOnThread: Initial values for type=3:  volume=0.4 (1) mute=0
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:metrics_stat_logger.cc(55)] Metrics stat for the past 60 secs : total=0
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:cast_receiver_impl.cc(822)] Cast receiver started.
+11-21 16:03:01.722  2488  2488 W chromium: [2488:2488:WARNING:cast_receiver_impl.cc(1123)] Network is not globally connected. Don't schedule config downloading yet.
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(632)] Starting cloud ipc activity with CCS
+11-21 16:03:01.722  2488  2587 E chromium: [2488:2587:ERROR:socket_posix.cc(148)] bind() failed: Address already in use (98)
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(1250)] CcsManagerImpl opt_in.cloud_ipc pref changed: 1
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(1286)] Waiting for all transports to be enabled
+11-21 16:03:01.722  2488  2587 I chromium: [2488:2587:INFO:v2_ssl_socket.cc(781)] IPv6 socket probably supports both IPv4 and IPv6
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(374)] GRPC[uri=[::]:0]: Registered service chromecast.LocalCloudcastService
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(396)] GRPC[uri=[::]:0]: Registered a handler ExecuteActionScript for service chromecast.LocalCloudcastService
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(396)] GRPC[uri=[::]:0]: Registered a handler ObserveDeviceStatus for service chromecast.LocalCloudcastService
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(396)] GRPC[uri=[::]:0]: Registered a handler GetDeviceStatus for service chromecast.LocalCloudcastService
+11-21 16:03:01.722  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(442)] GRPC[uri=[::]:0]: Proceeding to try to start server.
+11-21 16:03:01.722  2488  2550 I chromium: [2488:2550:INFO:crypto_manager.cc(75)] Creating private key: size=2048
+11-21 16:03:01.730  2488  2488 I chromium: [2488:2488:INFO:grpc_manager_impl.cc(494)] GRPC[uri=[::]:0]: Grpc server started in port 33123
+11-21 16:03:01.730  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(1286)] Waiting for all transports to be enabled
+11-21 16:03:01.731  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1298)] Skipping IPv6 interface that also has an IPv4 address: wlan0
+11-21 16:03:01.731  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1298)] Skipping IPv6 interface that also has an IPv4 address: wlan0
+11-21 16:03:01.731  2488  2586 I chromium: [2488:2586:INFO:metrics_recorder.cc(188)] cast event: Cast.Discovery.Mdns.SocketCreated
+11-21 16:03:01.731  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1432)] Created mDNS socket for interface:name=wlan0, address=10.0.2.16, index=14
+11-21 16:03:01.731  2488  2488 I chromium: [2488:2488:INFO:ccs_transport_gcm.cc(94)] Deferring GCM registration until connectivity is up
+11-21 16:03:01.732  2488  2488 I chromium: [2488:2488:INFO:cast_receiver_impl.cc(931)] Cast receiver resumed.
+11-21 16:03:01.732  2488  2488 W chromium: [2488:2488:WARNING:cast_receiver_impl.cc(1135)] Network is not globally connected. Don't schedule CRL downloading yet.
+11-21 16:03:01.732  2488  2488 I chromium: [2488:2488:INFO:cast_web_service.cc(162)] Added session: b2cead4b-dd26-4ab3-9e01-0c9cab538fdc
+11-21 16:03:01.732  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(422)] new ApplicationIdentificationSettings session_id: b2cead4b-dd26-4ab3-9e01-0c9cab538fdc app_id: E8C28D3C universal_app_id: E8C28D3C flags: 23 headers: 2047
+11-21 16:03:01.732  2488  2488 I chromium: [2488:2488:INFO:chromecast_service_base.cc(291)] Network is disconnected, reconnecting Wifi.
+11-21 16:03:01.732  2488  2584 E chromium: [2488:2584:ERROR:socket_posix.cc(148)] bind() failed: Address already in use (98)
+11-21 16:03:01.732  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(1720)] Initial error code: 0
+11-21 16:03:01.732  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(1732)] Non-assistant device, start idle screen now.
+11-21 16:03:01.732  2488  2584 I chromium: [2488:2584:INFO:cast_web_server.cc(212)] Http server for Cast receiver started: port=8008
+11-21 16:03:01.732  2488  2585 E chromium: [2488:2585:ERROR:socket_posix.cc(148)] bind() failed: Address already in use (98)
+11-21 16:03:01.732  2488  2585 I chromium: [2488:2585:INFO:cast_web_server.cc(212)] Http server for Cast receiver started: port=8443
+11-21 16:03:01.733  2488  2587 I chromium: [2488:2587:INFO:endpoint_with_namespace_handler.cc(103)] Added a namespace handler: local_id=receiver-2074c090-b644-b623-15a2-8bbaa18a1c84, namespace=urn:x-cast:com.google.cast.setup
+11-21 16:03:01.733  2488  2570 I chromium: [2488:2570:INFO:setup_manager_impl.cc(900)] Setup discoverability is enabled
+11-21 16:03:01.733  2488  2570 I chromium: [2488:2570:INFO:hotspot_manager.cc(155)] Start: id=1 SSID=AOSP TV on x86.f hidden=0
+11-21 16:03:01.733  2488  2541 I chromium: [2488:2541:INFO:hotspot_manager.cc(204)] Starting request id=1 ssid=AOSP TV on x86.f hidden=0
+11-21 16:03:01.735  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1127)] MdnsAppFilter is starting.
+11-21 16:03:01.735  2488  2586 I chromium: [2488:2586:INFO:metrics_recorder.cc(188)] cast event: Cast.Discovery.Mdns.ResponderStarted
+11-21 16:03:01.741  2488  2488 I chromium: [2488:2488:INFO:audio_focus_manager_impl.cc(27)] use_media_starting_block: 0
+11-21 16:03:01.741  2488  2488 I chromium: [2488:2488:INFO:device_info_impl.cc(1061)] Primary netif changed: new=wlan0, old=
+11-21 16:03:01.741  2488  2488 I chromium: [2488:2488:INFO:device_info_impl.cc(1070)] Primary IP address changed: netif=wlan0, new=10.0.2.16, old=
+11-21 16:03:01.741  2488  2488 I chromium: [2488:2488:INFO:metrics_recorder.cc(188)] cast event: Cast.System.Timezone.ChangeSuccessful
+11-21 16:03:01.741  2488  2560 I chromium: [2488:2560:INFO:external_mojo_broker.cc(270)] Request for chromecast:chromecast.mojom.RemoteControlService
+11-21 16:03:01.741  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(820)] Network connectivity down for CcsManager
+11-21 16:03:01.741  2488  2488 W chromium: [2488:2488:WARNING:secure_storage_impl.cc(109)] Device key not available yet.
+11-21 16:03:01.741  2488  2570 I chromium: [2488:2570:INFO:setup_state.cc(263)] Setup state changed: SETUP_STATE_UNKNOWN (0) -> SETUP_STATE_CHECKING_GLOBAL_CONNECTIVITY (50)
+11-21 16:03:01.741  2488  2488 W chromium: [2488:2488:WARNING:cloud_settings_manager_impl.cc(173)] Cannot find [user_interface_settings] in settings.
+11-21 16:03:01.742  2488  2488 W chromium: [2488:2488:WARNING:cloud_settings_manager_impl.cc(173)] Cannot find [wifi_settings] in settings.
+11-21 16:03:01.742  2488  2488 W chromium: [2488:2488:WARNING:cloud_settings_manager_impl.cc(173)] Cannot find [hdmi_settings] in settings.
+11-21 16:03:01.742  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(1721)] LNID has changed; Will re-register CCS
+11-21 16:03:01.742  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(820)] Network connectivity down for CcsManager
+11-21 16:03:01.742  2488  2488 I chromium: [2488:2488:INFO:cast_auth_headers.cc(228)] Clearing cached auth headers.
+11-21 16:03:01.742  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(820)] Network connectivity down for CcsManager
+11-21 16:03:01.742  2488  2488 W chromium: [2488:2488:WARNING:secure_storage_impl.cc(109)] Device key not available yet.
+11-21 16:03:01.742  2488  2488 I chromium: [2488:2488:INFO:virtual_device_manager.cc(304)] Virtual device [REDACTED] using Cast V2 port 8009
+11-21 16:03:01.742  2488  2488 W chromium: [2488:2488:WARNING:libupnp_manager.cc(312)] No Primary Network Interface, will start UPnP server when it is established.
+11-21 16:03:01.742  2488  2560 I chromium: [2488:2560:INFO:external_mojo_broker.cc(330)] Found internal chromecast
+11-21 16:03:01.743  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1862)] Re-probing due to newly registered service '1': _googlecast
+11-21 16:03:01.743  2488  2586 W chromium: [2488:2586:WARNING:mdns_app_filter.cc(1078)] MdnsAppFilter already started. Must call Stop() first.
+11-21 16:03:01.743  2488  2488 I chromium: [2488:2488:INFO:cast_receiver_impl.cc(1631)] mDNS Discovery stopped.
+11-21 16:03:01.743  2488  2488 I chromium: [2488:2488:INFO:cast_receiver_impl.cc(1689)] Network is globally disconnected. Refresh CcsManager
+11-21 16:03:01.744  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(2011)] MdnsAppFilter is stopping
+11-21 16:03:01.744  2488  2586 I chromium: [2488:2586:INFO:metrics_recorder.cc(188)] cast event: Cast.Discovery.Mdns.ResponderStopped
+11-21 16:03:01.744  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(2018)] MdnsAppFilter is stopping; closing socket: address=10.0.2.16
+11-21 16:03:01.744  2488  2586 I chromium: [2488:2586:INFO:metrics_recorder.cc(188)] cast event: Cast.Discovery.Mdns.SocketDestroyed
+11-21 16:03:01.745  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1298)] Skipping IPv6 interface that also has an IPv4 address: wlan0
+11-21 16:03:01.745  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1298)] Skipping IPv6 interface that also has an IPv4 address: wlan0
+11-21 16:03:01.745  2488  2586 I chromium: [2488:2586:INFO:metrics_recorder.cc(188)] cast event: Cast.Discovery.Mdns.SocketCreated
+11-21 16:03:01.745  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1432)] Created mDNS socket for interface:name=wlan0, address=10.0.2.16, index=14
+11-21 16:03:01.745  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1127)] MdnsAppFilter is starting.
+11-21 16:03:01.745  2488  2586 I chromium: [2488:2586:INFO:metrics_recorder.cc(188)] cast event: Cast.Discovery.Mdns.ResponderStarted
+11-21 16:03:01.745  2488  2586 I chromium: [2488:2586:INFO:discovered_service_client.cc(78)] Primary interface for service discovery has changed: ifindex=14
+11-21 16:03:01.745  2488  2488 I chromium: [2488:2488:INFO:cloud_settings_manager_impl.cc(220)] Cloud settings is disabled.
+11-21 16:03:01.745  2488  2570 W chromium: [2488:2570:WARNING:setup_manager_impl.cc(2085)] DNS Func not supported
+11-21 16:03:01.745  2488  2488 I chromium: [2488:2488:INFO:cloud_settings_manager_impl.cc(220)] Cloud settings is disabled.
+11-21 16:03:01.745  2488  2488 I chromium: [2488:2488:INFO:cloud_settings_manager_impl.cc(220)] Cloud settings is disabled.
+11-21 16:03:01.745  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_TRANSIENT_FAILURE
+11-21 16:03:01.746  2488  2488 I chromium: [2488:2488:INFO:mdns_manager_impl.cc(310)] Successfully registered service: type=_googlecast
+11-21 16:03:01.746  2488  2488 I chromium: [2488:2488:INFO:virtual_device.cc(298)] Registered mDNS service for virtual device: id=2074c090-b644-b623-15a2-8bbaa18a1c84
+11-21 16:03:01.747  2488  2570 W chromium: [2488:2570:WARNING:setup_manager_impl.cc(2085)] DNS Func not supported
+11-21 16:03:01.747  2488  2557 I chromium: [2488:2557:INFO:media_manager_impl.cc(1395)] HdmiContentType changes are now allowed
+11-21 16:03:01.750  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1298)] Skipping IPv6 interface that also has an IPv4 address: wlan0
+11-21 16:03:01.750  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1298)] Skipping IPv6 interface that also has an IPv4 address: wlan0
+11-21 16:03:01.751  2488  2548 I chromium: [2488:2548:INFO:net_util_impl.cc(496)] IP address: [REDACTED] MAC address: [REDACTED]
+11-21 16:03:01.751  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(409)] Network is disconnected.
+11-21 16:03:01.751  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(212)] No need to recreate socket
+11-21 16:03:01.753  2488  2548 I chromium: [2488:2548:INFO:net_util_impl.cc(496)] IP address: [REDACTED] MAC address: [REDACTED]
+11-21 16:03:01.753  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(409)] Network is connected.
+11-21 16:03:01.753  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(212)] No need to recreate socket
+11-21 16:03:01.837  2488  2541 I chromium: [2488:2541:INFO:libupnp_wrapper_async.cc(144)] SSDP server is initialized: root_device_desc_url = http://10.0.2.16:8008/ssdp/device-desc.xml, handle = 1
+11-21 16:03:02.597  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_TRANSIENT_FAILURE
+11-21 16:03:02.616  2488  2488 I chromium: [2488:2488:INFO:crypto_manager.cc(257)] Public key: MIIBCgKCAQEAoBAw1qVRuWD7uYwImM6YuBu9xEculUFkY1PHW+Ymo6K3F/zy/Sl/RGBywG97pg3I3zChNE1ANrQDx5Fj5CjPMuBF7i8BNeSSAtPo4nq32u6vJhd+DF2kELo6D49xedWakHgF/RwG3vhogudAOre9Ips4Ndu1GXJXWb4q89l54Y5UeQtFHBCENlsW+FB83PjY246pgYUnEW3OTg4Ljl9UNSnbyopR/vQpLwCNMC2pUy4pRAbPBQ/vYY5wcHC6iC3rg2ugn5e1m0bcNU+krazCkkyHXRXNE6WU2IPgpMJrzxik7jqrcKDFioYLb0cePa1uiloxN8xr6B4hVEH8RCQhfQIDAQAB
+11-21 16:03:02.616  2488  2488 I chromium: [2488:2488:INFO:crypto_manager.cc(268)] Public modulus: oBAw1qVRuWD7uYwImM6YuBu9xEculUFkY1PHW-Ymo6K3F_zy_Sl_RGBywG97pg3I3zChNE1ANrQDx5Fj5CjPMuBF7i8BNeSSAtPo4nq32u6vJhd-DF2kELo6D49xedWakHgF_RwG3vhogudAOre9Ips4Ndu1GXJXWb4q89l54Y5UeQtFHBCENlsW-FB83PjY246pgYUnEW3OTg4Ljl9UNSnbyopR_vQpLwCNMC2pUy4pRAbPBQ_vYY5wcHC6iC3rg2ugn5e1m0bcNU-krazCkkyHXRXNE6WU2IPgpMJrzxik7jqrcKDFioYLb0cePa1uiloxN8xr6B4hVEH8RCQhfQ
+11-21 16:03:02.616  2488  2488 I chromium: [2488:2488:INFO:crypto_manager.cc(273)] Public exponent: AQAB
+11-21 16:03:02.677  2488  2575 I chromium: [2488:2575:INFO:receiver_cma.cc(209)] Unhandled loopback connection
+11-21 16:03:02.720  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1594)] MdnsAppFilter: Done probing.
+11-21 16:03:02.888  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(463)] [REDACTED] Become root
+11-21 16:03:02.889  2488  2542 I chromium: [2488:2542:INFO:directory_service_impl.cc(299)] This device became root
+11-21 16:03:04.409  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_TRANSIENT_FAILURE
+11-21 16:03:04.801  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1760)] MdnsAppFilter: Done announcing.
+11-21 16:03:04.923  2488  2542 I chromium: [2488:2542:INFO:connectivity_checker_impl.cc(165)] Change check url=http://connectivitycheck.gstatic.com/generate_204
+11-21 16:03:04.923  2488  2542 I chromium: [2488:2542:INFO:connectivity_checker_impl.cc(169)] Global connection is: Up
+11-21 16:03:04.923  2488  2570 I chromium: [2488:2570:INFO:setup_state.cc(263)] Setup state changed: SETUP_STATE_CHECKING_GLOBAL_CONNECTIVITY (50) -> SETUP_STATE_CONNECTED (60)
+11-21 16:03:04.923  2488  2550 I chromium: [2488:2550:INFO:structure_storage.cc(35)] Writing state to file: /data/user/0/com.google.android.apps.mediashell/cache/usonia_trusted_devices_fcm_connected_time
+11-21 16:03:04.924  2488  2587 I chromium: [2488:2587:INFO:v2_transport.cc(685)] V2TransportImpl::CreatSelfSignedCertificateWithKey called.
+11-21 16:03:04.924  2488  2488 I chromium: [2488:2488:INFO:ccs_transport_gcm.cc(102)] Registering GCM handler
+11-21 16:03:04.924  2488  2488 I chromium: [2488:2488:INFO:cloud_settings_manager_impl.cc(492)] Connectivity established. Reconciling cloud settings.
+11-21 16:03:04.924  2488  2488 I chromium: [2488:2488:INFO:cloud_settings_manager_impl.cc(220)] Cloud settings is disabled.
+11-21 16:03:04.924  2488  2488 I chromium: [2488:2488:INFO:lycra_gcm.cc(116)] Registering GCM handler.
+11-21 16:03:04.924  2488  2488 I chromium: [2488:2488:INFO:api_reboot_idle_checker.cc(104)] active_activities count=0
+11-21 16:03:04.924  2488  2571 I chromium: [2488:2571:INFO:structure_info_from_trusted_devices_update_trigger_impl.cc(201)] Triggering Usonia trusted devices update since it's been a while since FCM connected.
+11-21 16:03:04.924  2488  2571 I chromium: [2488:2571:INFO:structure_info_from_trusted_devices.cc(428)] Skip writing fetch in progress since value didn't change: 1
+11-21 16:03:04.925  2488  2570 I chromium: [2488:2570:INFO:setup_manager_impl.cc(1006)] Setup discoverability is disabled
+11-21 16:03:04.925  2488  2548 I chromium: [2488:2548:INFO:hotspot_manager.cc(217)] Stop: id=1
+11-21 16:03:04.926  2488  2571 I chromium: [2488:2571:INFO:structure_info_from_trusted_devices.cc(311)] Getting trusted devices from HDS, num_in_flight_requests = 1
+11-21 16:03:04.926  2488  2488 W chromium: [2488:2488:WARNING:ccs_transport_https.cc(1122)] GetTrustedDevices not enabled yet
+11-21 16:03:04.926  2488  2488 I chromium: [2488:2488:INFO:cast_receiver_impl.cc(1701)] Network is globally connected. Schedule config downloading if necessary.
+11-21 16:03:04.926  2488  2488 I chromium: [2488:2488:INFO:cast_receiver_impl.cc(1707)] Network is globally connected. Schedule crl downloading if necessary.
+11-21 16:03:04.926  2488  2488 I chromium: [2488:2488:INFO:crl_downloader.cc(366)] Downloading crl: url=https://clients3.google.com/cast/chromecast/device/crl
+11-21 16:03:04.927  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1298)] Skipping IPv6 interface that also has an IPv4 address: wlan0
+11-21 16:03:04.927  2488  2586 I chromium: [2488:2586:INFO:mdns_app_filter.cc(1298)] Skipping IPv6 interface that also has an IPv4 address: wlan0
+11-21 16:03:04.927  2488  2571 E chromium: [2488:2571:ERROR:structure_info_from_trusted_devices.cc(379)] Failed to get trusted devices from HDS.
+11-21 16:03:04.928  2488  2550 I chromium: [2488:2550:INFO:structure_storage.cc(35)] Writing state to file: /data/user/0/com.google.android.apps.mediashell/cache/usonia_fetch_in_progress
+11-21 16:03:04.928  2488  2488 I chromium: [2488:2488:INFO:cast_receiver_impl.cc(1717)] Network is globally connected. Refreshing CcsManager.
+11-21 16:03:04.928  2488  2488 E chromium: [2488:2488:ERROR:cast_auth_headers.cc(169)] Unable to update signature header
+11-21 16:03:04.928  2488  2488 I chromium: [2488:2488:INFO:config_downloader.cc(495)] Downloading base config headers (excl. auth) ='Accept: application/protobuf', url=[REDACTED]
+11-21 16:03:04.928  2488  2571 I chromium: [2488:2571:INFO:structure_info_from_trusted_devices.cc(311)] Getting trusted devices from HDS, num_in_flight_requests = 1
+11-21 16:03:04.929  2488  2488 W chromium: [2488:2488:WARNING:ccs_transport_https.cc(1122)] GetTrustedDevices not enabled yet
+11-21 16:03:04.929  2488  2571 E chromium: [2488:2571:ERROR:structure_info_from_trusted_devices.cc(379)] Failed to get trusted devices from HDS.
+11-21 16:03:04.959  2488  2587 I chromium: [2488:2587:INFO:transport_creds.cc(151)] Self-signed certificate created: CN=2074c090-b644-b623-15a2-8bbaa18a1c84
+11-21 16:03:05.063  3007  3062 W chromium: [WARNING:dns_config_service_android.cc(153)] Failed to read DnsConfig.
+11-21 16:03:05.543  2488  2488 I chromium: [2488:2488:INFO:config_downloader.cc(707)] Received Protobuf config response
+11-21 16:03:05.547  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(2103)] max_background_apps changed to: 1
+11-21 16:03:05.549  2488  2488 I chromium: [2488:2488:INFO:ccs_settings.cc(262)] CcsSettings using CCS url https://clients3.google.com/cast/cloudcast/
+11-21 16:03:05.556  2488  2488 I chromium: [2488:2488:INFO:application_config_manager_impl.cc(529)] Setting default remote control app ID: 1374D8AA
+11-21 16:03:05.556  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(422)] new ApplicationIdentificationSettings session_id: 3b592ee3-8b71-4bea-a433-8b160e0da03b app_id: 38579375 universal_app_id: 38579375 flags: 7 headers: 512
+11-21 16:03:05.556  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(1286)] Waiting for all transports to be enabled
+11-21 16:03:05.556  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(422)] new ApplicationIdentificationSettings session_id: 94d9d19c-ac92-472f-8225-105d82a7b667 app_id: 38579375 universal_app_id: 38579375 flags: 7 headers: 512
+11-21 16:03:05.556  2488  2488 I chromium: [2488:2488:INFO:robot_account_auth_manager.cc(479)] Successfully initialized JWT for 38579375
+11-21 16:03:05.556  2488  2488 I chromium: [2488:2488:INFO:config_downloader.cc(906)] Clearing local config cache
+11-21 16:03:05.557  2488  2488 I chromium: [2488:2488:INFO:metrics_recorder.cc(188)] Record action: Cast.DCS.DownloadSuccess
+11-21 16:03:05.557  2488  2488 I chromium: [2488:2488:INFO:key_exchange_namespace_handler.cc(175)] Changing key_exchange_support capability
+11-21 16:03:05.558  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(158)] Extra groups changed
+11-21 16:03:05.558  2488  2571 I chromium: [2488:2571:INFO:structure_info_from_trusted_devices.cc(189)] Automatic refetch delay changed to 7
+11-21 16:03:05.558  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(215)] Now using local address [REDACTED]
+11-21 16:03:05.558  2488  2542 I chromium: [2488:2542:INFO:directory_service_impl.cc(299)] This device became root
+11-21 16:03:05.558  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(231)] Using multicast TTL 1
+11-21 16:03:05.558  2488  2542 I chromium: [2488:2542:INFO:parent_tracker.cc(300)] Add extra group 224.0.0.250
+11-21 16:03:05.560  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(676)] Starting app: app_id=E8C28D3C, session_id=, launch_from=FROM_LOCAL, , virtual_device_id=[REDACTED], session_owner=, group_session_id=, headless=0, silent_launch_enabled=0, action_script_id=, supported_app_types={WEB,}, take_resources=1
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:resource_manager_impl.cc(118)] Resources requested for app E8C28D3C (Backdrop), session_id=50c44464-e9f8-4385-ac2d-d571361ee81f, mandatory=2, optional=5, tokens=[], external=0, only_if_available=1
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(1838)] Resources granted to app: app=E8C28D3C (Backdrop), session_id=50c44464-e9f8-4385-ac2d-d571361ee81f, resources=2, token_resources=[]
+11-21 16:03:05.561  2488  2587 I chromium: [2488:2587:INFO:v2_transport.cc(462)] Added Cast V2 endpoint: id=50c44464-e9f8-4385-ac2d-d571361ee81f, socket_factory_id=[REDACTED]
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:auto_volume.cc(507)] No current app anymore
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:api_reboot_idle_checker.cc(104)] active_activities count=0
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:cast_session_manager_impl.cc(850)] Sending 0 media sessions. (from:OnCurrentAppChanged@../../chromecast/internal/receiver/cast_session/cast_session_manager_impl.cc:782)
+11-21 16:03:05.561  2488  2488 W chromium: [2488:2488:WARNING:media_control_handler.cc(56)] Unknown player state: 
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(1622)] App starting: E8C28D3C (Backdrop), session_id=50c44464-e9f8-4385-ac2d-d571361ee81f
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:cast_web_service.cc(162)] Added session: 50c44464-e9f8-4385-ac2d-d571361ee81f
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(422)] new ApplicationIdentificationSettings session_id: 50c44464-e9f8-4385-ac2d-d571361ee81f app_id: E8C28D3C universal_app_id: E8C28D3C flags: 23 headers: 2047
+11-21 16:03:05.561  2488  2488 E chromium: [2488:2488:ERROR:cast_web_service.cc(203)] Failed to erase session: b2cead4b-dd26-4ab3-9e01-0c9cab538fdc
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(1636)] App pending: E8C28D3C (Backdrop), session_id=50c44464-e9f8-4385-ac2d-d571361ee81f
+11-21 16:03:05.561  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(1641)] App started: E8C28D3C (Backdrop), session_id=50c44464-e9f8-4385-ac2d-d571361ee81f
+11-21 16:03:05.577  2488  2488 I chromium: [2488:2488:INFO:cast_cloud_settings.cc(119)] Presence settings is: 0
+11-21 16:03:05.577  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(1958)] Geolocation changed to: 0
+11-21 16:03:05.577  2488  2488 I chromium: [2488:2488:INFO:lycra_transport.cc(338)] Feature flag changed: false
+11-21 16:03:05.577  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(2085)] Playback disruption feature is: 1
+11-21 16:03:05.577  2488  2488 I chromium: [2488:2488:INFO:playback_disruption_service.cc(348)] Playback disruption service enabled and running
+11-21 16:03:05.577  2488  2488 I chromium: [2488:2488:INFO:cast_cloud_settings.cc(137)] Presence radar settings is: 0
+11-21 16:03:05.577  2488  2571 I chromium: [2488:2571:INFO:grpc_auth_manager_in_process.cc(208)] Initializing Auth.
+11-21 16:03:05.578  2488  2571 W chromium: [2488:2571:WARNING:grpc_auth_manager_in_process.cc(213)] Device key not available yet.
+11-21 16:03:05.578  2488  2488 I chromium: [2488:2488:INFO:chromecast_service.cc(2100)] Usonia GRPC feature is: 0
+11-21 16:03:05.578  2488  2571 I chromium: [2488:2571:INFO:usonia_main_process.cc(219)] Ignoring stop when not started.
+11-21 16:03:05.578  2488  2488 E chromium: [2488:2488:ERROR:apk_audio_service_impl.cc(88)] kEnableAndroidTVC2NMultizone is not enabled.
+11-21 16:03:05.578  2488  2488 I chromium: [2488:2488:INFO:idle_screen_application.cc(55)] IdleScreenApplication falling back to websocket IPC
+11-21 16:03:05.578  2488  2488 I chromium: [2488:2488:INFO:application_message_handler.cc(691)] Cast V2 IPC connected: app_id=E8C28D3C
+11-21 16:03:05.578  2488  2488 I chromium: [2488:2488:INFO:application_message_handler.cc(872)] Received READY message from app
+11-21 16:03:05.578  2488  2488 I chromium: [2488:2488:INFO:application_message_handler.cc(1701)] Application doesn't support playback device status
+11-21 16:03:05.579  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(1942)] Focusing foreground application: session=50c44464-e9f8-4385-ac2d-d571361ee81f
+11-21 16:03:05.580  2488  2488 I chromium: [2488:2488:INFO:media_classifier_manager.cc(137)] app_id: E8C28D3C, is_spoken_word_app: 0
+11-21 16:03:05.580  2488  2488 I chromium: [2488:2488:INFO:media_classifier_manager.cc(147)] app_id: E8C28D3C, is_movie_app: 0
+11-21 16:03:05.580  2488  2488 I chromium: [2488:2488:INFO:application_manager_impl.cc(1646)] App running: E8C28D3C (Backdrop), session_id=50c44464-e9f8-4385-ac2d-d571361ee81f
+11-21 16:03:05.580  2488  2587 I chromium: [2488:2587:INFO:metrics_recorder.cc(188)] Cast v2 action(socket_id=local-client.1): CastV2.Connection.Connect.In
+11-21 16:03:05.580  2488  2587 I chromium: [2488:2587:INFO:metrics_recorder.cc(188)] Cast v2 action(socket_id=local-client.2): CastV2.Connection.Connect.In
+11-21 16:03:05.580  2488  2488 I chromium: [2488:2488:INFO:application_message_handler.cc(854)] Cast V2 IPC closed: app_id=E8C28D3C
+11-21 16:03:06.652  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_TRANSIENT_FAILURE
+11-21 16:03:08.965  2488  2548 I chromium: [2488:2548:INFO:crl_downloader.cc(155)] CRL processed.
+11-21 16:03:08.965  2488  2488 I chromium: [2488:2488:INFO:ccs_transport_gcm.cc(244)] Registered GCM handler
+11-21 16:03:08.965  2488  2488 W chromium: [2488:2488:WARNING:ccs_manager_impl.cc(1522)] Device does not have a weave device id
+11-21 16:03:08.965  2488  2488 I chromium: [2488:2488:INFO:ccs_transport_https.cc(1242)] No cloud settings for register request
+11-21 16:03:08.965  2488  2488 W chromium: [2488:2488:WARNING:client_auth_signer.cc(168)] No private key, hence empty signature.
+11-21 16:03:08.965  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(1452)] Registering device with CCS: message_id = e23c6065-2a5a-487e-b9b1-4a50aaeb4d92
+11-21 16:03:08.965  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(1442)] Missing signature, return empty JWT
+11-21 16:03:08.965  2488  2488 E chromium: [2488:2488:ERROR:ccs_transport_https.cc(1198)] CreateAndSignJwtAsync() returned invalid JWT. Not attaching to headers.
+11-21 16:03:08.965  2488  2488 E chromium: [2488:2488:ERROR:cast_auth_headers.cc(169)] Unable to update signature header
+11-21 16:03:08.966  2488  2488 I chromium: [2488:2488:INFO:metrics_recorder.cc(188)] cast event: Cloud.Transport.Https.Register.Out
+11-21 16:03:08.966  2488  2548 I chromium: [2488:2548:INFO:metrics_recorder.cc(188)] cast event: Cast.CRL.DownloadSuccess
+11-21 16:03:08.966  2488  2548 E chromium: [2488:2548:ERROR:cert_util.cc(174)] Certs missing,
+11-21 16:03:08.966  2488  2548 E chromium: [2488:2548:ERROR:client_auth_signer.cc(205)] Cast certificate verification: CastCertError::ERR_CERTS_MISSING
+11-21 16:03:08.966  2488  2548 I chromium: [2488:2548:INFO:metrics_recorder.cc(188)] cast event: Cast.Auth.Error.CertMissing
+11-21 16:03:09.036  2488  2488 E chromium: [2488:2488:ERROR:ccs_transport_https.cc(1846)] Received response code 403 for message_id = e23c6065-2a5a-487e-b9b1-4a50aaeb4d92 - 
+11-21 16:03:09.036  2488  2488 I chromium: [2488:2488:INFO:metrics_recorder.cc(188)] cast event: Cloud.Transport.Https.Register.Out.Error
+11-21 16:03:09.036  2488  2488 I chromium: [2488:2488:INFO:ccs_manager_impl.cc(2465)] Scheduling next register for device in time: 59.281 s
+11-21 16:03:09.706  2488  2488 I chromium: [2488:2488:INFO:lycra_gcm.cc(207)] Registered GCM handler
+11-21 16:03:09.707  2488  2550 I chromium: [2488:2550:INFO:structure_storage.cc(35)] Writing state to file: /data/user/0/com.google.android.apps.mediashell/cache/usonia_trusted_devices_fcm_connected_time
+11-21 16:03:11.252  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_TRANSIENT_FAILURE
+11-21 16:03:18.577  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_TRANSIENT_FAILURE
+11-21 16:03:19.300  2488  2571 I chromium: [2488:2571:INFO:structure_info_from_trusted_devices.cc(311)] Getting trusted devices from HDS, num_in_flight_requests = 1
+11-21 16:03:19.301  2488  2488 W chromium: [2488:2488:WARNING:client_auth_signer.cc(168)] No private key, hence empty signature.
+11-21 16:03:19.301  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(1437)] CreateJwt completed; running all done signing callbacks.
+11-21 16:03:19.301  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(1442)] Missing signature, return empty JWT
+11-21 16:03:19.301  2488  2488 E chromium: [2488:2488:ERROR:ccs_transport_https.cc(1198)] CreateAndSignJwtAsync() returned invalid JWT. Not attaching to headers.
+11-21 16:03:19.301  2488  2488 E chromium: [2488:2488:ERROR:cast_auth_headers.cc(169)] Unable to update signature header
+11-21 16:03:19.301  2488  2488 I chromium: [2488:2488:INFO:metrics_recorder.cc(188)] cast event: Cloud.Transport.Https.GetTrustedDevices.Out
+11-21 16:03:19.403  2488  2488 E chromium: [2488:2488:ERROR:ccs_transport_https.cc(1846)] Received response code 401 for message_id = ecd5c237-7891-4e72-abc0-b2fd820dfea1 - 
+11-21 16:03:19.403  2488  2488 I chromium: [2488:2488:INFO:metrics_recorder.cc(188)] cast event: Cloud.Transport.Https.GetTrustedDevices.Out.Error
+11-21 16:03:19.403  2488  2571 E chromium: [2488:2571:ERROR:structure_info_from_trusted_devices.cc(379)] Failed to get trusted devices from HDS.
+11-21 16:03:29.730  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_TRANSIENT_FAILURE
+11-21 16:03:31.597  2488  2488 W chromium: [2488:2488:WARNING:debug_endpoint_manager_grpc_client.cc(393)] Giving up queueing debug endpoint manager gRPC client RPC requests, discarding 4 RPC calls.
+11-21 16:03:45.923  2488  2488 I chromium: [2488:2488:INFO:debug_endpoint_manager_grpc_client.cc(365)] gRPC client channel state changed to GRPC_CHANNEL_TRANSIENT_FAILURE
+11-21 16:03:48.574  2488  2571 I chromium: [2488:2571:INFO:structure_info_from_trusted_devices.cc(311)] Getting trusted devices from HDS, num_in_flight_requests = 1
+11-21 16:03:48.574  2488  2488 W chromium: [2488:2488:WARNING:client_auth_signer.cc(168)] No private key, hence empty signature.
+11-21 16:03:48.574  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(1437)] CreateJwt completed; running all done signing callbacks.
+11-21 16:03:48.574  2488  2488 I chromium: [2488:2488:INFO:application_identification_settings.cc(1442)] Missing signature, return empty JWT
+11-21 16:03:48.574  2488  2488 E chromium: [2488:2488:ERROR:ccs_transport_https.cc(1198)] CreateAndSignJwtAsync() returned invalid JWT. Not attaching to headers.
+11-21 16:03:48.574  2488  2488 E chromium: [2488:2488:ERROR:cast_auth_headers.cc(169)] Unable to update signature header
+11-21 16:03:48.574  2488  2488 I chromium: [2488:2488:INFO:metrics_recorder.cc(188)] cast event: Cloud.Transport.Https.GetTrustedDevices.Out
+11-21 16:03:48.607  2488  2488 E chromium: [2488:2488:ERROR:ccs_transport_https.cc(1846)] Received response code 401 for message_id = bc8a0778-7464-4080-843a-0d2f8c78a7dd - 
+11-21 16:03:48.607  2488  2488 I chromium: [2488:2488:INFO:metrics_recorder.cc(188)] cast event: Cloud.Transport.Https.GetTrustedDevices.Out.Error
+11-21 16:03:48.607  2488  2571 E chromium: [2488:2571:ERROR:structure_info_from_trusted_devices.cc(379)] Failed to get trusted devices from HDS.

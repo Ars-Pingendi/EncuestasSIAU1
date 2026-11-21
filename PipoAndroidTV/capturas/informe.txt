@@ -1,0 +1,24 @@
+Physical size: 1920x1080
+Physical density: 320
+    versionName=90.0.4430.91
+Performing Streamed Install
+Success
+OK    se instala el APK
+OK    aparece en el menú de apps de Android TV (LEANBACK_LAUNCHER)
+Starting: Intent { cmp=com.personal.pipotv/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.personal.pipotv/.MainActivity
+TotalTime: 718
+WaitTime: 726
+Complete
+OK    la app abre a pantalla completa
+FALLA no se emparejó: ["GET /pipo/info"]
+FALLA no pide órdenes al PC
+FALLA no pidió el audio
+FALLA la pantalla no se mantiene encendida mientras suena
+OK    Play/Pausa del control pausa
+FALLA Play/Pausa no reanudó
+(no se pudo leer el texto de la pantalla; se sigue)
+OK    Atrás › «Salir» cierra la app
+5 correctas, 5 con fallas
