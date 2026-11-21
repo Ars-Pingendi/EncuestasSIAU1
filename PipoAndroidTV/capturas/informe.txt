@@ -9,8 +9,8 @@ Starting: Intent { cmp=com.personal.pipotv/.MainActivity }
 Status: ok
 LaunchState: COLD
 Activity: com.personal.pipotv/.MainActivity
-TotalTime: 572
-WaitTime: 576
+TotalTime: 889
+WaitTime: 893
 Complete
 OK    la app abre a pantalla completa
 OK    OK abre el teclado de la TV y el formulario sube para quedar a la vista
@@ -22,6 +22,6 @@ OK    reproduce la canción enviada (pide el audio al PC)
 OK    mientras suena, la pantalla se mantiene encendida
 OK    Play/Pausa del control pausa
 OK    Play/Pausa reanuda
-(no se pudo leer el texto de la pantalla; se sigue)
-FALLA «Salir» no cerró la app:     mResumedActivity: ActivityRecord{decf8ae u0 com.personal.pipotv/.MainActivity t5}
-12 correctas, 1 con fallas
+OK    Atrás en la raíz pregunta «¿Salir de Pipo?» (tras 3 pulsaciones)
+OK    Atrás › «Salir» cierra la app
+14 correctas, 0 con fallas
