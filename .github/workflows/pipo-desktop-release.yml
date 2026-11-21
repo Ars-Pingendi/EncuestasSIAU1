@@ -2,7 +2,7 @@ name: Pipo Music Player - publicar versión de Windows
 
 # Publica como Release de GitHub el instalador y la versión portable ya compilados y probados
 # por el flujo «Pipo Music Player - Windows» (sin volver a compilar).
-# Versión publicada: la de PipoDesktop/package.json (1.3.0: videos de YouTube en la app y en la TV, y «Ver / Reproducir en la TV»).
+# Versión publicada: la de PipoDesktop/package.json (1.4.0: Inicio con recomendaciones y descarga de videos de YouTube en MP4).
 on:
   push:
     branches: ["ccr-87fb0d44-h5atsk"]
@@ -59,12 +59,16 @@ jobs:
           Como la app no tiene firma digital, Windows SmartScreen puede mostrar «Windows protegió su PC»: elige **Más información → Ejecutar de todas formas**.
 
           ## Qué incluye
+          - **Inicio al estilo de Spotify**: escuchado recientemente, mixes diarios, canciones y álbumes para ti, tus artistas, para volver a escuchar y canciones parecidas de YouTube. Se calcula en el equipo con tu historial.
           - Biblioteca automática desde la carpeta *Música* y las carpetas que agregues; se actualiza sola.
           - Canciones, álbumes, artistas, géneros y carpetas; búsqueda sin importar tildes.
           - Ecualizador de 10 bandas (31 Hz – 16 kHz) con 13 preajustes, preajustes propios, refuerzo de graves, sonido envolvente y amplificación; un ajuste distinto por cada salida de audio.
           - Listas y favoritos reordenables, listas automáticas, cola editable, temporizador de apagado y reanudación donde lo dejaste.
           - Teclas multimedia, panel multimedia de Windows y botones en la barra de tareas; tema claro u oscuro.
-          - YouTube sin anuncios (solo audio, con ecualizador) y descargas para escuchar sin internet. Esta función incumple los términos de uso de YouTube y puede dejar de funcionar si YouTube cambia algo; se corrige con «Ajustes → Actualizar componente de YouTube».
+          - YouTube sin anuncios: canciones (solo audio, con ecualizador) y descargas para escuchar sin internet.
+          - Videos de YouTube: búsqueda con miniaturas, visor hasta 1080p y **descarga en MP4 (hasta 1080p)** para verlos sin internet en la sección «Videos descargados» (también aparecen en «Películas» de la TV).
+          - Pipo en la TV (LG webOS): biblioteca, películas, series y videos de YouTube en el televisor; «Reproducir / Ver en la TV» desde el PC.
+          - Estas funciones de YouTube incumplen los términos de uso de YouTube y pueden dejar de funcionar si YouTube cambia algo; se corrige con «Ajustes → Actualizar componente de YouTube».
 
           Licencia GPL-3.0. Código fuente en la carpeta \`PipoDesktop/\` de este repositorio.
           NOTAS
